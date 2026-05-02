@@ -18,6 +18,13 @@ export function useSectionReveal<T extends HTMLElement = HTMLElement>(
     const bodyParagraphs = el.querySelectorAll<HTMLElement>(":scope > div > p, .reveal-body");
     const staggerEls = el.querySelectorAll<HTMLElement>(staggerSelector);
 
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reducedMotion) {
+      gsap.set([headings, bodyParagraphs, staggerEls], { opacity: 1, y: 0 });
+      return;
+    }
+
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: el,

@@ -13,6 +13,13 @@ function StatCounter({ target, format }: { target: number; format: (n: number) =
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) {
+      el.textContent = format(target);
+      return;
+    }
+
     const obj = { val: 0 };
     const tween = gsap.to(obj, {
       val: target,
@@ -37,6 +44,8 @@ function useGsapButtonHover(ref: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) return;
     const buttons = el.querySelectorAll<HTMLElement>(".btn-gsap");
     const cleanups: (() => void)[] = [];
     buttons.forEach((btn) => {
@@ -79,6 +88,15 @@ export default function Home() {
     const form = hero.querySelector<HTMLElement>(".hero-form");
     const disclaimer = hero.querySelector<HTMLElement>(".hero-disclaimer");
     const urgency = urgencyRef.current;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reducedMotion) {
+      const allEls = [urgency, badge, ...Array.from(words), subtitle, form, disclaimer].filter(Boolean);
+      gsap.set(allEls, { y: 0 });
+      const tween = gsap.from(allEls, { opacity: 0, duration: 0.4, ease: "none" });
+      return () => { tween.kill(); };
+    }
 
     gsap.set([words, badge, subtitle, form, disclaimer], { opacity: 0, y: 0 });
     gsap.set(words, { y: 60, opacity: 0 });

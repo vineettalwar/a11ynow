@@ -21,6 +21,8 @@ export function ParticleCanvas() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     let animId: number;
     const particles: Particle[] = [];
     const COUNT = 60;
@@ -43,6 +45,25 @@ export function ParticleCanvas() {
         vy: (Math.random() - 0.5) * 0.2,
         baseOpacity,
       });
+    }
+
+    if (reducedMotion) {
+      const drawStatic = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach((p) => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(220, 120, 40, ${p.baseOpacity})`;
+          ctx.fill();
+        });
+      };
+      drawStatic();
+      window.addEventListener("resize", drawStatic);
+
+      return () => {
+        window.removeEventListener("resize", resize);
+        window.removeEventListener("resize", drawStatic);
+      };
     }
 
     const targets = particles.map((p) => ({ opacity: p.baseOpacity }));
