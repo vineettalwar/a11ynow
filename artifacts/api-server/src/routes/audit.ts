@@ -48,6 +48,7 @@ interface AuditViolationData {
   description: string;
   impact: "minor" | "moderate" | "serious" | "critical";
   affectedElements: number;
+  topSelectors: string[];
 }
 
 interface AuditResultData {
@@ -136,6 +137,9 @@ async function runPlaywrightAudit(
     description: v.description,
     impact: (v.impact as AuditViolationData["impact"]) ?? "minor",
     affectedElements: v.nodes.length,
+    topSelectors: v.nodes.slice(0, 3).map((n) =>
+      Array.isArray(n.target) ? n.target.join(" > ") : String(n.target)
+    ),
   }));
 
   const passedChecks = axeResults.passes.length;
@@ -214,6 +218,9 @@ async function runAccessibilityAudit(url: string): Promise<AuditResultData> {
           description: v.description,
           impact: (v.impact as AuditViolationData["impact"]) ?? "minor",
           affectedElements: v.nodes.length,
+          topSelectors: v.nodes.slice(0, 3).map((n) =>
+            Array.isArray(n.target) ? n.target.join(" > ") : String(n.target)
+          ),
         }));
       } else {
         violations.push({
@@ -222,6 +229,7 @@ async function runAccessibilityAudit(url: string): Promise<AuditResultData> {
           description: "The page could not be fetched for automated analysis. It may require authentication or block automated scanners.",
           impact: "moderate",
           affectedElements: 1,
+          topSelectors: [],
         });
         passedChecks = Math.floor(totalChecks * 0.4);
       }
@@ -233,6 +241,7 @@ async function runAccessibilityAudit(url: string): Promise<AuditResultData> {
         description: "The page could not be analyzed. It may be unreachable, require authentication, or block automated scanners.",
         impact: "moderate",
         affectedElements: 1,
+        topSelectors: [],
       });
       passedChecks = Math.floor(totalChecks * 0.4);
     }

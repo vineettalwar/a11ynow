@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertOctagon, Loader2, CheckCircle2, Mail, FileDown } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 function LeadCaptureForm({ auditId }: { auditId: string }) {
   const [name, setName] = useState("");
@@ -99,14 +100,13 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function useDownloadPdf(auditId: string) {
   const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   async function download() {
     setIsPending(true);
-    setError(null);
     try {
       const resp = await fetch(`${BASE}/api/audit/${auditId}/pdf`);
-      if (!resp.ok) throw new Error("PDF generation failed");
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -119,13 +119,17 @@ function useDownloadPdf(auditId: string) {
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setError("Could not generate the report. Please try again.");
+      toast({
+        title: "Report generation failed",
+        description: "Could not generate the PDF report. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsPending(false);
     }
   }
 
-  return { download, isPending, error };
+  return { download, isPending };
 }
 
 export default function AuditResult() {
@@ -231,7 +235,7 @@ function AuditResultView({
   result: NonNullable<ReturnType<typeof useCreateAudit>["data"]>;
   scannedDate: string;
 }) {
-  const { download, isPending: pdfPending, error: pdfError } = useDownloadPdf(result.auditId);
+  const { download, isPending: pdfPending } = useDownloadPdf(result.auditId);
 
   return (
     <div className="flex flex-col w-full">
@@ -261,9 +265,6 @@ function AuditResultView({
                   <><FileDown className="w-4 h-4" /> Download Report</>
                 )}
               </Button>
-              {pdfError && (
-                <p className="text-xs text-destructive">{pdfError}</p>
-              )}
             </div>
           </div>
         </div>
