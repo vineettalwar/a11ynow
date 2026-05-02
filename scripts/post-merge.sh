@@ -21,7 +21,7 @@ if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPO" ]; then
             || printf 'x-access-token:%s' "${GITHUB_TOKEN}" | base64)
 
   git -c "http.https://github.com/.extraheader=Authorization: Basic ${ENCODED}" \
-    push origin HEAD:main
+    push --force origin HEAD:main
 
   echo "Pushed to ${GITHUB_REPO}"
 else
