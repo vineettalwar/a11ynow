@@ -384,7 +384,7 @@ export default function BatchResult() {
                 </thead>
                 <tbody className="divide-y">
                   {result.pages.map((page) => (
-                    <tr key={page.auditId} className="hover:bg-muted/20 transition-colors">
+                    <tr key={page.url} className="hover:bg-muted/20 transition-colors">
                       <td className="px-5 py-3.5">
                         <p className="font-mono text-xs text-foreground truncate max-w-[200px] md:max-w-[300px]">{page.url}</p>
                       </td>

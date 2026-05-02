@@ -51,71 +51,33 @@ interface UrlScanState {
   error?: string;
 }
 
-function scoreToLevel(score: number): string {
-  if (score < 20) return "critical";
-  if (score < 40) return "poor";
-  if (score < 60) return "moderate";
-  if (score < 80) return "good";
-  return "excellent";
-}
-
-function aggregateBatch(states: UrlScanState[]) {
-  const pages = states.map((s) => ({
-    auditId: s.auditId ?? "",
-    url: s.url,
-    score: s.score ?? 0,
-    level: s.level ?? "critical",
-    totalViolations: s.totalViolations ?? 0,
-    criticalViolations: s.criticalViolations ?? 0,
-    seriousViolations: s.seriousViolations ?? 0,
-    passedChecks: s.passedChecks ?? 0,
-    totalChecks: s.totalChecks ?? 0,
-    violations: (s.violations ?? []) as Array<{ id: string; wcagCriteria: string; description: string; impact: string; affectedElements: number }>,
-    scannedAt: s.scannedAt ?? new Date().toISOString(),
-    status: (s.status === "done" ? "success" : "error") as "success" | "error",
-    error: s.error,
-  }));
-
-  const successPages = pages.filter((p) => p.status === "success");
-  const siteScore =
-    successPages.length > 0
-      ? Math.round(successPages.reduce((sum, p) => sum + p.score, 0) / successPages.length)
-      : 0;
-  const siteLevel = scoreToLevel(siteScore);
-
-  const violationMap = new Map<string, { wcagCriteria: string; description: string; impact: string; pageUrls: string[]; totalElements: number }>();
-  for (const page of pages) {
-    for (const v of page.violations) {
-      const key = v.id;
-      const existing = violationMap.get(key);
-      if (existing) {
-        if (!existing.pageUrls.includes(page.url)) existing.pageUrls.push(page.url);
-        existing.totalElements += v.affectedElements;
-      } else {
-        violationMap.set(key, {
-          wcagCriteria: v.wcagCriteria,
-          description: v.description,
-          impact: v.impact,
-          pageUrls: [page.url],
-          totalElements: v.affectedElements,
-        });
-      }
-    }
-  }
-
-  const crossPageViolations = Array.from(violationMap.entries())
-    .map(([id, data]) => ({
-      id,
-      wcagCriteria: data.wcagCriteria,
-      description: data.description,
-      impact: data.impact,
-      pageCount: data.pageUrls.length,
-      totalAffectedElements: data.totalElements,
-      affectedUrls: data.pageUrls,
-    }))
-    .sort((a, b) => b.pageCount - a.pageCount || b.totalAffectedElements - a.totalAffectedElements);
-
-  return { siteScore, siteLevel, pages, crossPageViolations, scannedAt: new Date().toISOString() };
+interface BatchAuditResponse {
+  siteScore: number;
+  siteLevel: string;
+  scannedAt: string;
+  pages: Array<{
+    auditId: string;
+    url: string;
+    score: number;
+    level: string;
+    totalViolations: number;
+    criticalViolations: number;
+    seriousViolations: number;
+    passedChecks: number;
+    totalChecks: number;
+    scannedAt: string;
+    status: "success" | "error";
+    error?: string;
+  }>;
+  crossPageViolations: Array<{
+    id: string;
+    wcagCriteria: string;
+    description: string;
+    impact: string;
+    pageCount: number;
+    totalAffectedElements: number;
+    affectedUrls: string[];
+  }>;
 }
 
 const statusLabel: Record<UrlStatus, string> = {
@@ -151,10 +113,6 @@ function MultiUrlForm() {
     setUrls((u) => u.map((u2, idx) => (idx === i ? val : u2)));
   }
 
-  function setUrlState(i: number, patch: Partial<UrlScanState>) {
-    setUrlStates((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const filled = urls.map((u) => u.trim()).filter(Boolean);
@@ -162,66 +120,47 @@ function MultiUrlForm() {
     setError(null);
     setScanning(true);
 
-    const initial: UrlScanState[] = filled.map((url) => ({ url, status: "queued" }));
-    setUrlStates(initial);
+    // Show all URLs as queued, then immediately scanning
+    setUrlStates(filled.map((url) => ({ url, status: "queued" })));
+    // Slight delay so the "queued" state is visible before scanning starts
+    await new Promise((r) => setTimeout(r, 120));
+    setUrlStates(filled.map((url) => ({ url, status: "scanning" })));
 
-    const results: UrlScanState[] = [...initial];
+    try {
+      const res = await fetch(`${MULTI_SCAN_BASE}/api/audit/batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls: filled }),
+      });
 
-    const concurrencyLimit = 3;
-    let idx = 0;
-
-    async function worker() {
-      while (idx < filled.length) {
-        const i = idx++;
-        const url = filled[i];
-        results[i] = { ...results[i], status: "scanning" };
-        setUrlStates([...results]);
-        try {
-          const res = await fetch(`${MULTI_SCAN_BASE}/api/audit`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url }),
-          });
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({})) as { message?: string };
-            throw new Error(body.message ?? `HTTP ${res.status}`);
-          }
-          const data = await res.json() as {
-            auditId: string; url: string; score: number; level: string;
-            totalViolations: number; criticalViolations: number; seriousViolations: number;
-            passedChecks: number; totalChecks: number; violations: unknown[]; scannedAt: string;
-          };
-          results[i] = {
-            url: data.url,
-            status: "done",
-            auditId: data.auditId,
-            score: data.score,
-            level: data.level,
-            totalViolations: data.totalViolations,
-            criticalViolations: data.criticalViolations,
-            seriousViolations: data.seriousViolations,
-            passedChecks: data.passedChecks,
-            totalChecks: data.totalChecks,
-            violations: data.violations,
-            scannedAt: data.scannedAt,
-          };
-        } catch (err) {
-          results[i] = {
-            url,
-            status: "error",
-            error: err instanceof Error ? err.message : "Scan failed",
-          };
-        }
-        setUrlStates([...results]);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { message?: string };
+        throw new Error(body.message ?? `HTTP ${res.status}`);
       }
+
+      const batchResult = await res.json() as BatchAuditResponse;
+
+      // Reflect per-URL outcomes in the progress panel before navigating
+      setUrlStates(
+        batchResult.pages.map((p) => ({
+          url: p.url,
+          status: p.status === "success" ? "done" : "error",
+          score: p.score,
+          level: p.level,
+          auditId: p.auditId,
+          error: p.error,
+        })),
+      );
+
+      await new Promise((r) => setTimeout(r, 700));
+
+      sessionStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(batchResult));
+      setLocation("/batch-result");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Batch scan failed. Please try again.");
+      setScanning(false);
+      setUrlStates([]);
     }
-
-    const workers = Array.from({ length: Math.min(concurrencyLimit, filled.length) }, () => worker());
-    await Promise.all(workers);
-
-    const batchResult = aggregateBatch(results);
-    sessionStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(batchResult));
-    setLocation("/batch-result");
   }
 
   if (scanning && urlStates.length > 0) {
