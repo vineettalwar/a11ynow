@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
+    "dev": "export NODE_ENV=development && export LD_LIBRARY_PATH=$(ls -d /nix/store/*-mesa-libgbm-*/lib 2>/dev/null | sort -V | tail -1):$(ls -d /nix/store/*-systemd-*/lib 2>/dev/null | sort -V | tail -1):$LD_LIBRARY_PATH && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "axe-core": "^4.11.4",
@@ -21,7 +22,8 @@
     "jsdom": "^29.1.1",
     "node-fetch": "^3.3.2",
     "pino": "^9",
-    "pino-http": "^10"
+    "pino-http": "^10",
+    "playwright": "^1.59.1"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
