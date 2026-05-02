@@ -120,11 +120,9 @@ function MultiUrlForm() {
     setError(null);
     setScanning(true);
 
-    // Show all URLs as queued, then immediately scanning
-    setUrlStates(filled.map((url) => ({ url, status: "queued" })));
-    // Slight delay so the "queued" state is visible before scanning starts
-    await new Promise((r) => setTimeout(r, 120));
-    setUrlStates(filled.map((url) => ({ url, status: "scanning" })));
+    // Show all URLs as queued immediately
+    const initial: UrlScanState[] = filled.map((url) => ({ url, status: "queued" }));
+    setUrlStates(initial);
 
     try {
       const res = await fetch(`${MULTI_SCAN_BASE}/api/audit/batch`, {
@@ -133,25 +131,73 @@ function MultiUrlForm() {
         body: JSON.stringify({ urls: filled }),
       });
 
-      if (!res.ok) {
+      // Handle non-SSE error responses (e.g. 400 validation errors)
+      if (!res.ok || res.headers.get("content-type")?.includes("application/json")) {
         const body = await res.json().catch(() => ({})) as { message?: string };
         throw new Error(body.message ?? `HTTP ${res.status}`);
       }
 
-      const batchResult = await res.json() as BatchAuditResponse;
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let batchResult: BatchAuditResponse | null = null;
 
-      // Reflect per-URL outcomes in the progress panel before navigating
-      setUrlStates(
-        batchResult.pages.map((p) => ({
-          url: p.url,
-          status: p.status === "success" ? "done" : "error",
-          score: p.score,
-          level: p.level,
-          auditId: p.auditId,
-          error: p.error,
-        })),
-      );
+      // Build a local mutable copy of states so we can patch per URL
+      const states: UrlScanState[] = filled.map((url) => ({ url, status: "queued" }));
 
+      const patchUrl = (url: string, patch: Partial<UrlScanState>) => {
+        const idx = states.findIndex((s) => s.url === url);
+        if (idx !== -1) states[idx] = { ...states[idx], ...patch };
+        setUrlStates([...states]);
+      };
+
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE frames are separated by double newlines
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          for (const line of frame.split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            const data = JSON.parse(line.slice(6)) as {
+              type: string;
+              url?: string;
+              index?: number;
+              status?: "success" | "error";
+              score?: number;
+              level?: string;
+              auditId?: string;
+              error?: string;
+              message?: string;
+            } & Partial<BatchAuditResponse>;
+
+            if (data.type === "scanning" && data.url) {
+              patchUrl(data.url, { status: "scanning" });
+            } else if (data.type === "page" && data.url) {
+              patchUrl(data.url, {
+                status: data.status === "success" ? "done" : "error",
+                score: data.score,
+                level: data.level,
+                auditId: data.auditId,
+                error: data.error,
+              });
+            } else if (data.type === "complete") {
+              batchResult = data as unknown as BatchAuditResponse;
+              break outer;
+            } else if (data.type === "error") {
+              throw new Error(data.message ?? "Batch scan failed.");
+            }
+          }
+        }
+      }
+
+      if (!batchResult) throw new Error("Batch scan did not return a result.");
+
+      // Brief pause so users can see the final per-URL statuses before navigating
       await new Promise((r) => setTimeout(r, 700));
 
       sessionStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(batchResult));

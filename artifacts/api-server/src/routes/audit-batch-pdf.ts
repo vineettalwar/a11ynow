@@ -4,6 +4,8 @@ import { inArray } from "drizzle-orm";
 import { db, auditsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 
+type PDFDoc = InstanceType<typeof PDFDocument>;
+
 const router: IRouter = Router();
 
 const BRAND_ORANGE = "#FF4D1C";
@@ -79,7 +81,7 @@ function parseBody(body: unknown): { ok: true; auditIds: string[] } | { ok: fals
   return { ok: true, auditIds: auditIds as string[] };
 }
 
-function writeHeader(doc: PDFDocument, isFirstPage: boolean) {
+function writeHeader(doc: PDFDoc, isFirstPage: boolean) {
   if (!isFirstPage) doc.addPage();
   doc.rect(0, 0, PAGE_WIDTH, 72).fill(BRAND_DARK);
   doc
@@ -96,7 +98,7 @@ function writeHeader(doc: PDFDocument, isFirstPage: boolean) {
     .text("WCAG 2.1 AA Multi-Page Compliance Report", PAGE_MARGIN, 50);
 }
 
-function writeCoverPage(doc: PDFDocument, rows: AuditRow[], scannedDate: string): void {
+function writeCoverPage(doc: PDFDoc, rows: AuditRow[], scannedDate: string): void {
   writeHeader(doc, true);
 
   let y = 96;
@@ -214,7 +216,7 @@ function writeCoverPage(doc: PDFDocument, rows: AuditRow[], scannedDate: string)
   }
 }
 
-function writePageSection(doc: PDFDocument, row: AuditRow): void {
+function writePageSection(doc: PDFDoc, row: AuditRow): void {
   doc.addPage();
 
   doc.rect(0, 0, PAGE_WIDTH, 72).fill(BRAND_DARK);
