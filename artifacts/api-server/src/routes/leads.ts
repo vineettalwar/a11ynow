@@ -27,7 +27,8 @@ router.post("/leads", async (req, res): Promise<void> => {
       createdAt: now,
     });
 
-    logger.info({ leadId, email, auditId }, "Lead captured");
+    const emailDomain = email.split("@")[1] ?? "unknown";
+    logger.info({ leadId, emailDomain, auditId }, "Lead captured");
 
     res.status(201).json({
       leadId,
@@ -37,7 +38,7 @@ router.post("/leads", async (req, res): Promise<void> => {
       createdAt: now.toISOString(),
     });
   } catch (err) {
-    logger.error({ err, email }, "Failed to save lead");
+    logger.error({ err }, "Failed to save lead");
     res.status(500).json({ error: "db_error", message: "Could not save your details. Please try again." });
   }
 });
