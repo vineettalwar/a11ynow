@@ -87,20 +87,29 @@ router.post("/monitor", async (req, res): Promise<void> => {
 
       if (auditRows.length > 0) {
         const audit = auditRows[0];
-        await db.insert(monitoringScansTable).values({
-          id: randomUUID(),
-          monitoredUrlId: id,
-          score: audit.score,
-          level: audit.level,
-          totalViolations: audit.totalViolations,
-          criticalViolations: audit.criticalViolations,
-          seriousViolations: audit.seriousViolations,
-          violations: audit.violations,
-          passedChecks: audit.passedChecks,
-          totalChecks: audit.totalChecks,
-          scannedAt: audit.scannedAt,
-        });
-        logger.info({ auditId, monitoredUrlId: id }, "Seeded first monitoring scan from audit");
+        const auditUrlNorm = audit.url.replace(/\/+$/, "").toLowerCase();
+        const monitorUrlNorm = url.replace(/\/+$/, "").toLowerCase();
+        if (auditUrlNorm !== monitorUrlNorm) {
+          logger.warn(
+            { auditId, auditUrl: audit.url, monitorUrl: url },
+            "Audit URL does not match monitored URL — skipping seed",
+          );
+        } else {
+          await db.insert(monitoringScansTable).values({
+            id: randomUUID(),
+            monitoredUrlId: id,
+            score: audit.score,
+            level: audit.level,
+            totalViolations: audit.totalViolations,
+            criticalViolations: audit.criticalViolations,
+            seriousViolations: audit.seriousViolations,
+            violations: audit.violations,
+            passedChecks: audit.passedChecks,
+            totalChecks: audit.totalChecks,
+            scannedAt: audit.scannedAt,
+          });
+          logger.info({ auditId, monitoredUrlId: id }, "Seeded first monitoring scan from audit");
+        }
       }
     } catch (err) {
       logger.warn({ err, auditId }, "Failed to seed monitoring scan from audit — continuing");
