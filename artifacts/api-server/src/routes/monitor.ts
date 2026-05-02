@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { randomUUID, randomBytes } from "crypto";
 import { eq, asc } from "drizzle-orm";
-import { db, monitoredUrlsTable, monitoringScansTable } from "@workspace/db";
+import { db, auditsTable, monitoredUrlsTable, monitoringScansTable } from "@workspace/db";
 import { validateScanUrl } from "../lib/scan";
 import { sendMonitoringConfirmation } from "../lib/email";
 import { logger } from "../lib/logger";
@@ -24,7 +24,7 @@ function nextScanDate(frequency: Frequency): Date {
 }
 
 router.post("/monitor", async (req, res): Promise<void> => {
-  const { url: rawUrl, email, frequency } = req.body as Record<string, unknown>;
+  const { url: rawUrl, email, frequency, auditId } = req.body as Record<string, unknown>;
 
   if (typeof email !== "string" || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     res.status(400).json({ error: "validation_error", message: "A valid email address is required." });
@@ -77,6 +77,36 @@ router.post("/monitor", async (req, res): Promise<void> => {
     return;
   }
 
+  if (typeof auditId === "string" && auditId.trim()) {
+    try {
+      const auditRows = await db
+        .select()
+        .from(auditsTable)
+        .where(eq(auditsTable.auditId, auditId.trim()))
+        .limit(1);
+
+      if (auditRows.length > 0) {
+        const audit = auditRows[0];
+        await db.insert(monitoringScansTable).values({
+          id: randomUUID(),
+          monitoredUrlId: id,
+          score: audit.score,
+          level: audit.level,
+          totalViolations: audit.totalViolations,
+          criticalViolations: audit.criticalViolations,
+          seriousViolations: audit.seriousViolations,
+          violations: audit.violations,
+          passedChecks: audit.passedChecks,
+          totalChecks: audit.totalChecks,
+          scannedAt: audit.scannedAt,
+        });
+        logger.info({ auditId, monitoredUrlId: id }, "Seeded first monitoring scan from audit");
+      }
+    } catch (err) {
+      logger.warn({ err, auditId }, "Failed to seed monitoring scan from audit — continuing");
+    }
+  }
+
   await sendMonitoringConfirmation({
     to: email.trim().toLowerCase(),
     url,
@@ -85,7 +115,7 @@ router.post("/monitor", async (req, res): Promise<void> => {
     appBaseUrl: APP_BASE_URL,
   });
 
-  req.log.info({ url, email, frequency }, "Monitoring registered");
+  req.log.info({ url, email, frequency, seeded: !!auditId }, "Monitoring registered");
   res.status(201).json({ token, url, frequency, email: email.trim().toLowerCase() });
 });
 

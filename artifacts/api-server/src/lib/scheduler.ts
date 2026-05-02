@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { randomUUID } from "crypto";
-import { lte, eq, and } from "drizzle-orm";
+import { lte, eq, and, desc } from "drizzle-orm";
 import { db, monitoredUrlsTable, monitoringScansTable } from "@workspace/db";
 import { runAccessibilityScan } from "./scan";
 import { sendMonitoringSummary } from "./email";
@@ -44,10 +44,20 @@ async function runDueScans() {
         .select()
         .from(monitoringScansTable)
         .where(eq(monitoringScansTable.monitoredUrlId, row.id))
-        .orderBy(monitoringScansTable.scannedAt)
+        .orderBy(desc(monitoringScansTable.scannedAt))
         .limit(1);
 
-      const previousScore = previousScans.length > 0 ? previousScans[0].score : null;
+      const previousScan = previousScans.length > 0 ? previousScans[0] : null;
+      const previousScore = previousScan ? previousScan.score : null;
+
+      const previousViolationIds = new Set(
+        (previousScan?.violations as Array<{ id: string }> ?? []).map((v) => v.id),
+      );
+
+      const newViolations = result.violations.filter((v) => !previousViolationIds.has(v.id));
+      const topIssues = (newViolations.length > 0 ? newViolations : result.violations)
+        .slice(0, 5)
+        .map((v) => ({ description: v.description, impact: v.impact }));
 
       await db.insert(monitoringScansTable).values({
         id: randomUUID(),
@@ -78,10 +88,8 @@ async function runDueScans() {
         criticalViolations: result.criticalViolations,
         seriousViolations: result.seriousViolations,
         totalViolations: result.totalViolations,
-        topIssues: result.violations.slice(0, 5).map((v) => ({
-          description: v.description,
-          impact: v.impact,
-        })),
+        topIssues,
+        hasNewIssues: newViolations.length > 0,
       });
 
       logger.info({ url: row.url, score: result.score }, "[scheduler] scan saved and email sent");

@@ -228,7 +228,7 @@ export default function AuditResult() {
   return <AuditResultView result={result} scannedDate={scannedDate} />;
 }
 
-function MonitorSetupCard({ url }: { url: string }) {
+function MonitorSetupCard({ url, auditId }: { url: string; auditId: string }) {
   const [email, setEmail] = useState("");
   const [frequency, setFrequency] = useState<"weekly" | "monthly">("weekly");
   const [token, setToken] = useState<string | null>(null);
@@ -245,7 +245,7 @@ function MonitorSetupCard({ url }: { url: string }) {
       const res = await fetch(`${BASE}/api/monitor`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, email: email.trim(), frequency }),
+        body: JSON.stringify({ url, email: email.trim(), frequency, auditId }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { message?: string };
@@ -497,7 +497,7 @@ function AuditResultView({
                   </p>
                 </div>
                 <div className="md:col-span-3">
-                  <MonitorSetupCard url={result.url} />
+                  <MonitorSetupCard url={result.url} auditId={result.auditId} />
                 </div>
               </div>
             </CardContent>

@@ -57,6 +57,7 @@ export async function sendMonitoringSummary(opts: {
   seriousViolations: number;
   totalViolations: number;
   topIssues: Array<{ description: string; impact: string }>;
+  hasNewIssues: boolean;
 }) {
   const resultsUrl = `${opts.appBaseUrl}/monitor/${opts.token}`;
   const scoreDelta =
@@ -70,8 +71,8 @@ export async function sendMonitoringSummary(opts: {
           ? ` (▼ ${Math.abs(scoreDelta)} from last scan)`
           : " (no change from last scan)";
 
+  const issueLabel = opts.hasNewIssues ? "New issues detected" : "Top issues";
   const issueLines = opts.topIssues
-    .slice(0, 5)
     .map((i) => `  • [${i.impact.toUpperCase()}] ${i.description}`)
     .join("\n");
 
@@ -84,7 +85,7 @@ export async function sendMonitoringSummary(opts: {
     `Serious violations:  ${opts.seriousViolations}`,
     `Total violations:    ${opts.totalViolations}`,
     ``,
-    opts.topIssues.length > 0 ? `Top issues:\n${issueLines}` : "No violations detected.",
+    opts.topIssues.length > 0 ? `${issueLabel}:\n${issueLines}` : "No violations detected.",
     ``,
     `View your full score history: ${resultsUrl}`,
     ``,
