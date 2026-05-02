@@ -282,7 +282,7 @@ export default function Remediation() {
             Tell us about your stack and we'll scope a remediation engagement that fits your release cadence.
           </p>
           <Button asChild className="btn-gsap h-12 px-8 text-sm font-bold">
-            <Link href="/contact">Discuss your roadmap</Link>
+            <Link href="/contact?service=remediation">Discuss your roadmap</Link>
           </Button>
         </div>
       </section>

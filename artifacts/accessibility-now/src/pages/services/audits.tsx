@@ -296,7 +296,7 @@ export default function Audits() {
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild className="btn-gsap h-12 px-8 text-sm font-semibold">
-              <Link href="/contact">Get your audit</Link>
+              <Link href="/contact?service=audit">Get your audit</Link>
             </Button>
             <Button asChild variant="outline" className="btn-gsap h-12 px-8 text-sm [box-shadow:none]">
               <Link href="/">Free site scan →</Link>

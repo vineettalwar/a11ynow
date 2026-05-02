@@ -282,7 +282,7 @@ export default function Monitoring() {
             One regression can undo months of work. A monitoring retainer keeps you continuously covered.
           </p>
           <Button asChild className="btn-gsap h-12 px-8 text-sm font-bold">
-            <Link href="/contact">Start a retainer</Link>
+            <Link href="/contact?service=monitoring">Start a retainer</Link>
           </Button>
         </div>
       </section>

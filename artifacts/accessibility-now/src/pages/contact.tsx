@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,13 +21,20 @@ const formSchema = z.object({
   message: z.string().min(10, "Please provide more details"),
 });
 
+const VALID_SERVICES = ["audit", "remediation", "monitoring", "unsure"] as const;
+
 export default function Contact() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const search = useSearch();
 
   const heroRef = useSectionReveal<HTMLElement>();
   const formRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const pageRef = useRef<HTMLDivElement>(null);
+
+  const params = new URLSearchParams(search);
+  const serviceParam = params.get("service") ?? "";
+  const prefilledService = (VALID_SERVICES as readonly string[]).includes(serviceParam) ? serviceParam : "";
 
   useEffect(() => {
     const el = pageRef.current;
@@ -45,7 +53,7 @@ export default function Contact() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "", company: "", url: "", service: "", message: "" },
+    defaultValues: { name: "", company: "", url: "", service: prefilledService, message: "" },
   });
 
   function onSubmit(_values: z.infer<typeof formSchema>) {
