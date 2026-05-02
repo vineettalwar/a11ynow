@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Info } from "lucide-react";
+import { Loader2 } from "lucide-react";
+
+const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 interface VisionMode {
   id: string;
@@ -54,18 +56,26 @@ const MODES: VisionMode[] = [
   },
 ];
 
+type ImgState = "idle" | "loading" | "loaded" | "error";
+
+function screenshotSrc(url: string) {
+  return `${BASE_URL}/api/page-screenshot?url=${encodeURIComponent(url)}`;
+}
+
 export default function LowVision() {
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
+  const [screenshotSrcUrl, setScreenshotSrcUrl] = useState("");
   const [activeMode, setActiveMode] = useState("normal");
   const [blurOverride, setBlurOverride] = useState<number | null>(null);
   const [vignetteOverride, setVignetteOverride] = useState<number | null>(null);
+  const [imgState, setImgState] = useState<ImgState>("idle");
 
   const mode = MODES.find((m) => m.id === activeMode)!;
   const blur = blurOverride ?? mode.blur;
   const vignetteStrength = vignetteOverride ?? mode.vignetteStrength;
 
-  const iframeStyle: React.CSSProperties = {
+  const imgStyle: React.CSSProperties = {
     filter: [
       blur > 0 ? `blur(${blur}px)` : "",
       mode.contrast !== 1 ? `contrast(${mode.contrast})` : "",
@@ -83,6 +93,8 @@ export default function LowVision() {
     setBlurOverride(null);
     setVignetteOverride(null);
     setLoadedUrl(target);
+    setScreenshotSrcUrl(screenshotSrc(target));
+    setImgState("loading");
   };
 
   const handleModeChange = (id: string) => {
@@ -117,7 +129,9 @@ export default function LowVision() {
               onChange={(e) => setUrl(e.target.value)}
               className="h-12 flex-1"
             />
-            <Button type="submit" className="h-12 px-6">Simulate →</Button>
+            <Button type="submit" className="h-12 px-6" disabled={imgState === "loading"}>
+              {imgState === "loading" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Simulate →"}
+            </Button>
           </form>
 
           <div className="flex flex-wrap gap-2" role="group" aria-label="Vision mode">
@@ -210,19 +224,47 @@ export default function LowVision() {
                   <span className="text-2xl">👓</span>
                 </div>
                 <p className="text-sm font-semibold font-sans mb-1">Enter a URL above to begin</p>
-                <p className="text-xs text-muted-foreground max-w-sm">The page renders in this frame with the selected vision simulation applied via CSS filters.</p>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  A screenshot of the page is captured server-side and displayed here with the selected vision simulation applied via CSS filters.
+                </p>
               </div>
             )}
 
-            {loadedUrl && (
+            {imgState === "loading" && loadedUrl && (
+              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
+                <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
+                <p className="text-sm font-semibold font-sans">Capturing screenshot…</p>
+                <p className="text-xs text-muted-foreground mt-1">This usually takes 5–15 seconds</p>
+                {/* Hidden img drives state transition */}
+                <img
+                  key={screenshotSrcUrl}
+                  src={screenshotSrcUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="sr-only"
+                  onLoad={() => setImgState("loaded")}
+                  onError={() => setImgState("error")}
+                />
+              </div>
+            )}
+
+            {imgState === "error" && loadedUrl && (
+              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
+                <p className="text-sm font-semibold font-sans text-destructive mb-1">Could not capture this page</p>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  The page may be unreachable, require authentication, or block automated browsers.
+                </p>
+              </div>
+            )}
+
+            {loadedUrl && imgState === "loaded" && (
               <div className="relative">
-                <iframe
-                  key={loadedUrl}
-                  src={loadedUrl}
-                  title={`${mode.label} simulation of ${loadedUrl}`}
-                  className="w-full border-0 h-[520px] block"
-                  style={iframeStyle}
-                  sandbox="allow-scripts allow-forms allow-popups"
+                <img
+                  src={screenshotSrcUrl}
+                  alt={`${mode.label} simulation of ${loadedUrl}`}
+                  className="w-full block"
+                  style={imgStyle}
+                  draggable={false}
                 />
                 {mode.vignette && (
                   <div
@@ -245,15 +287,6 @@ export default function LowVision() {
               </div>
             )}
           </div>
-
-          {loadedUrl && (
-            <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3">
-              <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground">
-                Some sites set <code className="font-mono bg-muted px-1 rounded">X-Frame-Options</code> or Content Security Policy headers that prevent iframe embedding — if the frame is blank, the site blocks this. Try a different URL or use your browser's built-in zoom and display accessibility settings.
-              </p>
-            </div>
-          )}
         </div>
       </section>
     </div>

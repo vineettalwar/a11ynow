@@ -4,6 +4,9 @@ set -e
 pnpm install --frozen-lockfile
 pnpm --filter db push
 
+# Ensure Playwright Chromium browser is present (needed by page-screenshot endpoint)
+pnpm --filter @workspace/api-server exec playwright install chromium
+
 # ── GitHub sync ──────────────────────────────────────────────────────────────
 if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPO" ]; then
   # Ensure origin points to the configured repo (token-free URL)

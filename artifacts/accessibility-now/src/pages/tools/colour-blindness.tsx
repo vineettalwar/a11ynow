@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Info, Columns2, MonitorPlay } from "lucide-react";
+import { Loader2, Columns2, MonitorPlay } from "lucide-react";
+
+const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const VISION_TYPES = [
   {
@@ -9,45 +11,77 @@ const VISION_TYPES = [
     label: "Normal vision",
     description: "No colour vision deficiency.",
     prevalence: null,
-    matrix: null,
+    filter: null,
   },
   {
     id: "deuteranopia",
     label: "Deuteranopia",
     description: "Red-green deficiency (green cone absent). Most common type.",
     prevalence: "~6% of males",
-    matrix: "0.367 0.861 -0.228 0 0   0.280 0.673 0.047 0 0  -0.012 0.043 0.969 0 0   0 0 0 1 0",
+    filter:
+      "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><filter id='d'><feColorMatrix type='matrix' values='0.367 0.861 -0.228 0 0 0.280 0.673 0.047 0 0 -0.012 0.043 0.969 0 0 0 0 0 1 0'/></filter></svg>#d\")",
   },
   {
     id: "protanopia",
     label: "Protanopia",
     description: "Red-green deficiency (red cone absent). Reds appear very dark.",
     prevalence: "~2% of males",
-    matrix: "0.152 1.053 -0.205 0 0   0.115 0.786 0.099 0 0  -0.004 -0.048 1.052 0 0   0 0 0 1 0",
+    filter:
+      "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><filter id='p'><feColorMatrix type='matrix' values='0.152 1.053 -0.205 0 0 0.115 0.786 0.099 0 0 -0.004 -0.048 1.052 0 0 0 0 0 1 0'/></filter></svg>#p\")",
   },
   {
     id: "tritanopia",
     label: "Tritanopia",
     description: "Blue-yellow deficiency (blue cone absent). Blues appear green.",
     prevalence: "~0.003% of people",
-    matrix: "1.256 -0.077 -0.179 0 0  -0.078 0.931 0.148 0 0   0.005 0.691 0.304 0 0   0 0 0 1 0",
+    filter:
+      "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><filter id='t'><feColorMatrix type='matrix' values='1.256 -0.077 -0.179 0 0 -0.078 0.931 0.148 0 0 0.005 0.691 0.304 0 0 0 0 0 1 0'/></filter></svg>#t\")",
   },
   {
     id: "achromatopsia",
     label: "Achromatopsia",
     description: "Complete colour blindness — the world appears in greyscale.",
     prevalence: "~0.003% of people",
-    matrix: "0.299 0.587 0.114 0 0   0.299 0.587 0.114 0 0   0.299 0.587 0.114 0 0   0 0 0 1 0",
+    filter: "grayscale(1)",
   },
 ];
 
 type ViewMode = "single" | "side-by-side";
+type ImgState = "idle" | "loading" | "loaded" | "error";
+
+function screenshotSrc(url: string) {
+  return `${BASE_URL}/api/page-screenshot?url=${encodeURIComponent(url)}`;
+}
+
+interface SimImageProps {
+  src: string;
+  filter: string | null;
+  label: string;
+  onLoad: () => void;
+  onError: () => void;
+}
+
+function SimImage({ src, filter, label, onLoad, onError }: SimImageProps) {
+  return (
+    <img
+      src={src}
+      alt={label}
+      className="w-full h-full object-cover object-top"
+      style={filter ? { filter } : undefined}
+      onLoad={onLoad}
+      onError={onError}
+      draggable={false}
+    />
+  );
+}
 
 export default function ColourBlindness() {
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
+  const [screenshotSrcUrl, setScreenshotSrcUrl] = useState("");
   const [activeType, setActiveType] = useState("deuteranopia");
   const [viewMode, setViewMode] = useState<ViewMode>("single");
+  const [imgState, setImgState] = useState<ImgState>("idle");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,24 +89,14 @@ export default function ColourBlindness() {
     let target = url;
     if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
     setLoadedUrl(target);
+    setScreenshotSrcUrl(screenshotSrc(target));
+    setImgState("loading");
   };
 
   const active = VISION_TYPES.find((v) => v.id === activeType)!;
-  const svgFilterId = `cb-filter-${activeType}`;
-  const filterCss = active.matrix ? `url(#${svgFilterId})` : undefined;
 
   return (
     <div className="flex flex-col w-full">
-      <svg style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
-        <defs>
-          {VISION_TYPES.filter((v) => v.matrix).map((v) => (
-            <filter key={v.id} id={`cb-filter-${v.id}`} colorInterpolationFilters="sRGB">
-              <feColorMatrix type="matrix" values={v.matrix!} />
-            </filter>
-          ))}
-        </defs>
-      </svg>
-
       <section className="hero-gradient pt-24 pb-20 px-4">
         <div className="container mx-auto max-w-4xl">
           <h1 className="text-display font-extrabold tracking-tight mb-6">
@@ -97,7 +121,9 @@ export default function ColourBlindness() {
               onChange={(e) => setUrl(e.target.value)}
               className="h-12 flex-1"
             />
-            <Button type="submit" className="h-12 px-6">Simulate →</Button>
+            <Button type="submit" className="h-12 px-6" disabled={imgState === "loading"}>
+              {imgState === "loading" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Simulate →"}
+            </Button>
           </form>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -160,39 +186,53 @@ export default function ColourBlindness() {
                 </div>
                 <p className="text-sm font-semibold font-sans mb-1">Enter a URL above to begin</p>
                 <p className="text-xs text-muted-foreground max-w-sm">
-                  The page renders here with the selected vision simulation applied via CSS filters. Use Compare mode to see normal vs simulated side-by-side.
+                  A screenshot of the page is captured server-side and displayed here with the selected vision simulation applied via CSS filters.
                 </p>
               </div>
             )}
 
-            {loadedUrl && viewMode === "single" && (
-              <div className="h-[520px]">
-                <iframe
-                  key={loadedUrl}
-                  src={loadedUrl}
-                  title={`${active.label} simulation of ${loadedUrl}`}
-                  className="w-full border-0 h-full block"
-                  style={filterCss ? { filter: filterCss } : undefined}
-                  sandbox="allow-scripts allow-forms allow-popups"
-                  aria-label={`${active.label} simulation`}
+            {imgState === "loading" && loadedUrl && (
+              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
+                <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
+                <p className="text-sm font-semibold font-sans">Capturing screenshot…</p>
+                <p className="text-xs text-muted-foreground mt-1">This usually takes 5–15 seconds</p>
+              </div>
+            )}
+
+            {imgState === "error" && loadedUrl && (
+              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
+                <p className="text-sm font-semibold font-sans text-destructive mb-1">Could not capture this page</p>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  The page may be unreachable, require authentication, or block automated browsers.
+                </p>
+              </div>
+            )}
+
+            {loadedUrl && imgState === "loaded" && viewMode === "single" && (
+              <div className="h-[520px] overflow-hidden">
+                <SimImage
+                  src={screenshotSrcUrl}
+                  filter={active.filter}
+                  label={`${active.label} simulation of ${loadedUrl}`}
+                  onLoad={() => setImgState("loaded")}
+                  onError={() => setImgState("error")}
                 />
               </div>
             )}
 
-            {loadedUrl && viewMode === "side-by-side" && (
+            {loadedUrl && imgState === "loaded" && viewMode === "side-by-side" && (
               <div className="flex h-[400px]">
                 <div className="flex-1 flex flex-col border-r overflow-hidden">
                   <div className="px-3 py-1.5 border-b bg-background text-xs font-medium font-sans text-muted-foreground shrink-0">
                     Normal vision
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <iframe
-                      key={`${loadedUrl}-normal`}
-                      src={loadedUrl}
-                      title={`Normal vision view of ${loadedUrl}`}
-                      className="w-full border-0 h-full block"
-                      sandbox="allow-scripts allow-forms allow-popups"
-                      aria-label="Normal vision view"
+                    <SimImage
+                      src={screenshotSrcUrl}
+                      filter={null}
+                      label={`Normal vision view of ${loadedUrl}`}
+                      onLoad={() => {}}
+                      onError={() => {}}
                     />
                   </div>
                 </div>
@@ -201,29 +241,31 @@ export default function ColourBlindness() {
                     {active.label}
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <iframe
-                      key={`${loadedUrl}-sim`}
-                      src={loadedUrl}
-                      title={`${active.label} simulation of ${loadedUrl}`}
-                      className="w-full border-0 h-full block"
-                      style={filterCss ? { filter: filterCss } : undefined}
-                      sandbox="allow-scripts allow-forms allow-popups"
-                      aria-label={`${active.label} simulation`}
+                    <SimImage
+                      src={screenshotSrcUrl}
+                      filter={active.filter}
+                      label={`${active.label} simulation of ${loadedUrl}`}
+                      onLoad={() => {}}
+                      onError={() => {}}
                     />
                   </div>
                 </div>
               </div>
             )}
-          </div>
 
-          {loadedUrl && (
-            <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3">
-              <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground">
-                Some sites set <code className="font-mono bg-muted px-1 rounded">X-Frame-Options</code> or Content Security Policy headers that prevent iframe embedding — if the frame is blank, the site blocks this. Use a browser extension such as <strong>Colorblindly</strong> (Chrome) or <strong>Color Oracle</strong> (desktop) as an alternative.
-              </p>
-            </div>
-          )}
+            {/* Hidden loader img — drives loading/error state */}
+            {loadedUrl && imgState !== "loaded" && imgState !== "error" && (
+              <img
+                key={screenshotSrcUrl}
+                src={screenshotSrcUrl}
+                alt=""
+                aria-hidden="true"
+                className="sr-only"
+                onLoad={() => setImgState("loaded")}
+                onError={() => setImgState("error")}
+              />
+            )}
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {VISION_TYPES.filter((v) => v.prevalence).map((v) => (
