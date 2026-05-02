@@ -1,12 +1,99 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useCreateAudit, getAudit, getGetAuditQueryKey } from "@workspace/api-client-react";
+import { useCreateAudit, useCreateLead, getAudit, getGetAuditQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertOctagon, Loader2 } from "lucide-react";
+import { AlertOctagon, Loader2, CheckCircle2, Mail } from "lucide-react";
 import { Link } from "wouter";
+
+function LeadCaptureForm({ auditId }: { auditId: string }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const createLead = useCreateLead();
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !email.trim()) return;
+    createLead.mutate(
+      { data: { name: name.trim(), email: email.trim(), auditId } },
+      { onSuccess: () => setSubmitted(true) }
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
+          <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+        </div>
+        <div>
+          <p className="font-bold font-sans text-sm mb-1">We'll be in touch.</p>
+          <p className="text-xs text-muted-foreground">
+            Your full report will be sent to <span className="font-medium text-foreground">{email}</span> within one business day.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="lead-name" className="text-xs font-semibold font-sans block mb-1.5">
+            Your name
+          </label>
+          <Input
+            id="lead-name"
+            type="text"
+            placeholder="Jane Doe"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            autoComplete="name"
+          />
+        </div>
+        <div>
+          <label htmlFor="lead-email" className="text-xs font-semibold font-sans block mb-1.5">
+            Work email
+          </label>
+          <Input
+            id="lead-email"
+            type="email"
+            placeholder="jane@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </div>
+      </div>
+      <Button
+        type="submit"
+        className="w-full h-11 text-sm font-semibold"
+        disabled={createLead.isPending || !name.trim() || !email.trim()}
+      >
+        {createLead.isPending ? (
+          <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sending...</>
+        ) : (
+          "Get the full report →"
+        )}
+      </Button>
+      {createLead.isError && (
+        <p className="text-xs text-destructive text-center">
+          Something went wrong. Please try again.
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground text-center">
+        No spam. We'll send one report and follow up once.
+      </p>
+    </form>
+  );
+}
 
 export default function AuditResult() {
   const [, navigate] = useLocation();
@@ -161,7 +248,7 @@ export default function AuditResult() {
 
           {/* Violations */}
           <h3 className="text-xl font-extrabold font-sans mb-5">Top violations found</h3>
-          <div className="space-y-3 mb-16">
+          <div className="space-y-3 mb-12">
             {result.violations.map((violation, i) => (
               <Card key={i} className="border-l-4 border-l-destructive">
                 <CardContent className="p-5 flex flex-col md:flex-row gap-5 items-start md:items-center">
@@ -187,6 +274,29 @@ export default function AuditResult() {
               </Card>
             ))}
           </div>
+
+          {/* Lead Capture */}
+          <Card className="border-2 border-primary/20 bg-background">
+            <CardContent className="p-8 md:p-10">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
+                <div className="md:col-span-2">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                    <Mail className="w-5 h-5 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-extrabold font-sans mb-2">
+                    Get the full report.
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Automated tools catch ~30% of WCAG violations. Leave your details and we'll
+                    send a summary of what a full manual audit would uncover — no obligation.
+                  </p>
+                </div>
+                <div className="md:col-span-3">
+                  <LeadCaptureForm auditId={result.auditId} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 

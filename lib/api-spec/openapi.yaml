@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: audit
     description: Accessibility audit operations
+  - name: lead
+    description: Lead capture operations
 paths:
   /healthz:
     get:
@@ -80,6 +82,32 @@ paths:
                 $ref: "#/components/schemas/AuditResult"
         "404":
           description: Audit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /leads:
+    post:
+      operationId: createLead
+      tags: [lead]
+      summary: Capture a lead from an audit result
+      description: Stores a visitor's name and email after they view a compliance snapshot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLeadBody"
+      responses:
+        "201":
+          description: Lead captured successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadResponse"
+        "400":
+          description: Validation error
           content:
             application/json:
               schema:
@@ -173,6 +201,44 @@ components:
         - violations
         - passedChecks
         - totalChecks
+
+    CreateLeadBody:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Visitor's full name
+        email:
+          type: string
+          format: email
+          description: Visitor's email address
+        auditId:
+          type: string
+          description: The audit result they are requesting the full report for
+      required:
+        - name
+        - email
+
+    LeadResponse:
+      type: object
+      properties:
+        leadId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        auditId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - leadId
+        - name
+        - email
+        - createdAt
 
     ErrorResponse:
       type: object

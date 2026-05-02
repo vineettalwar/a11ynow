@@ -100,3 +100,16 @@ export const GetAuditResponse = zod.object({
   passedChecks: zod.number(),
   totalChecks: zod.number(),
 });
+
+/**
+ * Stores a visitor's name and email after they view a compliance snapshot
+ * @summary Capture a lead from an audit result
+ */
+export const CreateLeadBody = zod.object({
+  name: zod.string().describe("Visitor's full name"),
+  email: zod.string().email().describe("Visitor's email address"),
+  auditId: zod
+    .string()
+    .optional()
+    .describe("The audit result they are requesting the full report for"),
+});

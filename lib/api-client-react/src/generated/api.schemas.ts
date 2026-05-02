@@ -69,6 +69,23 @@ export interface AuditResult {
   totalChecks: number;
 }
 
+export interface CreateLeadBody {
+  /** Visitor's full name */
+  name: string;
+  /** Visitor's email address */
+  email: string;
+  /** The audit result they are requesting the full report for */
+  auditId?: string;
+}
+
+export interface LeadResponse {
+  leadId: string;
+  name: string;
+  email: string;
+  auditId?: string | null;
+  createdAt: string;
+}
+
 export interface ErrorResponse {
   error: string;
   message: string;
