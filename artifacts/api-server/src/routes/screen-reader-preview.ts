@@ -127,11 +127,20 @@ function extractItems(document: Document): ScreenReaderItem[] {
   document.querySelectorAll(landmarkSelectors).forEach((el) => {
     const tag = el.tagName.toLowerCase();
     const role = el.getAttribute("role") || landmarkMap[tag] || tag;
+    const labelledByAttr = el.getAttribute("aria-labelledby");
+    const labelledByText = labelledByAttr
+      ? labelledByAttr
+          .split(/\s+/)
+          .map((id) => {
+            const ref = id ? document.getElementById(id) : null;
+            return ref ? getTextContent(ref) : "";
+          })
+          .filter(Boolean)
+          .join(" ")
+      : "";
     const labelEl =
       el.getAttribute("aria-label") ||
-      (el.getAttribute("aria-labelledby")
-        ? getTextContent(document.getElementById(el.getAttribute("aria-labelledby")!)!)
-        : "") ||
+      labelledByText ||
       el.getAttribute("title") ||
       "";
     items.push({
