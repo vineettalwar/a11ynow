@@ -99,7 +99,7 @@ router.get("/page-screenshot", async (req, res): Promise<void> => {
       timeout: SCREENSHOT_TIMEOUT_MS,
     });
 
-    const png = await page.screenshot({ type: "png", fullPage: false });
+    const png = await page.screenshot({ type: "png", fullPage: true });
     await context.close();
 
     res.setHeader("Content-Type", "image/png");
