@@ -106,6 +106,8 @@ export interface CreateMonitorBody {
   email: string;
   /** How often to re-scan the URL */
   frequency: CreateMonitorBodyFrequency;
+  /** Optional existing audit ID to seed the first monitoring scan from */
+  auditId?: string;
 }
 
 export type CreateMonitorResponseFrequency =

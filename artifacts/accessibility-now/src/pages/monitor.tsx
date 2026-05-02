@@ -255,7 +255,7 @@ export default function MonitorPage() {
               </div>
 
               {/* Score trend chart */}
-              {data.scans.length >= 2 && (
+              {data.scans.length >= 1 && (
                 <Card>
                   <CardContent className="p-6">
                     <h2 className="text-base font-extrabold font-sans mb-1">Score trend</h2>

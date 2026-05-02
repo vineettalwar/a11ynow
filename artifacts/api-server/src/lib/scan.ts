@@ -149,6 +149,19 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
   }
 
   if (!playwrightSucceeded) {
+    const revalidation = await validateScanUrl(url);
+    if (!revalidation.ok) {
+      logger.warn({ url, reason: revalidation.error }, "SSRF re-validation failed in fallback scan path");
+      violations.push({
+        id: "page-unreachable",
+        wcagCriteria: "Scan Limitation",
+        description: "The page could not be analyzed for security reasons.",
+        impact: "moderate",
+        affectedElements: 1,
+        topSelectors: [],
+      });
+      passedChecks = Math.floor(totalChecks * 0.4);
+    } else
     try {
       const response = await fetch(url, {
         redirect: "error",

@@ -138,6 +138,12 @@ export const CreateMonitorBody = zod.object({
   frequency: zod
     .enum(["weekly", "monthly"])
     .describe("How often to re-scan the URL"),
+  auditId: zod
+    .string()
+    .optional()
+    .describe(
+      "Optional existing audit ID to seed the first monitoring scan from",
+    ),
 });
 
 /**

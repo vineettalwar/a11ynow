@@ -359,6 +359,9 @@ components:
           type: string
           enum: [weekly, monthly]
           description: How often to re-scan the URL
+        auditId:
+          type: string
+          description: Optional existing audit ID to seed the first monitoring scan from
       required:
         - url
         - email
