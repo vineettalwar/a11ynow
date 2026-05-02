@@ -18,7 +18,6 @@ import type {
 
 import type {
   AuditResult,
-  BatchAuditResult,
   CreateAuditBody,
   CreateBatchAuditBody,
   CreateLeadBody,
@@ -203,8 +202,17 @@ export const useCreateAudit = <
 };
 
 /**
- * Scans up to 10 URLs concurrently and returns a combined site-wide compliance report plus individual per-page results
- * @summary Batch audit up to 10 URLs at once
+ * Scans up to 10 URLs concurrently (max 3 in parallel) using Server-Sent Events (SSE).
+The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
+with a `type` field:
+- `{ type: "scanning", url, index }` — fired when a URL scan begins
+- `{ type: "page", index, url, status, score, level, auditId, error? }` — fired when a URL scan finishes
+- `{ type: "complete", siteScore, siteLevel, pages[], crossPageViolations[], scannedAt }` — final aggregated result
+- `{ type: "error", message }` — emitted if processing fails
+Validation errors (bad URLs etc.) return a 400 JSON response before streaming begins.
+The site-wide score is a totalChecks-weighted average of all successful page scores.
+
+ * @summary Batch audit up to 10 URLs — streams SSE progress events
  */
 export const getCreateBatchAuditUrl = () => {
   return `/api/audit/batch`;
@@ -213,8 +221,8 @@ export const getCreateBatchAuditUrl = () => {
 export const createBatchAudit = async (
   createBatchAuditBody: CreateBatchAuditBody,
   options?: RequestInit,
-): Promise<BatchAuditResult> => {
-  return customFetch<BatchAuditResult>(getCreateBatchAuditUrl(), {
+): Promise<string> => {
+  return customFetch<string>(getCreateBatchAuditUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -267,7 +275,7 @@ export type CreateBatchAuditMutationBody = BodyType<CreateBatchAuditBody>;
 export type CreateBatchAuditMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Batch audit up to 10 URLs at once
+ * @summary Batch audit up to 10 URLs — streams SSE progress events
  */
 export const useCreateBatchAudit = <
   TError = ErrorType<ErrorResponse>,

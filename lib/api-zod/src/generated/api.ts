@@ -62,8 +62,17 @@ export const CreateAuditResponse = zod.object({
 });
 
 /**
- * Scans up to 10 URLs concurrently and returns a combined site-wide compliance report plus individual per-page results
- * @summary Batch audit up to 10 URLs at once
+ * Scans up to 10 URLs concurrently (max 3 in parallel) using Server-Sent Events (SSE).
+The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
+with a `type` field:
+- `{ type: "scanning", url, index }` — fired when a URL scan begins
+- `{ type: "page", index, url, status, score, level, auditId, error? }` — fired when a URL scan finishes
+- `{ type: "complete", siteScore, siteLevel, pages[], crossPageViolations[], scannedAt }` — final aggregated result
+- `{ type: "error", message }` — emitted if processing fails
+Validation errors (bad URLs etc.) return a 400 JSON response before streaming begins.
+The site-wide score is a totalChecks-weighted average of all successful page scores.
+
+ * @summary Batch audit up to 10 URLs — streams SSE progress events
  */
 export const createBatchAuditBodyUrlsMax = 10;
 
@@ -73,60 +82,6 @@ export const CreateBatchAuditBody = zod.object({
     .min(1)
     .max(createBatchAuditBodyUrlsMax)
     .describe("List of URLs to scan (1–10)"),
-});
-
-export const createBatchAuditResponseSiteScoreMin = 0;
-export const createBatchAuditResponseSiteScoreMax = 100;
-
-export const createBatchAuditResponsePagesItemScoreMin = 0;
-export const createBatchAuditResponsePagesItemScoreMax = 100;
-
-export const CreateBatchAuditResponse = zod.object({
-  siteScore: zod
-    .number()
-    .min(createBatchAuditResponseSiteScoreMin)
-    .max(createBatchAuditResponseSiteScoreMax)
-    .describe("Weighted average score across all scanned pages"),
-  siteLevel: zod.enum(["critical", "poor", "moderate", "good", "excellent"]),
-  pages: zod.array(
-    zod.object({
-      auditId: zod.string(),
-      url: zod.string(),
-      score: zod
-        .number()
-        .min(createBatchAuditResponsePagesItemScoreMin)
-        .max(createBatchAuditResponsePagesItemScoreMax),
-      level: zod.enum(["critical", "poor", "moderate", "good", "excellent"]),
-      totalViolations: zod.number(),
-      criticalViolations: zod.number(),
-      seriousViolations: zod.number(),
-      passedChecks: zod.number(),
-      totalChecks: zod.number(),
-      scannedAt: zod.coerce.date(),
-      status: zod.enum(["success", "error"]),
-      error: zod.string().nullish(),
-    }),
-  ),
-  crossPageViolations: zod
-    .array(
-      zod.object({
-        id: zod.string(),
-        wcagCriteria: zod.string(),
-        description: zod.string(),
-        impact: zod.enum(["minor", "moderate", "serious", "critical"]),
-        pageCount: zod
-          .number()
-          .describe("Number of pages this violation appears on"),
-        totalAffectedElements: zod
-          .number()
-          .describe("Total affected elements across all pages"),
-        affectedUrls: zod.array(zod.string()),
-      }),
-    )
-    .describe(
-      "Deduplicated violations ranked by how many pages they appear on",
-    ),
-  scannedAt: zod.coerce.date(),
 });
 
 /**

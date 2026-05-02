@@ -169,9 +169,14 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
     await Promise.all(workers);
 
     const successPages = pages.filter((p) => p.status === "success");
+    // Weighted average: weight each page's score by its totalChecks so pages
+    // with more auditable elements contribute proportionally to the site score.
+    const totalWeight = successPages.reduce((sum, p) => sum + (p.totalChecks || 1), 0);
     const siteScore =
       successPages.length > 0
-        ? Math.round(successPages.reduce((sum, p) => sum + p.score, 0) / successPages.length)
+        ? Math.round(
+            successPages.reduce((sum, p) => sum + p.score * (p.totalChecks || 1), 0) / totalWeight,
+          )
         : 0;
     const siteLevel = scoreToLevel(siteScore);
 

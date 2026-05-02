@@ -91,7 +91,7 @@ function LeadCaptureCard({ pages }: { pages: BatchPageResult[] }) {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const createLead = useCreateLead();
-  const firstAuditId = pages[0]?.auditId ?? "";
+  const firstAuditId = pages.find((p) => p.status === "success" && p.auditId)?.auditId ?? "";
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -502,6 +502,11 @@ export default function BatchResult() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Download Report CTA at bottom of results */}
+          <div className="flex justify-center pt-2 pb-4">
+            <DownloadBatchPdf pages={result.pages} />
+          </div>
         </div>
       </section>
 

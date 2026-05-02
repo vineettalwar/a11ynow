@@ -67,8 +67,17 @@ paths:
     post:
       operationId: createBatchAudit
       tags: [audit]
-      summary: Batch audit up to 10 URLs at once
-      description: Scans up to 10 URLs concurrently and returns a combined site-wide compliance report plus individual per-page results
+      summary: Batch audit up to 10 URLs — streams SSE progress events
+      description: |
+        Scans up to 10 URLs concurrently (max 3 in parallel) using Server-Sent Events (SSE).
+        The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
+        with a `type` field:
+        - `{ type: "scanning", url, index }` — fired when a URL scan begins
+        - `{ type: "page", index, url, status, score, level, auditId, error? }` — fired when a URL scan finishes
+        - `{ type: "complete", siteScore, siteLevel, pages[], crossPageViolations[], scannedAt }` — final aggregated result
+        - `{ type: "error", message }` — emitted if processing fails
+        Validation errors (bad URLs etc.) return a 400 JSON response before streaming begins.
+        The site-wide score is a totalChecks-weighted average of all successful page scores.
       requestBody:
         required: true
         content:
@@ -77,13 +86,17 @@ paths:
               $ref: "#/components/schemas/CreateBatchAuditBody"
       responses:
         "200":
-          description: Batch audit result
+          description: SSE stream of batch audit progress events ending with the aggregated BatchAuditResult
           content:
-            application/json:
+            text/event-stream:
               schema:
-                $ref: "#/components/schemas/BatchAuditResult"
+                type: string
+                description: |
+                  Newline-delimited SSE frames. Each frame is `data: <JSON>\n\n`.
+                  See endpoint description for event shape details.
+                  The final `complete` event payload matches the BatchAuditResult schema.
         "400":
-          description: Validation error
+          description: Validation error (returned as JSON before streaming begins)
           content:
             application/json:
               schema:
