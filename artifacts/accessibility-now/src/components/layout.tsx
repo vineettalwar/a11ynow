@@ -157,6 +157,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <li><Link href="/tools/low-vision" className="hover:text-foreground transition-colors">Low Vision Sim</Link></li>
               <li><Link href="/tools/mobile-checklist" className="hover:text-foreground transition-colors">Mobile Checklist</Link></li>
               <li><Link href="/tools/wcag-checklist" className="hover:text-foreground transition-colors">WCAG 2.1 Checklist</Link></li>
+              <li><Link href="/tools/focus-order" className="hover:text-foreground transition-colors">Focus Order Visualizer</Link></li>
             </ul>
           </div>
           <div>

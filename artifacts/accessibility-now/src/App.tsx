@@ -36,6 +36,7 @@ import KeyboardTester from "@/pages/tools/keyboard-tester";
 import LowVision from "@/pages/tools/low-vision";
 import MobileChecklist from "@/pages/tools/mobile-checklist";
 import WcagChecklist from "@/pages/tools/wcag-checklist";
+import FocusOrderVisualizer from "@/pages/tools/focus-order";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ function Router() {
         <Route path="/tools/low-vision" component={LowVision} />
         <Route path="/tools/mobile-checklist" component={MobileChecklist} />
         <Route path="/tools/wcag-checklist" component={WcagChecklist} />
+        <Route path="/tools/focus-order" component={FocusOrderVisualizer} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, Mic, Keyboard, Palette, Glasses, Smartphone, ClipboardList, ArrowRight } from "lucide-react";
+import { Eye, Mic, Keyboard, Palette, Glasses, Smartphone, ClipboardList, ArrowRight, TabletSmartphone } from "lucide-react";
 
 const tools = [
   {
@@ -45,6 +45,12 @@ const tools = [
     title: "WCAG 2.1 AA Checklist",
     description: "Work through all 50 WCAG 2.1 AA success criteria manually. Mark each Pass, Fail, or N/A — progress saved in your browser.",
   },
+  {
+    href: "/tools/focus-order",
+    icon: TabletSmartphone,
+    title: "Focus Order Visualizer",
+    description: "Capture a screenshot of any page and overlay numbered markers showing the keyboard Tab order — colour-coded by element type with issue detection.",
+  },
 ];
 
 export default function ToolsIndex() {
@@ -57,7 +63,7 @@ export default function ToolsIndex() {
             <span className="heading-accent">sees your website.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl">
-            Seven interactive tools for developers and designers. All run in-browser — no account needed, no data sent.
+            Eight interactive tools for developers and designers. All run in-browser — no account needed, no data sent.
           </p>
         </div>
       </section>

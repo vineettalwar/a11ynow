@@ -8,6 +8,7 @@ import leadsRouter from "./leads";
 import monitorRouter from "./monitor";
 import screenReaderPreviewRouter from "./screen-reader-preview";
 import pageScreenshotRouter from "./page-screenshot";
+import focusOrderRouter from "./focus-order";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(leadsRouter);
 router.use(monitorRouter);
 router.use(screenReaderPreviewRouter);
 router.use(pageScreenshotRouter);
+router.use(focusOrderRouter);
 
 export default router;
