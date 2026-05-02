@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle } from "lucide-react";
@@ -61,7 +61,6 @@ export default function LowVision() {
   const [blurOverride, setBlurOverride] = useState<number | null>(null);
   const [vignetteOverride, setVignetteOverride] = useState<number | null>(null);
   const [iframeError, setIframeError] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const mode = MODES.find((m) => m.id === activeMode)!;
   const blur = blurOverride ?? mode.blur;
@@ -230,21 +229,12 @@ export default function LowVision() {
             {loadedUrl && !iframeError && (
               <div className="relative">
                 <iframe
-                  ref={iframeRef}
                   key={loadedUrl}
                   src={loadedUrl}
                   title={`${mode.label} simulation of ${loadedUrl}`}
                   className="w-full border-0 h-[520px] block"
                   style={iframeStyle}
                   onError={() => setIframeError(true)}
-                  onLoad={() => {
-                    try {
-                      const doc = iframeRef.current?.contentDocument;
-                      if (!doc || doc.location.href === "about:blank") setIframeError(true);
-                    } catch {
-                      setIframeError(true);
-                    }
-                  }}
                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 />
                 {mode.vignette && (
