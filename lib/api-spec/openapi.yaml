@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: audit
+    description: Accessibility audit operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /audit:
+    post:
+      operationId: createAudit
+      tags: [audit]
+      summary: Submit URL for accessibility audit
+      description: Runs an automated accessibility audit on the provided URL and returns a compliance snapshot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAuditBody"
+      responses:
+        "200":
+          description: Audit result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditResult"
+        "400":
+          description: Invalid URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Audit failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /audit/{auditId}:
+    get:
+      operationId: getAudit
+      tags: [audit]
+      summary: Get audit result by ID
+      description: Retrieve a previously run audit result
+      parameters:
+        - name: auditId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audit result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditResult"
+        "404":
+          description: Audit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +95,92 @@ components:
       required:
         - status
 
+    CreateAuditBody:
+      type: object
+      properties:
+        url:
+          type: string
+          description: The URL to audit for accessibility compliance
+      required:
+        - url
+
+    AuditViolation:
+      type: object
+      properties:
+        id:
+          type: string
+          description: WCAG criterion ID (e.g. "color-contrast")
+        wcagCriteria:
+          type: string
+          description: WCAG criterion reference (e.g. "1.4.3 Contrast Minimum")
+        description:
+          type: string
+        impact:
+          type: string
+          enum: [minor, moderate, serious, critical]
+        affectedElements:
+          type: integer
+          description: Number of affected elements on the page
+      required:
+        - id
+        - wcagCriteria
+        - description
+        - impact
+        - affectedElements
+
+    AuditResult:
+      type: object
+      properties:
+        auditId:
+          type: string
+        url:
+          type: string
+        scannedAt:
+          type: string
+          format: date-time
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Overall accessibility compliance score
+        level:
+          type: string
+          enum: [critical, poor, moderate, good, excellent]
+          description: Score level label
+        totalViolations:
+          type: integer
+        criticalViolations:
+          type: integer
+        seriousViolations:
+          type: integer
+        violations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditViolation"
+        passedChecks:
+          type: integer
+        totalChecks:
+          type: integer
+      required:
+        - auditId
+        - url
+        - scannedAt
+        - score
+        - level
+        - totalViolations
+        - criticalViolations
+        - seriousViolations
+        - violations
+        - passedChecks
+        - totalChecks
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message

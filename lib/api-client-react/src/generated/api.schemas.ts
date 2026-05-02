@@ -8,3 +8,68 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface CreateAuditBody {
+  /** The URL to audit for accessibility compliance */
+  url: string;
+}
+
+export type AuditViolationImpact =
+  (typeof AuditViolationImpact)[keyof typeof AuditViolationImpact];
+
+export const AuditViolationImpact = {
+  minor: "minor",
+  moderate: "moderate",
+  serious: "serious",
+  critical: "critical",
+} as const;
+
+export interface AuditViolation {
+  /** WCAG criterion ID (e.g. "color-contrast") */
+  id: string;
+  /** WCAG criterion reference (e.g. "1.4.3 Contrast Minimum") */
+  wcagCriteria: string;
+  description: string;
+  impact: AuditViolationImpact;
+  /** Number of affected elements on the page */
+  affectedElements: number;
+}
+
+/**
+ * Score level label
+ */
+export type AuditResultLevel =
+  (typeof AuditResultLevel)[keyof typeof AuditResultLevel];
+
+export const AuditResultLevel = {
+  critical: "critical",
+  poor: "poor",
+  moderate: "moderate",
+  good: "good",
+  excellent: "excellent",
+} as const;
+
+export interface AuditResult {
+  auditId: string;
+  url: string;
+  scannedAt: string;
+  /**
+   * Overall accessibility compliance score
+   * @minimum 0
+   * @maximum 100
+   */
+  score: number;
+  /** Score level label */
+  level: AuditResultLevel;
+  totalViolations: number;
+  criticalViolations: number;
+  seriousViolations: number;
+  violations: AuditViolation[];
+  passedChecks: number;
+  totalChecks: number;
+}
+
+export interface ErrorResponse {
+  error: string;
+  message: string;
+}

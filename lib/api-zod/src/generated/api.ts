@@ -14,3 +14,89 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Runs an automated accessibility audit on the provided URL and returns a compliance snapshot
+ * @summary Submit URL for accessibility audit
+ */
+export const CreateAuditBody = zod.object({
+  url: zod.string().describe("The URL to audit for accessibility compliance"),
+});
+
+export const createAuditResponseScoreMin = 0;
+export const createAuditResponseScoreMax = 100;
+
+export const CreateAuditResponse = zod.object({
+  auditId: zod.string(),
+  url: zod.string(),
+  scannedAt: zod.coerce.date(),
+  score: zod
+    .number()
+    .min(createAuditResponseScoreMin)
+    .max(createAuditResponseScoreMax)
+    .describe("Overall accessibility compliance score"),
+  level: zod
+    .enum(["critical", "poor", "moderate", "good", "excellent"])
+    .describe("Score level label"),
+  totalViolations: zod.number(),
+  criticalViolations: zod.number(),
+  seriousViolations: zod.number(),
+  violations: zod.array(
+    zod.object({
+      id: zod.string().describe('WCAG criterion ID (e.g. \"color-contrast\")'),
+      wcagCriteria: zod
+        .string()
+        .describe('WCAG criterion reference (e.g. \"1.4.3 Contrast Minimum\")'),
+      description: zod.string(),
+      impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+      affectedElements: zod
+        .number()
+        .describe("Number of affected elements on the page"),
+    }),
+  ),
+  passedChecks: zod.number(),
+  totalChecks: zod.number(),
+});
+
+/**
+ * Retrieve a previously run audit result
+ * @summary Get audit result by ID
+ */
+export const GetAuditParams = zod.object({
+  auditId: zod.coerce.string(),
+});
+
+export const getAuditResponseScoreMin = 0;
+export const getAuditResponseScoreMax = 100;
+
+export const GetAuditResponse = zod.object({
+  auditId: zod.string(),
+  url: zod.string(),
+  scannedAt: zod.coerce.date(),
+  score: zod
+    .number()
+    .min(getAuditResponseScoreMin)
+    .max(getAuditResponseScoreMax)
+    .describe("Overall accessibility compliance score"),
+  level: zod
+    .enum(["critical", "poor", "moderate", "good", "excellent"])
+    .describe("Score level label"),
+  totalViolations: zod.number(),
+  criticalViolations: zod.number(),
+  seriousViolations: zod.number(),
+  violations: zod.array(
+    zod.object({
+      id: zod.string().describe('WCAG criterion ID (e.g. \"color-contrast\")'),
+      wcagCriteria: zod
+        .string()
+        .describe('WCAG criterion reference (e.g. \"1.4.3 Contrast Minimum\")'),
+      description: zod.string(),
+      impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+      affectedElements: zod
+        .number()
+        .describe("Number of affected elements on the page"),
+    }),
+  ),
+  passedChecks: zod.number(),
+  totalChecks: zod.number(),
+});

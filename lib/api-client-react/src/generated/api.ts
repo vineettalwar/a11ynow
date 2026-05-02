@@ -5,18 +5,26 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  AuditResult,
+  CreateAuditBody,
+  ErrorResponse,
+  HealthStatus,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -92,6 +100,179 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Runs an automated accessibility audit on the provided URL and returns a compliance snapshot
+ * @summary Submit URL for accessibility audit
+ */
+export const getCreateAuditUrl = () => {
+  return `/api/audit`;
+};
+
+export const createAudit = async (
+  createAuditBody: CreateAuditBody,
+  options?: RequestInit,
+): Promise<AuditResult> => {
+  return customFetch<AuditResult>(getCreateAuditUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAuditBody),
+  });
+};
+
+export const getCreateAuditMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAudit>>,
+    TError,
+    { data: BodyType<CreateAuditBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAudit>>,
+  TError,
+  { data: BodyType<CreateAuditBody> },
+  TContext
+> => {
+  const mutationKey = ["createAudit"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAudit>>,
+    { data: BodyType<CreateAuditBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAudit(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAuditMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAudit>>
+>;
+export type CreateAuditMutationBody = BodyType<CreateAuditBody>;
+export type CreateAuditMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Submit URL for accessibility audit
+ */
+export const useCreateAudit = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAudit>>,
+    TError,
+    { data: BodyType<CreateAuditBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAudit>>,
+  TError,
+  { data: BodyType<CreateAuditBody> },
+  TContext
+> => {
+  return useMutation(getCreateAuditMutationOptions(options));
+};
+
+/**
+ * Retrieve a previously run audit result
+ * @summary Get audit result by ID
+ */
+export const getGetAuditUrl = (auditId: string) => {
+  return `/api/audit/${auditId}`;
+};
+
+export const getAudit = async (
+  auditId: string,
+  options?: RequestInit,
+): Promise<AuditResult> => {
+  return customFetch<AuditResult>(getGetAuditUrl(auditId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAuditQueryKey = (auditId: string) => {
+  return [`/api/audit/${auditId}`] as const;
+};
+
+export const getGetAuditQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAudit>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  auditId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAuditQueryKey(auditId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAudit>>> = ({
+    signal,
+  }) => getAudit(auditId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!auditId,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getAudit>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetAuditQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAudit>>
+>;
+export type GetAuditQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get audit result by ID
+ */
+
+export function useGetAudit<
+  TData = Awaited<ReturnType<typeof getAudit>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  auditId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAudit>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAuditQueryOptions(auditId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
