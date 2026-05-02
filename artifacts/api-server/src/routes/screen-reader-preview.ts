@@ -22,6 +22,43 @@ async function validateUrl(raw: string): Promise<{ ok: true; url: string } | { o
   return { ok: true, url: parsed.href };
 }
 
+const MAX_REDIRECTS = 5;
+const FETCH_TIMEOUT_MS = 15000;
+
+async function fetchWithSsrfSafeRedirects(startUrl: string): Promise<{ ok: boolean; status: number; text: () => Promise<string> }> {
+  let currentUrl = startUrl;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    let resp: Response;
+    try {
+      resp = await fetch(currentUrl, {
+        redirect: "manual",
+        headers: {
+          "User-Agent": "accessibility.now/1.0 Screen Reader Preview (+https://accessibility.now)",
+          "Accept": "text/html,application/xhtml+xml",
+        },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (resp.status >= 300 && resp.status < 400) {
+      const location = resp.headers.get("location");
+      if (!location) throw new Error("Redirect with no Location header.");
+      const nextUrl = new URL(location, currentUrl).href;
+      const validation = await validateUrl(nextUrl);
+      if (!validation.ok) throw new Error(`Redirect to disallowed address: ${validation.error}`);
+      currentUrl = validation.url;
+      continue;
+    }
+
+    return resp;
+  }
+  throw new Error("Too many redirects.");
+}
+
 type ItemType = "title" | "landmark" | "heading" | "link" | "button" | "image" | "form-label";
 
 interface ScreenReaderItem {
@@ -99,12 +136,7 @@ function extractItems(document: Document): ScreenReaderItem[] {
       "";
     items.push({
       node: el,
-      item: {
-        type: "landmark",
-        role,
-        text: labelEl || `<${tag}>`,
-        pass: true,
-      },
+      item: { type: "landmark", role, text: labelEl || `<${tag}>`, pass: true },
     });
   });
 
@@ -160,9 +192,7 @@ function extractItems(document: Document): ScreenReaderItem[] {
   document.querySelectorAll("img").forEach((el) => {
     const alt = el.getAttribute("alt");
     const role = el.getAttribute("role");
-    const isDecorativeByRole = role === "presentation" || role === "none";
-    const isDecorativeByAlt = alt === "";
-    const isDecorative = isDecorativeByRole || isDecorativeByAlt;
+    const isDecorative = role === "presentation" || role === "none" || alt === "";
     const missing = alt === null;
     items.push({
       node: el,
@@ -196,7 +226,9 @@ function extractItems(document: Document): ScreenReaderItem[] {
     });
   });
 
-  document.querySelectorAll("input:not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']), select, textarea").forEach((el) => {
+  document.querySelectorAll(
+    "input:not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']), select, textarea"
+  ).forEach((el) => {
     const id = el.getAttribute("id");
     const hasLabel = id
       ? !!document.querySelector(`label[for="${id}"]`)
@@ -204,14 +236,15 @@ function extractItems(document: Document): ScreenReaderItem[] {
     const ariaLabel = el.getAttribute("aria-label") || el.getAttribute("aria-labelledby");
     const placeholder = el.getAttribute("placeholder");
     if (!hasLabel && !ariaLabel) {
-      const typeLabel = el.tagName.toLowerCase() === "select"
-        ? "Select"
-        : el.getAttribute("type") || "Input";
+      const typeLabel =
+        el.tagName.toLowerCase() === "select"
+          ? "Select"
+          : el.getAttribute("type") || "Input";
       items.push({
         node: el,
         item: {
           type: "form-label",
-          text: placeholder ? `${typeLabel} (placeholder only: "${placeholder}")` : `${typeLabel}`,
+          text: placeholder ? `${typeLabel} (placeholder only: "${placeholder}")` : typeLabel,
           pass: false,
           issue: "Form control has no associated label",
         },
@@ -247,14 +280,7 @@ router.get("/screen-reader-preview", async (req, res): Promise<void> => {
   const { url } = validation;
 
   try {
-    const response = await fetch(url, {
-      redirect: "follow",
-      headers: {
-        "User-Agent": "accessibility.now/1.0 Screen Reader Preview (+https://accessibility.now)",
-        "Accept": "text/html,application/xhtml+xml",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
+    const response = await fetchWithSsrfSafeRedirects(url);
 
     if (!response.ok) {
       res.status(502).json({ error: "fetch_failed", message: `The page returned HTTP ${response.status}.` });
