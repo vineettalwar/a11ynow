@@ -23,6 +23,15 @@ import About from "@/pages/about";
 import PrivacyPolicy from "@/pages/legal/privacy";
 import AccessibilityStatement from "@/pages/legal/accessibility";
 
+// Tools
+import ToolsIndex from "@/pages/tools/index";
+import ContrastChecker from "@/pages/tools/contrast-checker";
+import ColourBlindness from "@/pages/tools/colour-blindness";
+import ScreenReaderPreview from "@/pages/tools/screen-reader-preview";
+import KeyboardTester from "@/pages/tools/keyboard-tester";
+import LowVision from "@/pages/tools/low-vision";
+import MobileChecklist from "@/pages/tools/mobile-checklist";
+
 const queryClient = new QueryClient();
 
 function Router() {
@@ -45,6 +54,13 @@ function Router() {
         <Route path="/about" component={About} />
         <Route path="/legal/privacy" component={PrivacyPolicy} />
         <Route path="/legal/accessibility" component={AccessibilityStatement} />
+        <Route path="/tools" component={ToolsIndex} />
+        <Route path="/tools/contrast-checker" component={ContrastChecker} />
+        <Route path="/tools/colour-blindness" component={ColourBlindness} />
+        <Route path="/tools/screen-reader-preview" component={ScreenReaderPreview} />
+        <Route path="/tools/keyboard-tester" component={KeyboardTester} />
+        <Route path="/tools/low-vision" component={LowVision} />
+        <Route path="/tools/mobile-checklist" component={MobileChecklist} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

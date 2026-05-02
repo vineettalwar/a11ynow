@@ -6,7 +6,7 @@ import { Menu, X } from "lucide-react";
 const NAV_LINKS = [
   { href: "/services", label: "Services" },
   { href: "/eaa", label: "EAA" },
-  { href: "/work", label: "Work" },
+  { href: "/tools", label: "Tools" },
   { href: "/resources", label: "Resources" },
   { href: "/about", label: "About" },
 ];
@@ -111,11 +111,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold text-sm mb-4 font-sans">Company</h4>
+            <h4 className="font-semibold text-sm mb-4 font-sans">Tools</h4>
             <ul className="space-y-2 text-xs text-muted-foreground">
-              <li><Link href="/work" className="hover:text-foreground transition-colors">Work</Link></li>
-              <li><Link href="/about" className="hover:text-foreground transition-colors">About</Link></li>
-              <li><Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
+              <li><Link href="/tools/contrast-checker" className="hover:text-foreground transition-colors">Contrast Checker</Link></li>
+              <li><Link href="/tools/colour-blindness" className="hover:text-foreground transition-colors">Colour Blindness Sim</Link></li>
+              <li><Link href="/tools/screen-reader-preview" className="hover:text-foreground transition-colors">Screen Reader Preview</Link></li>
+              <li><Link href="/tools/keyboard-tester" className="hover:text-foreground transition-colors">Keyboard Tester</Link></li>
+              <li><Link href="/tools/low-vision" className="hover:text-foreground transition-colors">Low Vision Sim</Link></li>
+              <li><Link href="/tools/mobile-checklist" className="hover:text-foreground transition-colors">Mobile Checklist</Link></li>
             </ul>
           </div>
           <div>
