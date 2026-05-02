@@ -5,24 +5,23 @@ pnpm install --frozen-lockfile
 pnpm --filter db push
 
 # ── GitHub sync ──────────────────────────────────────────────────────────────
-if [ -n "$GITHUB_TOKEN" ]; then
-  REPO_URL="https://github.com/vineettalwar/a11ynow.git"
-
-  # Ensure remote exists and points to the correct URL (token-free)
-  if git remote get-url github >/dev/null 2>&1; then
-    git remote set-url github "$REPO_URL"
+if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPO" ]; then
+  # Ensure origin points to the configured repo (token-free URL)
+  if git remote get-url origin >/dev/null 2>&1; then
+    git remote set-url origin "$GITHUB_REPO"
   else
-    git remote add github "$REPO_URL"
+    git remote add origin "$GITHUB_REPO"
   fi
 
-  # Build Basic-auth header — token never appears in the remote URL or git log
+  # Authenticate via Authorization header — token never stored in remote URL
   ENCODED=$(printf 'x-access-token:%s' "${GITHUB_TOKEN}" | base64 -w0 2>/dev/null \
             || printf 'x-access-token:%s' "${GITHUB_TOKEN}" | base64)
 
   git -c "http.https://github.com/.extraheader=Authorization: Basic ${ENCODED}" \
-    push github HEAD:main
+    push origin HEAD:main
 
-  echo "Pushed to github.com/vineettalwar/a11ynow"
+  echo "Pushed to ${GITHUB_REPO}"
 else
-  echo "GITHUB_TOKEN not set — skipping GitHub push"
+  [ -z "$GITHUB_TOKEN" ] && echo "GITHUB_TOKEN not set — skipping GitHub push"
+  [ -z "$GITHUB_REPO"  ] && echo "GITHUB_REPO not set — skipping GitHub push"
 fi
