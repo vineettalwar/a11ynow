@@ -54,8 +54,33 @@ const crossLinks = [
   },
 ];
 
+const journeySteps = [
+  {
+    icon: Search,
+    step: "01",
+    label: "Audit",
+    description: "Discover every WCAG violation across your product with a ranked, developer-ready report.",
+    href: "/services/audits",
+  },
+  {
+    icon: Code,
+    step: "02",
+    label: "Remediation",
+    description: "Our engineers fix the issues sprint by sprint — delivering pull requests directly to your repo.",
+    href: "/services/remediation",
+  },
+  {
+    icon: ShieldCheck,
+    step: "03",
+    label: "Monitoring",
+    description: "Automated re-scans and CI/CD alerts protect your compliance as you continue shipping.",
+    href: "/services/monitoring",
+  },
+];
+
 export default function Services() {
   const heroRef = useSectionReveal<HTMLElement>();
+  const journeyRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const cardsRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const selectorRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const crossLinksRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
@@ -89,6 +114,60 @@ export default function Services() {
             End-to-end accessibility services — from initial audits to deep codebase remediation and
             continuous monitoring. Same team, start to finish.
           </p>
+        </div>
+      </section>
+
+      <section ref={journeyRef} className="py-20 px-4 warm-section">
+        <div className="container mx-auto max-w-5xl">
+          <p className="section-label text-xs font-semibold text-primary uppercase tracking-widest mb-3">The full journey</p>
+          <h2 className="text-display-md font-extrabold mb-3">
+            How the services <span className="heading-accent">connect</span>
+          </h2>
+          <p className="text-muted-foreground text-sm max-w-xl mb-12 reveal-body">
+            Most clients move through all three stages. Each builds on the last — so you're never starting from scratch.
+          </p>
+
+          <div className="relative flex flex-col md:flex-row items-stretch gap-0">
+            {journeySteps.map(({ icon: Icon, step, label, description, href }, idx) => (
+              <div key={step} className="reveal-child flex md:flex-1 flex-col md:flex-row items-stretch">
+                <Link
+                  href={href}
+                  className="group flex-1 flex flex-col p-7 rounded-2xl border bg-background hover:border-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <span className="text-xs font-bold text-muted-foreground/60 uppercase tracking-widest">Step {step}</span>
+                  </div>
+                  <p className="font-extrabold text-xl font-sans mb-2 group-hover:text-primary transition-colors">{label}</p>
+                  <p className="text-muted-foreground text-sm leading-relaxed flex-1">{description}</p>
+                  <span className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    Learn more <ArrowRight className="w-3 h-3" />
+                  </span>
+                </Link>
+
+                {idx < journeySteps.length - 1 && (
+                  <div className="flex flex-col md:flex-row items-center justify-center py-4 md:py-0 px-1 md:px-4 shrink-0" aria-hidden="true">
+                    <div className="hidden md:flex flex-row items-center gap-1.5">
+                      <div className="h-px flex-1 bg-border min-w-[24px]" />
+                      <div className="w-7 h-7 rounded-full border-2 border-primary/30 bg-background flex items-center justify-center">
+                        <ArrowRight className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <div className="h-px flex-1 bg-border min-w-[24px]" />
+                    </div>
+                    <div className="flex md:hidden flex-col items-center gap-1.5">
+                      <div className="w-px flex-1 bg-border min-h-[24px]" />
+                      <div className="w-7 h-7 rounded-full border-2 border-primary/30 bg-background flex items-center justify-center rotate-90">
+                        <ArrowRight className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <div className="w-px flex-1 bg-border min-h-[24px]" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
