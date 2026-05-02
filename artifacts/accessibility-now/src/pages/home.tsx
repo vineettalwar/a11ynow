@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, CheckCircle2, Search, Code, ShieldCheck, Eye, Keyboard, Smartphone, ClipboardList } from "lucide-react";
+import { ArrowRight, CheckCircle2, Search, Code, ShieldCheck, Eye, Keyboard, Smartphone, ClipboardList, Plus, Trash2, Layers } from "lucide-react";
 import gsap from "gsap";
 import { ParticleCanvas } from "@/components/particle-canvas";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
@@ -30,8 +30,126 @@ function useGsapButtonHover(ref: React.RefObject<HTMLElement | null>) {
   }, []);
 }
 
+const BATCH_STORAGE_KEY = "batch_audit_result";
+
+function MultiUrlForm() {
+  const [urls, setUrls] = useState<string[]>(["", ""]);
+  const [isScanning, setIsScanning] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  function addUrl() {
+    if (urls.length < 10) setUrls((u) => [...u, ""]);
+  }
+
+  function removeUrl(i: number) {
+    setUrls((u) => u.filter((_, idx) => idx !== i));
+  }
+
+  function updateUrl(i: number, val: string) {
+    setUrls((u) => u.map((u2, idx) => (idx === i ? val : u2)));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const filled = urls.map((u) => u.trim()).filter(Boolean);
+    if (filled.length === 0) return;
+    setIsScanning(true);
+    setError(null);
+    setProgress(`Scanning ${filled.length} page${filled.length !== 1 ? "s" : ""}…`);
+    try {
+      const res = await fetch(`${BASE}/api/audit/batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls: filled }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { message?: string };
+        throw new Error(body.message ?? `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      sessionStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(data));
+      setLocation("/batch-result");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Batch scan failed. Please try again.");
+      setIsScanning(false);
+      setProgress(null);
+    }
+  }
+
+  if (isScanning) {
+    return (
+      <div className="text-center py-4">
+        <div className="inline-flex items-center gap-3 bg-white/60 border border-border rounded-xl px-6 py-4">
+          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium" style={{ fontFamily: "var(--app-font-mono)" }}>
+            {progress ?? "Scanning…"}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-3" style={{ fontFamily: "var(--app-font-mono)" }}>
+          Scanning pages in parallel — this may take 30–90 seconds.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="hero-form space-y-3 max-w-2xl mx-auto">
+      {urls.map((u, i) => (
+        <div key={i} className="flex gap-2 items-center">
+          <label htmlFor={`batch-url-${i}`} className="sr-only">URL {i + 1}</label>
+          <Input
+            id={`batch-url-${i}`}
+            type="url"
+            placeholder={i === 0 ? "https://your-website.com" : `https://your-website.com/page-${i + 1}`}
+            className="h-12 rounded-xl px-5 text-sm flex-1"
+            style={{ background: "#EFEFEB", border: "1px solid #E4E4E2", boxShadow: "none", fontFamily: "var(--app-font-mono)" }}
+            value={u}
+            onChange={(e) => updateUrl(i, e.target.value)}
+          />
+          {urls.length > 1 && (
+            <button
+              type="button"
+              onClick={() => removeUrl(i)}
+              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-lg border border-border hover:bg-destructive/10 hover:border-destructive/30 transition-colors text-muted-foreground hover:text-destructive"
+              aria-label={`Remove URL ${i + 1}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      ))}
+      <div className="flex gap-3 pt-1">
+        {urls.length < 10 && (
+          <button
+            type="button"
+            onClick={addUrl}
+            className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors font-sans"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add another URL
+            <span className="text-muted-foreground font-normal">({urls.length}/10)</span>
+          </button>
+        )}
+        <Button
+          type="submit"
+          className="btn-gsap h-12 px-8 text-sm font-semibold ml-auto"
+          disabled={!urls.some((u) => u.trim())}
+        >
+          <Layers className="w-4 h-4 mr-2" /> Scan all pages →
+        </Button>
+      </div>
+      {error && (
+        <p className="text-xs text-destructive text-center">{error}</p>
+      )}
+    </form>
+  );
+}
+
 export default function Home() {
   const [url, setUrl] = useState("");
+  const [mode, setMode] = useState<"single" | "multi">("single");
   const [, setLocation] = useLocation();
 
   const heroRef = useRef<HTMLElement>(null);
@@ -127,31 +245,70 @@ export default function Home() {
             <span className="hero-word inline-block">website?</span>
           </h1>
 
-          <p className="hero-subtitle text-base text-muted-foreground mb-10 max-w-xl mx-auto" style={{ fontFamily: "var(--app-font-mono)" }}>
+          <p className="hero-subtitle text-base text-muted-foreground mb-8 max-w-xl mx-auto" style={{ fontFamily: "var(--app-font-mono)" }}>
             Run a free WCAG 2.2 scan in 30 seconds — no account, no forms, just results.<br />
             Then talk to us when you need the manual audit that actually holds up in court.
           </p>
 
-          <form className="hero-form flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto" onSubmit={handleSubmit}>
-            <label htmlFor="hero-url" className="sr-only">Your website URL</label>
-            <Input
-              id="hero-url"
-              type="url"
-              placeholder="https://your-website.com"
-              className="h-14 rounded-xl px-5 text-sm flex-1"
-              style={{ background: "#EFEFEB", border: "1px solid #E4E4E2", boxShadow: "none", fontFamily: "var(--app-font-mono)" }}
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              required
-            />
-            <Button type="submit" className="btn-gsap h-14 px-8 text-sm font-semibold shrink-0">
-              Scan my site →
-            </Button>
-          </form>
+          {/* Mode toggle */}
+          <div className="hero-form flex justify-center mb-5">
+            <div className="inline-flex rounded-xl border border-border bg-white/60 p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => setMode("single")}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold font-sans transition-all ${
+                  mode === "single"
+                    ? "bg-foreground text-background shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Single page
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("multi")}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold font-sans transition-all flex items-center gap-1.5 ${
+                  mode === "multi"
+                    ? "bg-foreground text-background shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Multiple pages
+              </button>
+            </div>
+          </div>
 
-          <p className="hero-disclaimer mt-4 text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
-            Powered by axe-core · WCAG 2.1 AA + 2.2 AA · No sign-up required
-          </p>
+          {mode === "single" ? (
+            <>
+              <form className="hero-form flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto" onSubmit={handleSubmit}>
+                <label htmlFor="hero-url" className="sr-only">Your website URL</label>
+                <Input
+                  id="hero-url"
+                  type="url"
+                  placeholder="https://your-website.com"
+                  className="h-14 rounded-xl px-5 text-sm flex-1"
+                  style={{ background: "#EFEFEB", border: "1px solid #E4E4E2", boxShadow: "none", fontFamily: "var(--app-font-mono)" }}
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  required
+                />
+                <Button type="submit" className="btn-gsap h-14 px-8 text-sm font-semibold shrink-0">
+                  Scan my site →
+                </Button>
+              </form>
+              <p className="hero-disclaimer mt-4 text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
+                Powered by axe-core · WCAG 2.1 AA + 2.2 AA · No sign-up required
+              </p>
+            </>
+          ) : (
+            <>
+              <MultiUrlForm />
+              <p className="hero-disclaimer mt-4 text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
+                Up to 10 pages · Scanned in parallel · Combined site-wide report
+              </p>
+            </>
+          )}
         </div>
       </section>
 

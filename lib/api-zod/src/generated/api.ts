@@ -62,6 +62,74 @@ export const CreateAuditResponse = zod.object({
 });
 
 /**
+ * Scans up to 10 URLs concurrently and returns a combined site-wide compliance report plus individual per-page results
+ * @summary Batch audit up to 10 URLs at once
+ */
+export const createBatchAuditBodyUrlsMax = 10;
+
+export const CreateBatchAuditBody = zod.object({
+  urls: zod
+    .array(zod.string())
+    .min(1)
+    .max(createBatchAuditBodyUrlsMax)
+    .describe("List of URLs to scan (1–10)"),
+});
+
+export const createBatchAuditResponseSiteScoreMin = 0;
+export const createBatchAuditResponseSiteScoreMax = 100;
+
+export const createBatchAuditResponsePagesItemScoreMin = 0;
+export const createBatchAuditResponsePagesItemScoreMax = 100;
+
+export const CreateBatchAuditResponse = zod.object({
+  siteScore: zod
+    .number()
+    .min(createBatchAuditResponseSiteScoreMin)
+    .max(createBatchAuditResponseSiteScoreMax)
+    .describe("Weighted average score across all scanned pages"),
+  siteLevel: zod.enum(["critical", "poor", "moderate", "good", "excellent"]),
+  pages: zod.array(
+    zod.object({
+      auditId: zod.string(),
+      url: zod.string(),
+      score: zod
+        .number()
+        .min(createBatchAuditResponsePagesItemScoreMin)
+        .max(createBatchAuditResponsePagesItemScoreMax),
+      level: zod.enum(["critical", "poor", "moderate", "good", "excellent"]),
+      totalViolations: zod.number(),
+      criticalViolations: zod.number(),
+      seriousViolations: zod.number(),
+      passedChecks: zod.number(),
+      totalChecks: zod.number(),
+      scannedAt: zod.coerce.date(),
+      status: zod.enum(["success", "error"]),
+      error: zod.string().nullish(),
+    }),
+  ),
+  crossPageViolations: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        wcagCriteria: zod.string(),
+        description: zod.string(),
+        impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+        pageCount: zod
+          .number()
+          .describe("Number of pages this violation appears on"),
+        totalAffectedElements: zod
+          .number()
+          .describe("Total affected elements across all pages"),
+        affectedUrls: zod.array(zod.string()),
+      }),
+    )
+    .describe(
+      "Deduplicated violations ranked by how many pages they appear on",
+    ),
+  scannedAt: zod.coerce.date(),
+});
+
+/**
  * Retrieve a previously run audit result
  * @summary Get audit result by ID
  */

@@ -193,6 +193,100 @@ export interface MonitorResponse {
   latest?: MonitorLatest | null;
 }
 
+export interface CreateBatchAuditBody {
+  /**
+   * List of URLs to scan (1–10)
+   * @minItems 1
+   * @maxItems 10
+   */
+  urls: string[];
+}
+
+export type BatchPageResultLevel =
+  (typeof BatchPageResultLevel)[keyof typeof BatchPageResultLevel];
+
+export const BatchPageResultLevel = {
+  critical: "critical",
+  poor: "poor",
+  moderate: "moderate",
+  good: "good",
+  excellent: "excellent",
+} as const;
+
+export type BatchPageResultStatus =
+  (typeof BatchPageResultStatus)[keyof typeof BatchPageResultStatus];
+
+export const BatchPageResultStatus = {
+  success: "success",
+  error: "error",
+} as const;
+
+export interface BatchPageResult {
+  auditId: string;
+  url: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  score: number;
+  level: BatchPageResultLevel;
+  totalViolations: number;
+  criticalViolations: number;
+  seriousViolations: number;
+  passedChecks: number;
+  totalChecks: number;
+  scannedAt: string;
+  status: BatchPageResultStatus;
+  error?: string | null;
+}
+
+export type CrossPageViolationImpact =
+  (typeof CrossPageViolationImpact)[keyof typeof CrossPageViolationImpact];
+
+export const CrossPageViolationImpact = {
+  minor: "minor",
+  moderate: "moderate",
+  serious: "serious",
+  critical: "critical",
+} as const;
+
+export interface CrossPageViolation {
+  id: string;
+  wcagCriteria: string;
+  description: string;
+  impact: CrossPageViolationImpact;
+  /** Number of pages this violation appears on */
+  pageCount: number;
+  /** Total affected elements across all pages */
+  totalAffectedElements: number;
+  affectedUrls: string[];
+}
+
+export type BatchAuditResultSiteLevel =
+  (typeof BatchAuditResultSiteLevel)[keyof typeof BatchAuditResultSiteLevel];
+
+export const BatchAuditResultSiteLevel = {
+  critical: "critical",
+  poor: "poor",
+  moderate: "moderate",
+  good: "good",
+  excellent: "excellent",
+} as const;
+
+export interface BatchAuditResult {
+  /**
+   * Weighted average score across all scanned pages
+   * @minimum 0
+   * @maximum 100
+   */
+  siteScore: number;
+  siteLevel: BatchAuditResultSiteLevel;
+  pages: BatchPageResult[];
+  /** Deduplicated violations ranked by how many pages they appear on */
+  crossPageViolations: CrossPageViolation[];
+  scannedAt: string;
+}
+
 export interface ErrorResponse {
   error: string;
   message: string;

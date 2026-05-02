@@ -25,6 +25,7 @@ import AccessibilityStatement from "@/pages/legal/accessibility";
 
 // Monitor
 import MonitorPage from "@/pages/monitor";
+import BatchResult from "@/pages/batch-result";
 
 // Tools
 import ToolsIndex from "@/pages/tools/index";
@@ -59,6 +60,7 @@ function Router() {
         <Route path="/legal/privacy" component={PrivacyPolicy} />
         <Route path="/legal/accessibility" component={AccessibilityStatement} />
         <Route path="/monitor/:token" component={MonitorPage} />
+        <Route path="/batch-result" component={BatchResult} />
         <Route path="/tools" component={ToolsIndex} />
         <Route path="/tools/contrast-checker" component={ContrastChecker} />
         <Route path="/tools/colour-blindness" component={ColourBlindness} />

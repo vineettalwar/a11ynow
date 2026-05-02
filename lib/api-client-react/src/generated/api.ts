@@ -18,7 +18,9 @@ import type {
 
 import type {
   AuditResult,
+  BatchAuditResult,
   CreateAuditBody,
+  CreateBatchAuditBody,
   CreateLeadBody,
   CreateMonitorBody,
   CreateMonitorResponse,
@@ -198,6 +200,93 @@ export const useCreateAudit = <
   TContext
 > => {
   return useMutation(getCreateAuditMutationOptions(options));
+};
+
+/**
+ * Scans up to 10 URLs concurrently and returns a combined site-wide compliance report plus individual per-page results
+ * @summary Batch audit up to 10 URLs at once
+ */
+export const getCreateBatchAuditUrl = () => {
+  return `/api/audit/batch`;
+};
+
+export const createBatchAudit = async (
+  createBatchAuditBody: CreateBatchAuditBody,
+  options?: RequestInit,
+): Promise<BatchAuditResult> => {
+  return customFetch<BatchAuditResult>(getCreateBatchAuditUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createBatchAuditBody),
+  });
+};
+
+export const getCreateBatchAuditMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBatchAudit>>,
+    TError,
+    { data: BodyType<CreateBatchAuditBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createBatchAudit>>,
+  TError,
+  { data: BodyType<CreateBatchAuditBody> },
+  TContext
+> => {
+  const mutationKey = ["createBatchAudit"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createBatchAudit>>,
+    { data: BodyType<CreateBatchAuditBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createBatchAudit(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateBatchAuditMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createBatchAudit>>
+>;
+export type CreateBatchAuditMutationBody = BodyType<CreateBatchAuditBody>;
+export type CreateBatchAuditMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Batch audit up to 10 URLs at once
+ */
+export const useCreateBatchAudit = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBatchAudit>>,
+    TError,
+    { data: BodyType<CreateBatchAuditBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createBatchAudit>>,
+  TError,
+  { data: BodyType<CreateBatchAuditBody> },
+  TContext
+> => {
+  return useMutation(getCreateBatchAuditMutationOptions(options));
 };
 
 /**

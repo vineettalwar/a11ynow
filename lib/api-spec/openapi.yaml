@@ -63,6 +63,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /audit/batch:
+    post:
+      operationId: createBatchAudit
+      tags: [audit]
+      summary: Batch audit up to 10 URLs at once
+      description: Scans up to 10 URLs concurrently and returns a combined site-wide compliance report plus individual per-page results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBatchAuditBody"
+      responses:
+        "200":
+          description: Batch audit result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchAuditResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Batch audit failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /audit/{auditId}:
     get:
       operationId: getAudit
@@ -484,6 +516,126 @@ components:
         - violations
         - passedChecks
         - totalChecks
+        - scannedAt
+
+    CreateBatchAuditBody:
+      type: object
+      properties:
+        urls:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 10
+          description: List of URLs to scan (1–10)
+      required:
+        - urls
+
+    BatchPageResult:
+      type: object
+      properties:
+        auditId:
+          type: string
+        url:
+          type: string
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        level:
+          type: string
+          enum: [critical, poor, moderate, good, excellent]
+        totalViolations:
+          type: integer
+        criticalViolations:
+          type: integer
+        seriousViolations:
+          type: integer
+        passedChecks:
+          type: integer
+        totalChecks:
+          type: integer
+        scannedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [success, error]
+        error:
+          type: string
+          nullable: true
+      required:
+        - auditId
+        - url
+        - score
+        - level
+        - totalViolations
+        - criticalViolations
+        - seriousViolations
+        - passedChecks
+        - totalChecks
+        - scannedAt
+        - status
+
+    CrossPageViolation:
+      type: object
+      properties:
+        id:
+          type: string
+        wcagCriteria:
+          type: string
+        description:
+          type: string
+        impact:
+          type: string
+          enum: [minor, moderate, serious, critical]
+        pageCount:
+          type: integer
+          description: Number of pages this violation appears on
+        totalAffectedElements:
+          type: integer
+          description: Total affected elements across all pages
+        affectedUrls:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - wcagCriteria
+        - description
+        - impact
+        - pageCount
+        - totalAffectedElements
+        - affectedUrls
+
+    BatchAuditResult:
+      type: object
+      properties:
+        siteScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Weighted average score across all scanned pages
+        siteLevel:
+          type: string
+          enum: [critical, poor, moderate, good, excellent]
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/BatchPageResult"
+        crossPageViolations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CrossPageViolation"
+          description: Deduplicated violations ranked by how many pages they appear on
+        scannedAt:
+          type: string
+          format: date-time
+      required:
+        - siteScore
+        - siteLevel
+        - pages
+        - crossPageViolations
         - scannedAt
 
     ErrorResponse:
