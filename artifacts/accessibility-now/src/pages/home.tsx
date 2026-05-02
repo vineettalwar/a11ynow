@@ -7,38 +7,6 @@ import gsap from "gsap";
 import { ParticleCanvas } from "@/components/particle-canvas";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
 
-function StatCounter({ target, format }: { target: number; format: (n: number) => string }) {
-  const ref = useRef<HTMLParagraphElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion) {
-      el.textContent = format(target);
-      return;
-    }
-
-    const obj = { val: 0 };
-    const tween = gsap.to(obj, {
-      val: target,
-      duration: 2,
-      ease: "power2.out",
-      scrollTrigger: { trigger: el, start: "top 85%", once: true },
-      onUpdate: () => {
-        el.textContent = format(Math.round(obj.val * 10) / 10);
-      },
-    });
-    return () => { tween.kill(); };
-  }, [target, format]);
-
-  return (
-    <p ref={ref} className="text-3xl font-extrabold font-sans text-foreground mb-1">
-      {format(0)}
-    </p>
-  );
-}
 
 function useGsapButtonHover(ref: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
@@ -192,15 +160,15 @@ export default function Home() {
         <div className="container mx-auto max-w-5xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="reveal-child">
-              <StatCounter target={6} format={(n) => `1 in ${n}`} />
+              <p className="text-3xl font-extrabold font-sans text-foreground mb-1">1 in 6</p>
               <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>Europeans lives with a disability</p>
             </div>
             <div className="reveal-child">
-              <StatCounter target={96.3} format={(n) => `${n}%`} />
+              <p className="text-3xl font-extrabold font-sans text-foreground mb-1">96.3%</p>
               <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>of homepages have WCAG failures</p>
             </div>
             <div className="reveal-child">
-              <StatCounter target={100} format={(n) => `€${n}k`} />
+              <p className="text-3xl font-extrabold font-sans text-foreground mb-1">€100k</p>
               <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>maximum fine per violation</p>
             </div>
             <div className="reveal-child">
