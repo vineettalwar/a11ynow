@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -62,6 +62,78 @@ function screenshotSrc(url: string) {
   return `${BASE_URL}/api/page-screenshot?url=${encodeURIComponent(url)}`;
 }
 
+async function downloadLowVision(
+  src: string,
+  label: string,
+  blur: number,
+  contrast: number,
+  brightness: number,
+  vignette: boolean,
+  vignetteStrength: number,
+  centralLoss: boolean,
+) {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Image load failed"));
+    img.src = src;
+  });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d")!;
+
+  const filters: string[] = [];
+  if (blur > 0) filters.push(`blur(${blur}px)`);
+  if (contrast !== 1) filters.push(`contrast(${contrast})`);
+  if (brightness !== 1) filters.push(`brightness(${brightness})`);
+  ctx.filter = filters.length > 0 ? filters.join(" ") : "none";
+  ctx.drawImage(img, 0, 0);
+  ctx.filter = "none";
+
+  if (vignette) {
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const rx = cx * (1 - vignetteStrength * 0.55);
+    const ry = cy * (1 - vignetteStrength * 0.55);
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(cx, cy));
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    const fadeStart = Math.min(rx / cx, ry / cy);
+    grad.addColorStop(fadeStart, "rgba(0,0,0,0)");
+    grad.addColorStop(1, `rgba(0,0,0,${vignetteStrength * 0.98})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  if (centralLoss) {
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const rx = canvas.width * 0.22;
+    const ry = canvas.height * 0.18;
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
+    grad.addColorStop(0, "rgba(0,0,0,0.92)");
+    grad.addColorStop(0.6, "rgba(0,0,0,0.5)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) { reject(new Error("toBlob returned null")); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${label.toLowerCase().replace(/\s+/g, "-")}-simulation.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      resolve();
+    }, "image/png");
+  });
+}
+
 export default function LowVision() {
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
@@ -70,6 +142,7 @@ export default function LowVision() {
   const [blurOverride, setBlurOverride] = useState<number | null>(null);
   const [vignetteOverride, setVignetteOverride] = useState<number | null>(null);
   const [imgState, setImgState] = useState<ImgState>("idle");
+  const [downloading, setDownloading] = useState(false);
 
   const mode = MODES.find((m) => m.id === activeMode)!;
   const blur = blurOverride ?? mode.blur;
@@ -101,6 +174,27 @@ export default function LowVision() {
     setActiveMode(id);
     setBlurOverride(null);
     setVignetteOverride(null);
+  };
+
+  const handleDownload = async () => {
+    if (!screenshotSrcUrl || imgState !== "loaded") return;
+    setDownloading(true);
+    try {
+      await downloadLowVision(
+        screenshotSrcUrl,
+        mode.label,
+        blur,
+        mode.contrast,
+        mode.brightness,
+        mode.vignette,
+        vignetteStrength,
+        mode.centralLoss,
+      );
+    } catch {
+      alert("Could not export the image. The screenshot server may need CORS headers enabled.");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -287,6 +381,24 @@ export default function LowVision() {
               </div>
             )}
           </div>
+
+          {imgState === "loaded" && (
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleDownload}
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {downloading ? "Exporting…" : "Download PNG"}
+              </Button>
+            </div>
+          )}
         </div>
       </section>
     </div>

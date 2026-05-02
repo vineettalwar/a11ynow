@@ -1,17 +1,27 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Columns2, MonitorPlay } from "lucide-react";
+import { Loader2, Columns2, MonitorPlay, Download } from "lucide-react";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-const VISION_TYPES = [
+interface VisionType {
+  id: string;
+  label: string;
+  description: string;
+  prevalence: string | null;
+  filter: string | null;
+  matrix: number[] | null;
+}
+
+const VISION_TYPES: VisionType[] = [
   {
     id: "normal",
     label: "Normal vision",
     description: "No colour vision deficiency.",
     prevalence: null,
     filter: null,
+    matrix: null,
   },
   {
     id: "deuteranopia",
@@ -20,6 +30,7 @@ const VISION_TYPES = [
     prevalence: "~6% of males",
     filter:
       "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><filter id='d'><feColorMatrix type='matrix' values='0.367 0.861 -0.228 0 0 0.280 0.673 0.047 0 0 -0.012 0.043 0.969 0 0 0 0 0 1 0'/></filter></svg>#d\")",
+    matrix: [0.367, 0.861, -0.228, 0, 0, 0.280, 0.673, 0.047, 0, 0, -0.012, 0.043, 0.969, 0, 0, 0, 0, 0, 1, 0],
   },
   {
     id: "protanopia",
@@ -28,6 +39,7 @@ const VISION_TYPES = [
     prevalence: "~2% of males",
     filter:
       "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><filter id='p'><feColorMatrix type='matrix' values='0.152 1.053 -0.205 0 0 0.115 0.786 0.099 0 0 -0.004 -0.048 1.052 0 0 0 0 0 1 0'/></filter></svg>#p\")",
+    matrix: [0.152, 1.053, -0.205, 0, 0, 0.115, 0.786, 0.099, 0, 0, -0.004, -0.048, 1.052, 0, 0, 0, 0, 0, 1, 0],
   },
   {
     id: "tritanopia",
@@ -36,6 +48,7 @@ const VISION_TYPES = [
     prevalence: "~0.003% of people",
     filter:
       "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><filter id='t'><feColorMatrix type='matrix' values='1.256 -0.077 -0.179 0 0 -0.078 0.931 0.148 0 0 0.005 0.691 0.304 0 0 0 0 0 1 0'/></filter></svg>#t\")",
+    matrix: [1.256, -0.077, -0.179, 0, 0, -0.078, 0.931, 0.148, 0, 0, 0.005, 0.691, 0.304, 0, 0, 0, 0, 0, 1, 0],
   },
   {
     id: "achromatopsia",
@@ -43,6 +56,7 @@ const VISION_TYPES = [
     description: "Complete colour blindness — the world appears in greyscale.",
     prevalence: "~0.003% of people",
     filter: "grayscale(1)",
+    matrix: null,
   },
 ];
 
@@ -51,6 +65,63 @@ type ImgState = "idle" | "loading" | "loaded" | "error";
 
 function screenshotSrc(url: string) {
   return `${BASE_URL}/api/page-screenshot?url=${encodeURIComponent(url)}`;
+}
+
+function clamp(v: number): number {
+  return Math.max(0, Math.min(255, Math.round(v)));
+}
+
+async function downloadColourBlind(
+  src: string,
+  label: string,
+  matrix: number[] | null,
+  isGrayscale: boolean,
+) {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("Image load failed"));
+    img.src = src;
+  });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d")!;
+
+  if (matrix) {
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imageData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const rn = d[i] / 255;
+      const gn = d[i + 1] / 255;
+      const bn = d[i + 2] / 255;
+      d[i]     = clamp((matrix[0] * rn + matrix[1] * gn + matrix[2] * bn + matrix[4]) * 255);
+      d[i + 1] = clamp((matrix[5] * rn + matrix[6] * gn + matrix[7] * bn + matrix[9]) * 255);
+      d[i + 2] = clamp((matrix[10] * rn + matrix[11] * gn + matrix[12] * bn + matrix[14]) * 255);
+    }
+    ctx.putImageData(imageData, 0, 0);
+  } else if (isGrayscale) {
+    ctx.filter = "grayscale(1)";
+    ctx.drawImage(img, 0, 0);
+  } else {
+    ctx.drawImage(img, 0, 0);
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) { reject(new Error("toBlob returned null")); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${label.toLowerCase().replace(/\s+/g, "-")}-simulation.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      resolve();
+    }, "image/png");
+  });
 }
 
 interface SimImageProps {
@@ -82,6 +153,7 @@ export default function ColourBlindness() {
   const [activeType, setActiveType] = useState("deuteranopia");
   const [viewMode, setViewMode] = useState<ViewMode>("single");
   const [imgState, setImgState] = useState<ImgState>("idle");
+  const [downloading, setDownloading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +166,23 @@ export default function ColourBlindness() {
   };
 
   const active = VISION_TYPES.find((v) => v.id === activeType)!;
+
+  const handleDownload = async () => {
+    if (!screenshotSrcUrl || imgState !== "loaded") return;
+    setDownloading(true);
+    try {
+      await downloadColourBlind(
+        screenshotSrcUrl,
+        active.label,
+        active.matrix,
+        active.id === "achromatopsia",
+      );
+    } catch {
+      alert("Could not export the image. The screenshot server may need CORS headers enabled.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col w-full">
@@ -266,6 +355,24 @@ export default function ColourBlindness() {
               />
             )}
           </div>
+
+          {imgState === "loaded" && (
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleDownload}
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {downloading ? "Exporting…" : "Download PNG"}
+              </Button>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {VISION_TYPES.filter((v) => v.prevalence).map((v) => (
