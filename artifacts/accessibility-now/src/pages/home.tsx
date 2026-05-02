@@ -49,7 +49,16 @@ export default function Home() {
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="text-xl font-extrabold font-sans heading-accent mb-4"
+          >
+            Find out now.
+          </motion.p>
+
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="text-base text-muted-foreground mb-10 max-w-xl mx-auto"
           >
             We audit digital products for WCAG and EAA compliance. Precise findings,

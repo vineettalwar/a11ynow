@@ -1,50 +1,61 @@
 import { Card, CardContent } from "@/components/ui/card";
 
+const articles = [
+  {
+    title: "Building Accessible Dialogs in React",
+    date: "October 12, 2023",
+    excerpt: "Focus management, ARIA roles, and keyboard trapping: everything you need to know to build compliant modal dialogs.",
+    category: "Engineering",
+  },
+  {
+    title: "Why the EAA Applies to B2B SaaS Too",
+    date: "September 28, 2023",
+    excerpt: "Many B2B companies mistakenly believe the EAA only affects consumer e-commerce. Here's why that assumption is legally risky.",
+    category: "Compliance",
+  },
+  {
+    title: "Automated Scanners Catch 30% of Violations",
+    date: "August 15, 2023",
+    excerpt: "Relying on Lighthouse or axe-core alone will leave you non-compliant. Why manual testing with real screen readers is non-negotiable.",
+    category: "Testing",
+  },
+];
+
 export default function Blog() {
-  const articles = [
-    {
-      title: "Building Accessible Dialogs in React",
-      date: "October 12, 2023",
-      excerpt: "Focus management, ARIA roles, and keyboard trapping: everything you need to know to build compliant modal dialogs.",
-      category: "Engineering"
-    },
-    {
-      title: "Why the EAA Deadline Matters for B2B SaaS",
-      date: "September 28, 2023",
-      excerpt: "Many B2B companies mistakenly believe the EAA only applies to consumer e-commerce. Here's why that assumption is legally risky.",
-      category: "Compliance"
-    },
-    {
-      title: "Automated Scanners Are Lying to You",
-      date: "August 15, 2023",
-      excerpt: "Relying on Lighthouse or axe-core will leave you non-compliant. Why manual testing with screen readers is non-negotiable.",
-      category: "Testing"
-    }
-  ];
-
   return (
-    <div className="container mx-auto px-4 py-24 max-w-5xl">
-      <div className="mb-16">
-        <h1 className="text-5xl font-bold mb-6">Engineering Blog</h1>
-        <p className="text-xl text-muted-foreground">
-          Technical deep-dives, compliance updates, and accessibility best practices.
-        </p>
-      </div>
+    <div className="flex flex-col w-full">
+      <section className="hero-gradient pt-24 pb-20 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <h1 className="text-display font-extrabold tracking-tight mb-6">
+            Engineering<br />
+            <span className="heading-accent">perspectives.</span>
+          </h1>
+          <p className="text-muted-foreground text-base max-w-xl">
+            Technical deep-dives, compliance updates, and accessibility patterns from our engineering team.
+          </p>
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {articles.map((article, index) => (
-          <Card key={index} className="border-2 shadow-none hover:border-primary/50 transition-colors cursor-pointer group">
-            <CardContent className="p-8">
-              <div className="flex justify-between items-center mb-4 text-sm text-muted-foreground">
-                <span className="font-bold text-primary uppercase tracking-wider">{article.category}</span>
-                <span>{article.date}</span>
-              </div>
-              <h2 className="text-2xl font-bold mb-4 group-hover:text-primary transition-colors">{article.title}</h2>
-              <p className="text-muted-foreground">{article.excerpt}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <section className="py-20 px-4 bg-white">
+        <div className="container mx-auto max-w-4xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {articles.map((article, index) => (
+              <Card key={index} className="border shadow-none hover:shadow-sm transition-shadow cursor-pointer group">
+                <CardContent className="p-8">
+                  <div className="flex justify-between items-center mb-5 text-xs">
+                    <span className="font-bold text-primary uppercase tracking-wider font-sans">{article.category}</span>
+                    <span className="text-muted-foreground font-mono">{article.date}</span>
+                  </div>
+                  <h2 className="text-base font-bold font-sans mb-3 group-hover:text-primary transition-colors">
+                    {article.title}
+                  </h2>
+                  <p className="text-muted-foreground text-xs">{article.excerpt}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
