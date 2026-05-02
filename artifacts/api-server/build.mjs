@@ -103,6 +103,7 @@ async function buildAll() {
       "electron",
       "jsdom",
       "axe-core",
+      "pdfkit",
     ],
     sourcemap: "linked",
     plugins: [

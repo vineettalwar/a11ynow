@@ -176,18 +176,26 @@ function DownloadBatchPdf({ pages }: { pages: BatchPageResult[] }) {
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
 
+  const successIds = pages.filter((p) => p.status === "success" && p.auditId).map((p) => p.auditId);
+
   async function download() {
+    if (successIds.length === 0) {
+      toast({ title: "No successful scans", description: "No pages were scanned successfully.", variant: "destructive" });
+      return;
+    }
     setIsPending(true);
     try {
-      const firstId = pages[0]?.auditId;
-      if (!firstId) throw new Error("No audit IDs available");
-      const resp = await fetch(`${BASE}/api/audit/${firstId}/pdf`);
+      const resp = await fetch(`${BASE}/api/audit/batch-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auditIds: successIds }),
+      });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "accessibility-batch-report.pdf";
+      a.download = `accessibility-batch-report-${successIds.length}pages.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -195,7 +203,7 @@ function DownloadBatchPdf({ pages }: { pages: BatchPageResult[] }) {
     } catch {
       toast({
         title: "Report generation failed",
-        description: "Could not generate the PDF. Please try again.",
+        description: "Could not generate the multi-page PDF. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -206,7 +214,7 @@ function DownloadBatchPdf({ pages }: { pages: BatchPageResult[] }) {
   return (
     <Button
       onClick={download}
-      disabled={isPending}
+      disabled={isPending || successIds.length === 0}
       variant="outline"
       className="h-11 px-5 text-sm font-semibold border-foreground/20 bg-white/80 hover:bg-white gap-2"
     >
@@ -408,12 +416,16 @@ export default function BatchResult() {
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <Link
-                          href={`/audit-result?auditId=${page.auditId}&url=${encodeURIComponent(page.url)}`}
-                          className="text-primary hover:underline text-xs font-semibold font-sans inline-flex items-center gap-1"
-                        >
-                          View <ExternalLink className="w-3 h-3" />
-                        </Link>
+                        {page.status === "success" && page.auditId ? (
+                          <Link
+                            href={`/audit-result?auditId=${page.auditId}&url=${encodeURIComponent(page.url)}`}
+                            className="text-primary hover:underline text-xs font-semibold font-sans inline-flex items-center gap-1"
+                          >
+                            View <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted-foreground font-mono">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

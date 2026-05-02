@@ -136,29 +136,12 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
         status: "success",
       };
     } catch (err) {
-      req.log.warn({ err, url }, "Batch scan failed for URL");
-      const auditId = randomUUID();
-      const score = 0;
-      const level = scoreToLevel(score);
-      await db.insert(auditsTable).values({
-        auditId,
-        url,
-        scannedAt,
-        score,
-        level,
-        totalViolations: 0,
-        criticalViolations: 0,
-        seriousViolations: 0,
-        violations: [],
-        passedChecks: 0,
-        totalChecks: 0,
-      }).catch(() => {});
-
+      req.log.warn({ err, url }, "Batch scan failed for URL — not persisting failure");
       return {
-        auditId,
+        auditId: "",
         url,
         score: 0,
-        level,
+        level: scoreToLevel(0),
         totalViolations: 0,
         criticalViolations: 0,
         seriousViolations: 0,
