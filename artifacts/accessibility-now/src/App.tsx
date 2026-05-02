@@ -34,6 +34,7 @@ import ScreenReaderPreview from "@/pages/tools/screen-reader-preview";
 import KeyboardTester from "@/pages/tools/keyboard-tester";
 import LowVision from "@/pages/tools/low-vision";
 import MobileChecklist from "@/pages/tools/mobile-checklist";
+import WcagChecklist from "@/pages/tools/wcag-checklist";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ function Router() {
         <Route path="/tools/keyboard-tester" component={KeyboardTester} />
         <Route path="/tools/low-vision" component={LowVision} />
         <Route path="/tools/mobile-checklist" component={MobileChecklist} />
+        <Route path="/tools/wcag-checklist" component={WcagChecklist} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

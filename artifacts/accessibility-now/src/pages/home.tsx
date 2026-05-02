@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, CheckCircle2, Search, Code, ShieldCheck, Eye, Keyboard, Smartphone } from "lucide-react";
+import { ArrowRight, CheckCircle2, Search, Code, ShieldCheck, Eye, Keyboard, Smartphone, ClipboardList } from "lucide-react";
 import gsap from "gsap";
 import { ParticleCanvas } from "@/components/particle-canvas";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
@@ -247,9 +247,9 @@ export default function Home() {
                 <span className="heading-accent">how your users do.</span>
               </h2>
               <p className="text-muted-foreground mb-8 reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
-                Six browser-based simulators. No install. Enter any URL and immediately see your
-                product through deuteranopia, tunnel vision, a screen reader's reading order, or
-                a keyboard-only user's tab flow.
+                Seven browser-based tools. No install. Simulate colour blindness, tunnel vision,
+                a screen reader's reading order, keyboard-only tab flow — or work through the
+                full WCAG 2.1 AA checklist manually.
               </p>
               <Button asChild className="btn-gsap h-12 px-7 font-semibold">
                 <Link href="/tools">Open the tools →</Link>
@@ -263,6 +263,7 @@ export default function Home() {
                 { icon: <Keyboard className="w-4 h-4" />, title: "Keyboard Tester", desc: "Tab order, focus traps, visible focus rings" },
                 { icon: <ShieldCheck className="w-4 h-4" />, title: "Contrast Checker", desc: "WCAG AA/AAA with EyeDropper colour picker" },
                 { icon: <Smartphone className="w-4 h-4" />, title: "Mobile Checklist", desc: "iOS & Android with VoiceOver/TalkBack items" },
+                { icon: <ClipboardList className="w-4 h-4" />, title: "WCAG 2.1 AA Checklist", desc: "50 success criteria — mark Pass, Fail, or N/A" },
               ].map(({ icon, title, desc }) => (
                 <Link
                   key={title}

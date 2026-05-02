@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, Mic, Keyboard, Palette, Glasses, Smartphone, ArrowRight } from "lucide-react";
+import { Eye, Mic, Keyboard, Palette, Glasses, Smartphone, ClipboardList, ArrowRight } from "lucide-react";
 
 const tools = [
   {
@@ -39,6 +39,12 @@ const tools = [
     title: "Mobile Accessibility Checklist",
     description: "iOS and Android checklist covering touch targets, VoiceOver/TalkBack labels, dynamic type, and gesture alternatives.",
   },
+  {
+    href: "/tools/wcag-checklist",
+    icon: ClipboardList,
+    title: "WCAG 2.1 AA Checklist",
+    description: "Work through all 50 WCAG 2.1 AA success criteria manually. Mark each Pass, Fail, or N/A — progress saved in your browser.",
+  },
 ];
 
 export default function ToolsIndex() {
@@ -51,7 +57,7 @@ export default function ToolsIndex() {
             <span className="heading-accent">sees your website.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl">
-            Six interactive tools for developers and designers. All run in-browser — no account needed, no data sent.
+            Seven interactive tools for developers and designers. All run in-browser — no account needed, no data sent.
           </p>
         </div>
       </section>
