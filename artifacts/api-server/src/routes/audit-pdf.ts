@@ -65,7 +65,10 @@ interface AuditRow {
 function buildPdf(row: AuditRow): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const violations = (row.violations as AuditViolationData[]) ?? [];
-    const top10 = violations.slice(0, 10);
+    const impactOrder: Record<ImpactLevel, number> = { critical: 0, serious: 1, moderate: 2, minor: 3 };
+    const top10 = [...violations]
+      .sort((a, b) => (impactOrder[a.impact] ?? 4) - (impactOrder[b.impact] ?? 4))
+      .slice(0, 10);
 
     const moderateViolations = violations.filter((v) => v.impact === "moderate").length;
     const minorViolations = violations.filter((v) => v.impact === "minor").length;
