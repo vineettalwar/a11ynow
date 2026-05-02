@@ -23,6 +23,9 @@ import About from "@/pages/about";
 import PrivacyPolicy from "@/pages/legal/privacy";
 import AccessibilityStatement from "@/pages/legal/accessibility";
 
+// Monitor
+import MonitorPage from "@/pages/monitor";
+
 // Tools
 import ToolsIndex from "@/pages/tools/index";
 import ContrastChecker from "@/pages/tools/contrast-checker";
@@ -54,6 +57,7 @@ function Router() {
         <Route path="/about" component={About} />
         <Route path="/legal/privacy" component={PrivacyPolicy} />
         <Route path="/legal/accessibility" component={AccessibilityStatement} />
+        <Route path="/monitor/:token" component={MonitorPage} />
         <Route path="/tools" component={ToolsIndex} />
         <Route path="/tools/contrast-checker" component={ContrastChecker} />
         <Route path="/tools/colour-blindness" component={ColourBlindness} />

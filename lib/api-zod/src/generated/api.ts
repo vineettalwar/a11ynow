@@ -127,3 +127,83 @@ export const CreateLeadBody = zod.object({
     .optional()
     .describe("The audit result they are requesting the full report for"),
 });
+
+/**
+ * Registers a URL for periodic accessibility re-scans and email summaries
+ * @summary Register a URL for ongoing monitoring
+ */
+export const CreateMonitorBody = zod.object({
+  url: zod.string().describe("The URL to monitor"),
+  email: zod.string().email().describe("Email address for scan summaries"),
+  frequency: zod
+    .enum(["weekly", "monthly"])
+    .describe("How often to re-scan the URL"),
+});
+
+/**
+ * Returns scan history and current status for a monitored URL
+ * @summary Get monitoring history by token
+ */
+export const GetMonitorParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const getMonitorResponseScansItemScoreMin = 0;
+export const getMonitorResponseScansItemScoreMax = 100;
+
+export const GetMonitorResponse = zod.object({
+  url: zod.string(),
+  frequency: zod.enum(["weekly", "monthly"]),
+  createdAt: zod.coerce.date(),
+  nextScanAt: zod.coerce.date(),
+  scans: zod.array(
+    zod.object({
+      id: zod.string(),
+      score: zod
+        .number()
+        .min(getMonitorResponseScansItemScoreMin)
+        .max(getMonitorResponseScansItemScoreMax),
+      level: zod.enum(["critical", "poor", "moderate", "good", "excellent"]),
+      totalViolations: zod.number(),
+      criticalViolations: zod.number(),
+      seriousViolations: zod.number(),
+      passedChecks: zod.number(),
+      totalChecks: zod.number(),
+      scannedAt: zod.coerce.date(),
+    }),
+  ),
+  latest: zod
+    .object({
+      score: zod.number(),
+      level: zod.enum(["critical", "poor", "moderate", "good", "excellent"]),
+      totalViolations: zod.number(),
+      criticalViolations: zod.number(),
+      seriousViolations: zod.number(),
+      violations: zod.array(
+        zod.object({
+          id: zod
+            .string()
+            .describe('WCAG criterion ID (e.g. \"color-contrast\")'),
+          wcagCriteria: zod
+            .string()
+            .describe(
+              'WCAG criterion reference (e.g. \"1.4.3 Contrast Minimum\")',
+            ),
+          description: zod.string(),
+          impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+          affectedElements: zod
+            .number()
+            .describe("Number of affected elements on the page"),
+          topSelectors: zod
+            .array(zod.string())
+            .describe(
+              "Up to 3 representative CSS selectors for affected elements",
+            ),
+        }),
+      ),
+      passedChecks: zod.number(),
+      totalChecks: zod.number(),
+      scannedAt: zod.coerce.date(),
+    })
+    .nullish(),
+});

@@ -88,6 +88,109 @@ export interface LeadResponse {
   createdAt: string;
 }
 
+/**
+ * How often to re-scan the URL
+ */
+export type CreateMonitorBodyFrequency =
+  (typeof CreateMonitorBodyFrequency)[keyof typeof CreateMonitorBodyFrequency];
+
+export const CreateMonitorBodyFrequency = {
+  weekly: "weekly",
+  monthly: "monthly",
+} as const;
+
+export interface CreateMonitorBody {
+  /** The URL to monitor */
+  url: string;
+  /** Email address for scan summaries */
+  email: string;
+  /** How often to re-scan the URL */
+  frequency: CreateMonitorBodyFrequency;
+}
+
+export type CreateMonitorResponseFrequency =
+  (typeof CreateMonitorResponseFrequency)[keyof typeof CreateMonitorResponseFrequency];
+
+export const CreateMonitorResponseFrequency = {
+  weekly: "weekly",
+  monthly: "monthly",
+} as const;
+
+export interface CreateMonitorResponse {
+  /** Unique token to access monitoring results */
+  token: string;
+  url: string;
+  frequency: CreateMonitorResponseFrequency;
+  email: string;
+}
+
+export type MonitorScanResultLevel =
+  (typeof MonitorScanResultLevel)[keyof typeof MonitorScanResultLevel];
+
+export const MonitorScanResultLevel = {
+  critical: "critical",
+  poor: "poor",
+  moderate: "moderate",
+  good: "good",
+  excellent: "excellent",
+} as const;
+
+export interface MonitorScanResult {
+  id: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  score: number;
+  level: MonitorScanResultLevel;
+  totalViolations: number;
+  criticalViolations: number;
+  seriousViolations: number;
+  passedChecks: number;
+  totalChecks: number;
+  scannedAt: string;
+}
+
+export type MonitorResponseFrequency =
+  (typeof MonitorResponseFrequency)[keyof typeof MonitorResponseFrequency];
+
+export const MonitorResponseFrequency = {
+  weekly: "weekly",
+  monthly: "monthly",
+} as const;
+
+export type MonitorLatestLevel =
+  (typeof MonitorLatestLevel)[keyof typeof MonitorLatestLevel];
+
+export const MonitorLatestLevel = {
+  critical: "critical",
+  poor: "poor",
+  moderate: "moderate",
+  good: "good",
+  excellent: "excellent",
+} as const;
+
+export interface MonitorLatest {
+  score: number;
+  level: MonitorLatestLevel;
+  totalViolations: number;
+  criticalViolations: number;
+  seriousViolations: number;
+  violations: AuditViolation[];
+  passedChecks: number;
+  totalChecks: number;
+  scannedAt: string;
+}
+
+export interface MonitorResponse {
+  url: string;
+  frequency: MonitorResponseFrequency;
+  createdAt: string;
+  nextScanAt: string;
+  scans: MonitorScanResult[];
+  latest?: MonitorLatest | null;
+}
+
 export interface ErrorResponse {
   error: string;
   message: string;

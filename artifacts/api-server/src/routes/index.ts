@@ -3,6 +3,7 @@ import healthRouter from "./health";
 import auditRouter from "./audit";
 import auditPdfRouter from "./audit-pdf";
 import leadsRouter from "./leads";
+import monitorRouter from "./monitor";
 import screenReaderPreviewRouter from "./screen-reader-preview";
 import pageScreenshotRouter from "./page-screenshot";
 
@@ -12,6 +13,7 @@ router.use(healthRouter);
 router.use(auditRouter);
 router.use(auditPdfRouter);
 router.use(leadsRouter);
+router.use(monitorRouter);
 router.use(screenReaderPreviewRouter);
 router.use(pageScreenshotRouter);
 

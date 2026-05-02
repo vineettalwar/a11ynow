@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertOctagon, Loader2, CheckCircle2, Mail, FileDown } from "lucide-react";
+import { AlertOctagon, Loader2, CheckCircle2, Mail, FileDown, Activity } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
@@ -228,6 +228,121 @@ export default function AuditResult() {
   return <AuditResultView result={result} scannedDate={scannedDate} />;
 }
 
+function MonitorSetupCard({ url }: { url: string }) {
+  const [email, setEmail] = useState("");
+  const [frequency, setFrequency] = useState<"weekly" | "monthly">("weekly");
+  const [token, setToken] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setIsPending(true);
+    setError(null);
+    try {
+      const res = await fetch(`${BASE}/api/monitor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, email: email.trim(), frequency }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { message?: string };
+        throw new Error(body.message ?? `HTTP ${res.status}`);
+      }
+      const data = await res.json() as { token: string };
+      setToken(data.token);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong.";
+      setError(msg);
+      toast({ title: "Monitoring setup failed", description: msg, variant: "destructive" });
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  const monitorUrl = token ? `${window.location.origin}${BASE}/monitor/${token}` : null;
+
+  if (token && monitorUrl) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
+          <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+        </div>
+        <div>
+          <p className="font-bold font-sans text-sm mb-1">Monitoring is active.</p>
+          <p className="text-xs text-muted-foreground mb-4">
+            A confirmation has been sent to <span className="font-medium text-foreground">{email}</span>.
+            Bookmark your results page:
+          </p>
+          <a
+            href={monitorUrl}
+            className="font-mono text-xs text-primary underline underline-offset-2 break-all"
+          >
+            {monitorUrl}
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="monitor-email" className="text-xs font-semibold font-sans block mb-1.5">
+          Email for scan summaries
+        </label>
+        <Input
+          id="monitor-email"
+          type="email"
+          placeholder="jane@company.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+        />
+      </div>
+      <div>
+        <label className="text-xs font-semibold font-sans block mb-1.5">Scan frequency</label>
+        <div className="flex gap-3">
+          {(["weekly", "monthly"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFrequency(f)}
+              className={`flex-1 h-10 rounded-lg border text-xs font-semibold font-sans capitalize transition-colors ${
+                frequency === f
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border text-muted-foreground hover:border-foreground/30"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+      <Button
+        type="submit"
+        className="w-full h-11 text-sm font-semibold"
+        disabled={isPending || !email.trim()}
+      >
+        {isPending ? (
+          <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Setting up…</>
+        ) : (
+          "Start monitoring →"
+        )}
+      </Button>
+      {error && (
+        <p className="text-xs text-destructive text-center">{error}</p>
+      )}
+      <p className="text-xs text-muted-foreground text-center">
+        We'll email a score summary after each scan. No spam.
+      </p>
+    </form>
+  );
+}
+
 function AuditResultView({
   result,
   scannedDate,
@@ -360,6 +475,29 @@ function AuditResultView({
                 </div>
                 <div className="md:col-span-3">
                   <LeadCaptureForm auditId={result.auditId} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Monitoring Setup */}
+          <Card className="border-2 border-foreground/10 bg-background">
+            <CardContent className="p-8 md:p-10">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
+                <div className="md:col-span-2">
+                  <div className="w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center mb-4">
+                    <Activity className="w-5 h-5 text-foreground" />
+                  </div>
+                  <h3 className="text-lg font-extrabold font-sans mb-2">
+                    Monitor this site.
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    EAA compliance isn't a one-time fix. Set up weekly or monthly re-scans and
+                    receive an email summary whenever your score changes — completely free.
+                  </p>
+                </div>
+                <div className="md:col-span-3">
+                  <MonitorSetupCard url={result.url} />
                 </div>
               </div>
             </CardContent>

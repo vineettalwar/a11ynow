@@ -20,9 +20,12 @@ import type {
   AuditResult,
   CreateAuditBody,
   CreateLeadBody,
+  CreateMonitorBody,
+  CreateMonitorResponse,
   ErrorResponse,
   HealthStatus,
   LeadResponse,
+  MonitorResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -457,3 +460,178 @@ export const useCreateLead = <
 > => {
   return useMutation(getCreateLeadMutationOptions(options));
 };
+
+/**
+ * Registers a URL for periodic accessibility re-scans and email summaries
+ * @summary Register a URL for ongoing monitoring
+ */
+export const getCreateMonitorUrl = () => {
+  return `/api/monitor`;
+};
+
+export const createMonitor = async (
+  createMonitorBody: CreateMonitorBody,
+  options?: RequestInit,
+): Promise<CreateMonitorResponse> => {
+  return customFetch<CreateMonitorResponse>(getCreateMonitorUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createMonitorBody),
+  });
+};
+
+export const getCreateMonitorMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMonitor>>,
+    TError,
+    { data: BodyType<CreateMonitorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMonitor>>,
+  TError,
+  { data: BodyType<CreateMonitorBody> },
+  TContext
+> => {
+  const mutationKey = ["createMonitor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMonitor>>,
+    { data: BodyType<CreateMonitorBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createMonitor(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMonitorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMonitor>>
+>;
+export type CreateMonitorMutationBody = BodyType<CreateMonitorBody>;
+export type CreateMonitorMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Register a URL for ongoing monitoring
+ */
+export const useCreateMonitor = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMonitor>>,
+    TError,
+    { data: BodyType<CreateMonitorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createMonitor>>,
+  TError,
+  { data: BodyType<CreateMonitorBody> },
+  TContext
+> => {
+  return useMutation(getCreateMonitorMutationOptions(options));
+};
+
+/**
+ * Returns scan history and current status for a monitored URL
+ * @summary Get monitoring history by token
+ */
+export const getGetMonitorUrl = (token: string) => {
+  return `/api/monitor/${token}`;
+};
+
+export const getMonitor = async (
+  token: string,
+  options?: RequestInit,
+): Promise<MonitorResponse> => {
+  return customFetch<MonitorResponse>(getGetMonitorUrl(token), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMonitorQueryKey = (token: string) => {
+  return [`/api/monitor/${token}`] as const;
+};
+
+export const getGetMonitorQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMonitor>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMonitor>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMonitorQueryKey(token);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMonitor>>> = ({
+    signal,
+  }) => getMonitor(token, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!token,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMonitor>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMonitorQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMonitor>>
+>;
+export type GetMonitorQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get monitoring history by token
+ */
+
+export function useGetMonitor<
+  TData = Awaited<ReturnType<typeof getMonitor>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMonitor>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMonitorQueryOptions(token, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

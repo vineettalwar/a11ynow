@@ -14,6 +14,8 @@ tags:
     description: Accessibility audit operations
   - name: lead
     description: Lead capture operations
+  - name: monitor
+    description: Compliance monitoring operations
 paths:
   /healthz:
     get:
@@ -152,6 +154,64 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /monitor:
+    post:
+      operationId: createMonitor
+      tags: [monitor]
+      summary: Register a URL for ongoing monitoring
+      description: Registers a URL for periodic accessibility re-scans and email summaries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMonitorBody"
+      responses:
+        "201":
+          description: Monitoring registration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateMonitorResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /monitor/{token}:
+    get:
+      operationId: getMonitor
+      tags: [monitor]
+      summary: Get monitoring history by token
+      description: Returns scan history and current status for a monitored URL
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Monitoring data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorResponse"
+        "404":
+          description: Token not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -284,6 +344,144 @@ components:
         - name
         - email
         - createdAt
+
+    CreateMonitorBody:
+      type: object
+      properties:
+        url:
+          type: string
+          description: The URL to monitor
+        email:
+          type: string
+          format: email
+          description: Email address for scan summaries
+        frequency:
+          type: string
+          enum: [weekly, monthly]
+          description: How often to re-scan the URL
+      required:
+        - url
+        - email
+        - frequency
+
+    CreateMonitorResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Unique token to access monitoring results
+        url:
+          type: string
+        frequency:
+          type: string
+          enum: [weekly, monthly]
+        email:
+          type: string
+      required:
+        - token
+        - url
+        - frequency
+        - email
+
+    MonitorScanResult:
+      type: object
+      properties:
+        id:
+          type: string
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        level:
+          type: string
+          enum: [critical, poor, moderate, good, excellent]
+        totalViolations:
+          type: integer
+        criticalViolations:
+          type: integer
+        seriousViolations:
+          type: integer
+        passedChecks:
+          type: integer
+        totalChecks:
+          type: integer
+        scannedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - score
+        - level
+        - totalViolations
+        - criticalViolations
+        - seriousViolations
+        - passedChecks
+        - totalChecks
+        - scannedAt
+
+    MonitorResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        frequency:
+          type: string
+          enum: [weekly, monthly]
+        createdAt:
+          type: string
+          format: date-time
+        nextScanAt:
+          type: string
+          format: date-time
+        scans:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonitorScanResult"
+        latest:
+          $ref: "#/components/schemas/MonitorLatest"
+          nullable: true
+      required:
+        - url
+        - frequency
+        - createdAt
+        - nextScanAt
+        - scans
+
+    MonitorLatest:
+      type: object
+      properties:
+        score:
+          type: integer
+        level:
+          type: string
+          enum: [critical, poor, moderate, good, excellent]
+        totalViolations:
+          type: integer
+        criticalViolations:
+          type: integer
+        seriousViolations:
+          type: integer
+        violations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditViolation"
+        passedChecks:
+          type: integer
+        totalChecks:
+          type: integer
+        scannedAt:
+          type: string
+          format: date-time
+      required:
+        - score
+        - level
+        - totalViolations
+        - criticalViolations
+        - seriousViolations
+        - violations
+        - passedChecks
+        - totalChecks
+        - scannedAt
 
     ErrorResponse:
       type: object

@@ -24,16 +24,24 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Purpose**: B2B digital accessibility agency website under the sometech.work brand
 - **Brand**: #F7F7F5 bg, #FF4D1C orange accent, Inter Tight + JetBrains Mono fonts
 - **Lead gen**: Homepage URL audit tool → `/audit-result` with real compliance scan
-- **Pages**: Home, Services (Audits/Remediation/Monitoring), EAA, Work, Resources (WCAG Guide/EAA Checklist/Blog), About, Contact, Audit Result, Legal
+- **Pages**: Home, Services (Audits/Remediation/Monitoring), EAA, Work, Resources (WCAG Guide/EAA Checklist/Blog), About, Contact, Audit Result, Legal, `/monitor/:token` (score history + trend chart)
+- **Monitoring UI**: Audit result page has a "Monitor this site." card (email + frequency) that calls `POST /api/monitor` and redirects to the unique results page
 
 ### API Server (`artifacts/api-server`)
 - **Type**: Express 5 REST API
 - **Preview path**: `/api`
 - **Key routes**:
   - `GET /api/healthz` — health check
-  - `POST /api/audit` — submit URL for WCAG accessibility scan (returns score, violations, WCAG criteria)
+  - `POST /api/audit` — submit URL for WCAG accessibility scan
   - `GET /api/audit/:auditId` — retrieve cached audit result
-- **Audit engine**: Fetches target URL, parses HTML with cheerio, checks 11 WCAG 2.1 criteria (missing alt, unlabelled inputs, missing lang, empty buttons, missing title, autocomplete, skip links, duplicate IDs, empty links, table headers, pixel fonts)
+  - `GET /api/audit/:auditId/pdf` — download PDF report
+  - `POST /api/leads` — capture lead contact
+  - `POST /api/monitor` — register URL for periodic accessibility re-scanning
+  - `GET /api/monitor/:token` — retrieve monitoring history (scans, score, violations)
+- **Audit engine**: Playwright + axe-core (Chromium), fallback to JSDOM + axe-core; shared via `src/lib/scan.ts`
+- **Scheduler**: `node-cron` hourly job in `src/lib/scheduler.ts` — re-scans due URLs and emails summaries
+- **Email**: `nodemailer` via `src/lib/email.ts` — sends confirmation + scan summaries; gracefully skips if SMTP env vars (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL`) are not set
+- **DB schema**: `audits`, `leads`, `monitored_urls`, `monitoring_scans` tables (Drizzle ORM + PostgreSQL)
 
 ## Key Commands
 
@@ -47,6 +55,9 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 - Orval zod config uses `mode: "single"` (not split) to avoid TypeScript naming conflicts between Zod schemas and TS interfaces
 - `lib/api-zod/src/index.ts` exports only from `./generated/api` (single file)
-- Audit results are cached in-memory on the API server (no DB persistence — by design for first build)
+- Audit results and monitoring data are persisted in PostgreSQL via Drizzle ORM
+- Monitoring tokens are 48-char hex strings (24 random bytes); validated as such on the GET endpoint
+- Email sending is no-op (logged only) when SMTP env vars are absent — configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL` for real delivery
+- Score trend chart on `/monitor/:token` uses recharts `LineChart` with orange (#FF4D1C) accent line
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
