@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import "gsap/ScrollTrigger";
 
 export function useSectionReveal<T extends HTMLElement = HTMLElement>(
   options: { staggerSelector?: string; headingSelector?: string } = {}
