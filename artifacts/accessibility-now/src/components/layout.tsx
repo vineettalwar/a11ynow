@@ -16,30 +16,38 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      <header className="border-b bg-background sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="font-bold text-xl tracking-tight" onClick={() => setMobileOpen(false)}>
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+          <Link
+            href="/"
+            className="font-extrabold text-base tracking-tight text-foreground"
+            onClick={() => setMobileOpen(false)}
+          >
             accessibility.now
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+          <nav className="hidden md:flex items-center gap-7 text-sm font-medium" aria-label="Main navigation">
             {NAV_LINKS.map(({ href, label }) => (
-              <Link key={href} href={href} className="hover:text-primary transition-colors">
+              <Link
+                key={href}
+                href={href}
+                className="text-muted-foreground hover:text-foreground transition-colors duration-150"
+              >
                 {label}
               </Link>
             ))}
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" className="hidden md:flex" asChild>
+            <Button variant="ghost" className="hidden md:flex text-sm [box-shadow:none]" asChild>
               <Link href="/contact">Contact</Link>
             </Button>
-            <Button className="hidden md:flex rounded-full px-6 font-semibold shadow-none" asChild>
-              <Link href="/contact">Get a free audit</Link>
+            <Button className="hidden md:flex h-9 px-5 text-sm font-semibold" asChild>
+              <Link href="/contact">Get an audit →</Link>
             </Button>
 
             <button
-              className="md:hidden p-2 rounded-md hover:bg-muted transition-colors"
+              className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
               onClick={() => setMobileOpen((o) => !o)}
@@ -55,18 +63,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link
                 key={href}
                 href={href}
-                className="text-lg font-medium hover:text-primary transition-colors"
+                className="text-base font-medium text-foreground hover:text-primary transition-colors"
                 onClick={() => setMobileOpen(false)}
               >
                 {label}
               </Link>
             ))}
             <div className="pt-4 border-t flex flex-col gap-3">
-              <Button variant="outline" className="w-full" asChild>
+              <Button variant="outline" className="w-full [box-shadow:none]" asChild>
                 <Link href="/contact" onClick={() => setMobileOpen(false)}>Contact</Link>
               </Button>
-              <Button className="w-full rounded-full font-semibold shadow-none" asChild>
-                <Link href="/contact" onClick={() => setMobileOpen(false)}>Get a free audit</Link>
+              <Button className="w-full font-semibold" asChild>
+                <Link href="/contact" onClick={() => setMobileOpen(false)}>Get an audit →</Link>
               </Button>
             </div>
           </div>
@@ -75,38 +83,47 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t bg-white py-12">
-        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <footer className="border-t bg-white py-14">
+        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-10">
           <div>
-            <h3 className="font-bold text-lg mb-4">accessibility.now</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              A no-nonsense accessibility compliance agency for European enterprises.
+            <h3 className="font-extrabold text-base mb-3 font-sans">accessibility.now</h3>
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+              A digital accessibility agency for European enterprises. WCAG audits, remediation, and monitoring.
             </p>
             <p className="text-xs text-muted-foreground">
-              Powered by <a href="https://sometech.work" target="_blank" rel="noreferrer" className="text-foreground hover:underline">sometech.work</a>
+              Powered by{" "}
+              <a
+                href="https://sometech.work"
+                target="_blank"
+                rel="noreferrer"
+                className="text-foreground hover:text-primary transition-colors"
+              >
+                sometech.work
+              </a>
             </p>
           </div>
           <div>
-            <h4 className="font-semibold mb-4">Services</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/services/audits" className="hover:text-foreground">Audits</Link></li>
-              <li><Link href="/services/remediation" className="hover:text-foreground">Remediation</Link></li>
-              <li><Link href="/services/monitoring" className="hover:text-foreground">Monitoring</Link></li>
+            <h4 className="font-semibold text-sm mb-4 font-sans">Services</h4>
+            <ul className="space-y-2 text-xs text-muted-foreground">
+              <li><Link href="/services/audits" className="hover:text-foreground transition-colors">Audits</Link></li>
+              <li><Link href="/services/remediation" className="hover:text-foreground transition-colors">Remediation</Link></li>
+              <li><Link href="/services/monitoring" className="hover:text-foreground transition-colors">Monitoring</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-4">Company</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/work" className="hover:text-foreground">Work</Link></li>
-              <li><Link href="/about" className="hover:text-foreground">About</Link></li>
-              <li><Link href="/contact" className="hover:text-foreground">Contact</Link></li>
+            <h4 className="font-semibold text-sm mb-4 font-sans">Company</h4>
+            <ul className="space-y-2 text-xs text-muted-foreground">
+              <li><Link href="/work" className="hover:text-foreground transition-colors">Work</Link></li>
+              <li><Link href="/about" className="hover:text-foreground transition-colors">About</Link></li>
+              <li><Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-4">Legal</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/legal/privacy" className="hover:text-foreground">Privacy Policy</Link></li>
-              <li><Link href="/legal/accessibility" className="hover:text-foreground">Accessibility Statement</Link></li>
+            <h4 className="font-semibold text-sm mb-4 font-sans">Legal</h4>
+            <ul className="space-y-2 text-xs text-muted-foreground">
+              <li><Link href="/legal/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/legal/accessibility" className="hover:text-foreground transition-colors">Accessibility Statement</Link></li>
+              <li><Link href="/eaa" className="hover:text-foreground transition-colors">EAA Guide</Link></li>
             </ul>
           </div>
         </div>

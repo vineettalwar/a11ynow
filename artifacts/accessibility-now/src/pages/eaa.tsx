@@ -1,56 +1,181 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { CheckCircle2, ArrowRight } from "lucide-react";
+
+const sectors = [
+  "E-commerce and retail websites",
+  "Banking and financial services",
+  "Transportation and ticketing",
+  "Streaming and on-demand media",
+  "Telecommunications services",
+  "Consumer devices and operating systems",
+];
+
+const memberStates = [
+  { country: "Germany", body: "Überwachungsstelle des Bundes (BFIT-Bund)", note: "Strongest enforcement framework in the EU." },
+  { country: "France", body: "DINUM / Autorité de Régulation", note: "Active RGAA compliance checks already in place." },
+  { country: "Netherlands", body: "Logius", note: "Cross-sector enforcement with direct market powers." },
+  { country: "Sweden", body: "DIGG", note: "Merged public/private sector monitoring." },
+  { country: "Ireland", body: "National Disability Authority", note: "Enforcement under the Consumer Rights Act." },
+];
 
 export default function EAA() {
   return (
-    <div className="container mx-auto px-4 py-24 max-w-4xl">
-      <div className="mb-12">
-        <h1 className="text-5xl font-bold mb-6">European Accessibility Act (EAA)</h1>
-        <p className="text-xl text-muted-foreground mb-4">
-          Directive (EU) 2019/882 requires key products and services to be accessible to persons with disabilities.
-        </p>
-        <div className="inline-block bg-destructive/10 text-destructive px-4 py-2 rounded-full font-bold text-sm">
-          Enforcement deadline: June 28, 2025 — Already passed
+    <div className="flex flex-col w-full">
+      {/* Hero */}
+      <section className="hero-gradient pt-24 pb-20 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="inline-block bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-semibold font-sans mb-6 tracking-wide uppercase">
+            Directive (EU) 2019/882
+          </div>
+          <h1 className="text-display font-extrabold tracking-tight mb-6">
+            The European<br />
+            <span className="heading-accent">Accessibility Act.</span>
+          </h1>
+          <p className="text-muted-foreground text-base max-w-2xl mb-10">
+            EU law requiring key digital products and services to be accessible to persons with disabilities.
+            Enforcement is live. WCAG 2.1 Level AA is the accepted technical threshold.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild className="h-11 px-7 text-sm font-semibold">
+              <Link href="/contact">Get an EAA audit</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-11 px-7 text-sm [box-shadow:none]">
+              <Link href="/">Run free site scan →</Link>
+            </Button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="prose prose-lg max-w-none prose-headings:font-bold prose-a:text-primary">
-        <h2>Who it applies to</h2>
-        <p>
-          The EAA applies to a wide range of digital products and services sold or used within the European Union, regardless of where the company is headquartered. Key sectors include:
-        </p>
-        <ul>
-          <li>E-commerce and retail websites</li>
-          <li>Banking and financial services</li>
-          <li>Transportation and ticketing services</li>
-          <li>Telecommunications</li>
-          <li>Streaming services and media</li>
-          <li>Smartphones, operating systems, and computer hardware</li>
-        </ul>
+      {/* What is the EAA */}
+      <section className="py-20 px-4 bg-white">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-display-md font-extrabold mb-6">
+            What is the <span className="heading-accent">EAA?</span>
+          </h2>
+          <div className="prose prose-base max-w-none" style={{ fontFamily: "var(--app-font-mono)" }}>
+            <p>
+              The European Accessibility Act (Directive 2019/882) is EU legislation that harmonises
+              accessibility requirements across member states. It entered into force in June 2019
+              and became enforceable from <strong>28 June 2025</strong>. Companies that were not
+              compliant by that date are now actively at risk of enforcement action.
+            </p>
+            <p>
+              Unlike GDPR, which centres on data, the EAA focuses on whether people with disabilities
+              can use your product on equal terms. It references the <strong>EN 301 549</strong> technical
+              standard, which maps directly to <strong>WCAG 2.1 Level AA</strong> for web and mobile.
+            </p>
+            <p>
+              The practical implication: if your product operates in the EU market, your web and mobile
+              applications must meet WCAG 2.1 AA across all key user journeys — purchase flows, account
+              management, content consumption, and support.
+            </p>
+          </div>
+        </div>
+      </section>
 
-        <h2>Consequences of non-compliance</h2>
-        <p>
-          Unlike the GDPR, which has a central enforcement mechanism, the EAA is enforced by individual member states. However, the penalties are severe:
-        </p>
-        <ul>
-          <li><strong>Significant fines:</strong> Member states can impose substantial financial penalties.</li>
-          <li><strong>Market exclusion:</strong> Non-compliant services can be legally barred from operating in EU markets.</li>
-          <li><strong>Brand damage and legal action:</strong> Increased risk of consumer lawsuits and negative public relations.</li>
-        </ul>
+      {/* Who it applies to */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-display-md font-extrabold mb-4">
+            Who it <span className="heading-accent">applies to.</span>
+          </h2>
+          <p className="text-muted-foreground mb-10 max-w-2xl">
+            The EAA applies to companies of all sizes that provide these services within the EU — regardless
+            of where the company is headquartered. Microenterprises (&lt; 10 employees, ≤ €2M turnover) are
+            exempt for some services but not all.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-12">
+            {sectors.map((sector) => (
+              <div key={sector} className="flex items-start gap-3 p-4 rounded-xl border bg-white">
+                <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span className="text-sm font-sans font-medium">{sector}</span>
+              </div>
+            ))}
+          </div>
 
-        <h2>What WCAG 2.1 AA achieves</h2>
-        <p>
-          The EAA relies on the EN 301 549 standard, which fundamentally maps to the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA. Achieving WCAG 2.1 AA compliance is the accepted technical threshold for meeting the EAA's legal requirements for web and mobile applications.
-        </p>
-      </div>
+          <div className="bg-foreground text-background rounded-2xl p-8">
+            <h3 className="text-lg font-bold font-sans mb-3 text-white">
+              What WCAG 2.1 AA means in practice
+            </h3>
+            <p className="text-gray-400 mb-6">
+              EN 301 549 — the harmonised standard cited by the EAA — maps almost entirely to WCAG 2.1 Level AA
+              for web and mobile applications. Achieving WCAG 2.1 AA is the accepted path to legal compliance.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { label: "Perceivable", body: "Text alternatives, captions, adaptable layout, colour contrast" },
+                { label: "Operable", body: "Keyboard access, enough time, no seizure risk, navigable structure" },
+                { label: "Understandable", body: "Readable language, predictable UI, error identification and recovery" },
+              ].map(({ label, body }) => (
+                <div key={label} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <div className="text-primary font-bold font-sans text-sm mb-1">{label}</div>
+                  <p className="text-gray-400 text-xs">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <div className="mt-16 text-center bg-gray-100 p-10 rounded-3xl">
-        <h2 className="text-2xl font-bold mb-6">Are you at risk?</h2>
-        <p className="text-muted-foreground mb-8">Run a quick automated scan to see your baseline compliance.</p>
-        <Button asChild className="h-14 rounded-full px-10 text-lg font-bold">
-          <Link href="/">Run your compliance snapshot</Link>
-        </Button>
-      </div>
+      {/* Enforcement by member state */}
+      <section className="py-20 px-4 bg-white">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-display-md font-extrabold mb-4">
+            Enforcement by <span className="heading-accent">member state.</span>
+          </h2>
+          <p className="text-muted-foreground mb-10 max-w-2xl">
+            Unlike GDPR, the EAA is enforced nationally by designated market surveillance authorities.
+            Penalties vary — but market exclusion and substantial fines are available in every jurisdiction.
+          </p>
+          <div className="space-y-3 mb-12">
+            {memberStates.map(({ country, body, note }) => (
+              <div key={country} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 p-5 rounded-xl border bg-background">
+                <div className="shrink-0 w-28">
+                  <span className="font-bold font-sans text-sm">{country}</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground font-sans">{body}</p>
+                </div>
+                <div className="text-xs text-muted-foreground max-w-xs">
+                  {note}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-l-4 border-primary pl-6">
+            <p className="text-muted-foreground text-sm">
+              <strong className="text-foreground font-sans">Penalties</strong> include significant fines, 
+              mandatory market withdrawal, and injunctions blocking the sale of non-compliant products. 
+              Multiple member states allow third-party complaints — disabled users can trigger enforcement 
+              directly against your product.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-24 px-4 hero-gradient text-center">
+        <div className="container mx-auto max-w-2xl">
+          <h2 className="text-display-md font-extrabold mb-5">
+            Find out where<br />
+            <span className="heading-accent">you stand.</span>
+          </h2>
+          <p className="text-muted-foreground mb-10">
+            Start with a free automated scan. Follow it with a full manual audit if you need
+            the complete picture for legal sign-off.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button asChild className="h-12 px-8 text-sm font-semibold">
+              <Link href="/">Run free audit →</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-12 px-8 text-sm [box-shadow:none]">
+              <Link href="/contact">Talk to an engineer</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
