@@ -40,8 +40,8 @@ export default function AuditResult() {
   if (!urlParam && !auditIdParam) {
     return (
       <div className="container mx-auto px-4 py-24 text-center">
-        <h1 className="text-3xl font-bold mb-4">No URL provided</h1>
-        <p className="text-muted-foreground mb-8">Please provide a URL to run the compliance snapshot.</p>
+        <h1 className="text-display-md font-extrabold mb-4">No URL provided</h1>
+        <p className="text-muted-foreground mb-8">Please provide a URL to run the audit.</p>
         <Button asChild>
           <Link href="/">Go back home</Link>
         </Button>
@@ -56,28 +56,40 @@ export default function AuditResult() {
 
   if (isPending) {
     return (
-      <div className="container mx-auto px-4 py-24 text-center max-w-2xl">
-        <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-6" />
-        <h1 className="text-3xl font-bold mb-4">Scanning {displayUrl}</h1>
-        <p className="text-muted-foreground">
-          Running automated WCAG 2.1 AA checks. This typically takes 15–30 seconds.
-          <br />Note: Automated scans only catch ~30% of accessibility issues.
-        </p>
+      <div className="hero-gradient min-h-[80vh] flex items-center justify-center px-4">
+        <div className="text-center max-w-lg">
+          <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-6" />
+          <h1 className="text-display-md font-extrabold mb-4">
+            Scanning<br />
+            <span className="heading-accent">your site.</span>
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Running automated WCAG 2.1 AA checks against{" "}
+            <span className="font-mono text-foreground">{displayUrl}</span>.<br />
+            This typically takes 15–30 seconds.
+          </p>
+        </div>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="container mx-auto px-4 py-24 text-center max-w-2xl">
-        <AlertOctagon className="w-12 h-12 text-destructive mx-auto mb-6" />
-        <h1 className="text-3xl font-bold mb-4">Scan failed</h1>
-        <p className="text-muted-foreground mb-8">
-          We couldn't complete the automated scan for {displayUrl}. The site might be blocking our scanner or unreachable.
-        </p>
-        <Button asChild>
-          <Link href="/">Try another URL</Link>
-        </Button>
+      <div className="hero-gradient min-h-[80vh] flex items-center justify-center px-4">
+        <div className="text-center max-w-lg">
+          <AlertOctagon className="w-10 h-10 text-destructive mx-auto mb-6" />
+          <h1 className="text-display-md font-extrabold mb-4">
+            Scan <span className="heading-accent">failed.</span>
+          </h1>
+          <p className="text-muted-foreground text-sm mb-8">
+            We couldn't complete the scan for{" "}
+            <span className="font-mono text-foreground">{displayUrl}</span>.
+            The site might be blocking our scanner, requires authentication, or is unreachable.
+          </p>
+          <Button asChild>
+            <Link href="/">Try another URL</Link>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -90,98 +102,110 @@ export default function AuditResult() {
   });
 
   return (
-    <div className="container mx-auto px-4 py-16 max-w-5xl">
-      <div className="mb-12">
-        <h1 className="text-4xl font-bold mb-4">Compliance Snapshot</h1>
-        <p className="text-xl text-muted-foreground font-mono bg-muted inline-block px-3 py-1 rounded-md mb-3">
-          {result.url}
-        </p>
-        <p className="text-sm text-muted-foreground">Scanned {scannedDate}</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <Card className="col-span-1 border-2">
-          <CardContent className="p-8 text-center flex flex-col items-center justify-center h-full">
-            <div className="relative w-40 h-40 flex items-center justify-center mb-6">
-              <svg className="w-full h-full transform -rotate-90" aria-hidden="true">
-                <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-muted" />
-                <circle
-                  cx="80" cy="80" r="70"
-                  stroke="currentColor"
-                  strokeWidth="12"
-                  fill="transparent"
-                  strokeDasharray="440"
-                  strokeDashoffset={440 - (440 * result.score) / 100}
-                  className={result.score >= 90 ? "text-secondary" : result.score >= 50 ? "text-yellow-500" : "text-destructive"}
-                />
-              </svg>
-              <div className="absolute text-4xl font-bold">{result.score}</div>
-            </div>
-            <h2 className="text-2xl font-bold mb-2 capitalize">{result.level}</h2>
-            <p className="text-muted-foreground">Automated Score</p>
-          </CardContent>
-        </Card>
-
-        <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-4xl font-bold text-destructive mb-2">{result.criticalViolations}</div>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Critical Violations</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-4xl font-bold text-primary mb-2">{result.seriousViolations}</div>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Serious Violations</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-4xl font-bold mb-2">{result.totalViolations}</div>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Violations</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-4xl font-bold text-secondary mb-2">{result.passedChecks}/{result.totalChecks}</div>
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Passed Checks</p>
-            </CardContent>
-          </Card>
+    <div className="flex flex-col w-full">
+      {/* Header */}
+      <section className="hero-gradient pt-16 pb-12 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <h1 className="text-display-md font-extrabold mb-3">
+            Audit <span className="heading-accent">result.</span>
+          </h1>
+          <p className="font-mono text-sm text-muted-foreground bg-muted inline-block px-3 py-1 rounded-lg mb-2">
+            {result.url}
+          </p>
+          <p className="text-xs text-muted-foreground font-mono">Scanned {scannedDate}</p>
         </div>
-      </div>
+      </section>
 
-      <h3 className="text-2xl font-bold mb-6">Top Violations Found</h3>
-      <div className="space-y-4 mb-16">
-        {result.violations.map((violation, i) => (
-          <Card key={i} className="border-l-4 border-l-destructive">
-            <CardContent className="p-6 flex flex-col md:flex-row gap-6 items-start md:items-center">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <Badge variant={violation.impact === "critical" ? "destructive" : "default"} className="uppercase">
-                    {violation.impact}
-                  </Badge>
-                  <span className="font-mono text-sm font-medium">{violation.wcagCriteria}</span>
+      <section className="py-12 px-4 bg-white">
+        <div className="container mx-auto max-w-5xl">
+          {/* Score + stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <Card className="col-span-1 border">
+              <CardContent className="p-8 text-center flex flex-col items-center justify-center h-full">
+                <div className="relative w-36 h-36 flex items-center justify-center mb-4">
+                  <svg className="w-full h-full transform -rotate-90" aria-hidden="true">
+                    <circle cx="72" cy="72" r="62" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-muted" />
+                    <circle
+                      cx="72" cy="72" r="62"
+                      stroke="currentColor"
+                      strokeWidth="10"
+                      fill="transparent"
+                      strokeDasharray="390"
+                      strokeDashoffset={390 - (390 * result.score) / 100}
+                      className={result.score >= 90 ? "text-emerald-500" : result.score >= 50 ? "text-yellow-500" : "text-destructive"}
+                    />
+                  </svg>
+                  <div className="absolute text-3xl font-extrabold font-sans">{result.score}</div>
                 </div>
-                <h4 className="text-lg font-semibold">{violation.description}</h4>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="text-2xl font-bold">{violation.affectedElements}</div>
-                <div className="text-sm text-muted-foreground">affected elements</div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <h2 className="text-base font-bold font-sans capitalize">{result.level}</h2>
+                <p className="text-xs text-muted-foreground font-mono">Automated Score</p>
+              </CardContent>
+            </Card>
 
-      <div className="bg-foreground text-background rounded-3xl p-10 text-center">
-        <h2 className="text-3xl font-bold mb-4">This is only an automated snapshot.</h2>
-        <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-          Automated tools only detect roughly 30% of WCAG violations. A full manual audit with screen readers will reveal 3–5x more issues.
-        </p>
-        <Button asChild className="h-14 rounded-full px-10 text-lg font-bold">
-          <Link href="/contact">Get a full audit</Link>
-        </Button>
-      </div>
+            <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
+              {[
+                { value: result.criticalViolations, label: "Critical Violations", color: "text-destructive" },
+                { value: result.seriousViolations, label: "Serious Violations", color: "text-primary" },
+                { value: result.totalViolations, label: "Total Violations", color: "text-foreground" },
+                { value: `${result.passedChecks}/${result.totalChecks}`, label: "Passed Checks", color: "text-emerald-600" },
+              ].map(({ value, label, color }) => (
+                <Card key={label}>
+                  <CardContent className="p-5">
+                    <div className={`text-3xl font-extrabold font-sans mb-1 ${color}`}>{value}</div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider font-sans">{label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Violations */}
+          <h3 className="text-xl font-extrabold font-sans mb-5">Top violations found</h3>
+          <div className="space-y-3 mb-16">
+            {result.violations.map((violation, i) => (
+              <Card key={i} className="border-l-4 border-l-destructive">
+                <CardContent className="p-5 flex flex-col md:flex-row gap-5 items-start md:items-center">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <Badge
+                        variant={violation.impact === "critical" ? "destructive" : "default"}
+                        className="uppercase text-xs"
+                      >
+                        {violation.impact}
+                      </Badge>
+                      <span className="font-mono text-xs font-medium text-muted-foreground">
+                        {violation.wcagCriteria}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold font-sans">{violation.description}</h4>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-2xl font-extrabold font-sans">{violation.affectedElements}</div>
+                    <div className="text-xs text-muted-foreground font-mono">affected elements</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Upsell CTA */}
+      <section className="py-16 px-4 bg-foreground text-background">
+        <div className="container mx-auto max-w-3xl text-center">
+          <h2 className="text-display-md font-extrabold text-white mb-4">
+            This is only an<br />
+            <span style={{ color: "#FF4D1C", fontStyle: "italic" }}>automated snapshot.</span>
+          </h2>
+          <p className="text-gray-400 text-sm mb-10 max-w-xl mx-auto">
+            Automated tools only detect roughly 30% of WCAG violations. A full manual audit with
+            screen readers will reveal 3–5× more issues — and is required for legal sign-off.
+          </p>
+          <Button asChild className="h-12 px-8 text-sm font-bold">
+            <Link href="/contact">Get a full audit</Link>
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }
