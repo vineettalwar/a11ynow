@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { useCreateAudit, useGetAudit } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import { useCreateAudit, getAudit, getGetAuditQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +16,11 @@ export default function AuditResult() {
 
   const createAudit = useCreateAudit();
 
-  const existingAudit = useGetAudit(auditIdParam, {
-    query: { enabled: !!auditIdParam, retry: false } as any,
+  const existingAudit = useQuery({
+    queryKey: getGetAuditQueryKey(auditIdParam),
+    queryFn: () => getAudit(auditIdParam),
+    enabled: !!auditIdParam,
+    retry: false,
   });
 
   useEffect(() => {

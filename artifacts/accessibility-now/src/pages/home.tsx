@@ -58,7 +58,9 @@ export default function Home() {
             onSubmit={handleSubmit} 
             className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto"
           >
+            <label htmlFor="hero-url" className="sr-only">Your website URL</label>
             <Input 
+              id="hero-url"
               type="url" 
               placeholder="https://your-website.com" 
               className="h-14 rounded-full px-6 text-lg bg-white border-2 focus-visible:ring-primary shadow-sm"
