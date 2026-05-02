@@ -112,7 +112,6 @@ async function runAccessibilityAudit(url: string): Promise<AuditResultData> {
       const dom = new JSDOM(html, {
         url,
         runScripts: "outside-only",
-        resources: "usable",
         pretendToBeVisual: false,
       });
 
