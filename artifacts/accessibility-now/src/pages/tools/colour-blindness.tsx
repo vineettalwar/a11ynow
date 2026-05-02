@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, Columns2, MonitorPlay } from "lucide-react";
 
-const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/accessibility-now/, "").replace(/accessibility-now$/, "");
-const PROXY_ORIGIN = window.location.origin;
+const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const VISION_TYPES = [
   {
@@ -48,7 +47,7 @@ type ViewMode = "single" | "side-by-side";
 type EmbedState = "idle" | "loading" | "ok" | "blocked";
 
 function proxyUrl(target: string) {
-  return `${PROXY_ORIGIN}/api/iframe-proxy?url=${encodeURIComponent(target)}`;
+  return `${BASE_URL}/api/iframe-proxy?url=${encodeURIComponent(target)}`;
 }
 
 function IframePanel({

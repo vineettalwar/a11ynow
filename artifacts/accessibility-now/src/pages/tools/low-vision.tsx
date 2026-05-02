@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle } from "lucide-react";
 
-const PROXY_ORIGIN = window.location.origin;
+const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 interface VisionMode {
   id: string;
@@ -59,7 +59,7 @@ const MODES: VisionMode[] = [
 type EmbedState = "idle" | "loading" | "ok" | "blocked";
 
 function proxyUrl(target: string) {
-  return `${PROXY_ORIGIN}/api/iframe-proxy?url=${encodeURIComponent(target)}`;
+  return `${BASE_URL}/api/iframe-proxy?url=${encodeURIComponent(target)}`;
 }
 
 export default function LowVision() {
