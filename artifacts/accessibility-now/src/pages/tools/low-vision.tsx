@@ -1,9 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle } from "lucide-react";
-
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { Info } from "lucide-react";
 
 interface VisionMode {
   id: string;
@@ -56,19 +54,12 @@ const MODES: VisionMode[] = [
   },
 ];
 
-type EmbedState = "idle" | "loading" | "ok" | "blocked";
-
-function proxyUrl(target: string) {
-  return `${BASE_URL}/api/iframe-proxy?url=${encodeURIComponent(target)}`;
-}
-
 export default function LowVision() {
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
   const [activeMode, setActiveMode] = useState("normal");
   const [blurOverride, setBlurOverride] = useState<number | null>(null);
   const [vignetteOverride, setVignetteOverride] = useState<number | null>(null);
-  const [embedState, setEmbedState] = useState<EmbedState>("idle");
 
   const mode = MODES.find((m) => m.id === activeMode)!;
   const blur = blurOverride ?? mode.blur;
@@ -89,7 +80,6 @@ export default function LowVision() {
     if (!url) return;
     let target = url;
     if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
-    setEmbedState("loading");
     setBlurOverride(null);
     setVignetteOverride(null);
     setLoadedUrl(target);
@@ -100,26 +90,6 @@ export default function LowVision() {
     setBlurOverride(null);
     setVignetteOverride(null);
   };
-
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.data?.type === "__a11y_proxy_error") {
-        setEmbedState("blocked");
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, []);
-
-  const handleLoad = useCallback(() => {
-    setEmbedState((prev) => (prev === "blocked" ? "blocked" : "ok"));
-  }, []);
-
-  const handleError = useCallback(() => {
-    setEmbedState("blocked");
-  }, []);
-
-  const proxiedUrl = loadedUrl ? proxyUrl(loadedUrl) : "";
 
   return (
     <div className="flex flex-col w-full">
@@ -234,43 +204,24 @@ export default function LowVision() {
           )}
 
           <div className="rounded-2xl border overflow-hidden bg-muted relative min-h-[520px]">
-            {embedState === "idle" && (
+            {!loadedUrl && (
               <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                   <span className="text-2xl">👓</span>
                 </div>
                 <p className="text-sm font-semibold font-sans mb-1">Enter a URL above to begin</p>
-                <p className="text-xs text-muted-foreground max-w-sm">The page renders in this frame with the selected vision simulation applied.</p>
+                <p className="text-xs text-muted-foreground max-w-sm">The page renders in this frame with the selected vision simulation applied via CSS filters.</p>
               </div>
             )}
 
-            {embedState === "loading" && (
-              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
-                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-4" />
-                <p className="text-sm text-muted-foreground font-sans">Loading page…</p>
-              </div>
-            )}
-
-            {embedState === "blocked" && (
-              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
-                <AlertTriangle className="w-10 h-10 text-primary mb-4" />
-                <p className="text-sm font-bold font-sans mb-2">Could not load page</p>
-                <p className="text-xs text-muted-foreground max-w-sm">
-                  The page could not be fetched — it may block automated access or require a login. Try a different URL.
-                </p>
-              </div>
-            )}
-
-            {loadedUrl && embedState !== "idle" && embedState !== "blocked" && (
-              <div className={`relative ${embedState === "loading" ? "absolute inset-0" : ""}`}>
+            {loadedUrl && (
+              <div className="relative">
                 <iframe
-                  key={proxiedUrl}
-                  src={proxiedUrl}
+                  key={loadedUrl}
+                  src={loadedUrl}
                   title={`${mode.label} simulation of ${loadedUrl}`}
                   className="w-full border-0 h-[520px] block"
                   style={iframeStyle}
-                  onLoad={handleLoad}
-                  onError={handleError}
                   sandbox="allow-scripts allow-forms allow-popups"
                 />
                 {mode.vignette && (
@@ -294,6 +245,15 @@ export default function LowVision() {
               </div>
             )}
           </div>
+
+          {loadedUrl && (
+            <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3">
+              <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground">
+                Some sites set <code className="font-mono bg-muted px-1 rounded">X-Frame-Options</code> or Content Security Policy headers that prevent iframe embedding — if the frame is blank, the site blocks this. Try a different URL or use your browser's built-in zoom and display accessibility settings.
+              </p>
+            </div>
+          )}
         </div>
       </section>
     </div>

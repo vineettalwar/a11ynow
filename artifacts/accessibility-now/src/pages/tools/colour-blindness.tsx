@@ -1,9 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, Columns2, MonitorPlay } from "lucide-react";
-
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { Info, Columns2, MonitorPlay } from "lucide-react";
 
 const VISION_TYPES = [
   {
@@ -44,85 +42,24 @@ const VISION_TYPES = [
 ];
 
 type ViewMode = "single" | "side-by-side";
-type EmbedState = "idle" | "loading" | "ok" | "blocked";
-
-function proxyUrl(target: string) {
-  return `${BASE_URL}/api/iframe-proxy?url=${encodeURIComponent(target)}`;
-}
-
-function IframePanel({
-  proxyTarget,
-  title,
-  filter,
-  onStateChange,
-}: {
-  proxyTarget: string;
-  title: string;
-  filter?: string;
-  onStateChange: (s: EmbedState) => void;
-}) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.data?.type === "__a11y_proxy_error") {
-        if (timerRef.current) clearTimeout(timerRef.current);
-        onStateChange("blocked");
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [onStateChange]);
-
-  const handleLoad = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    onStateChange("ok");
-  }, [onStateChange]);
-
-  const handleError = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    onStateChange("blocked");
-  }, [onStateChange]);
-
-  return (
-    <iframe
-      key={proxyTarget}
-      src={proxyTarget}
-      title={title}
-      className="w-full border-0 h-full block"
-      style={filter ? { filter } : undefined}
-      onLoad={handleLoad}
-      onError={handleError}
-      sandbox="allow-scripts allow-forms allow-popups"
-      aria-label={title}
-    />
-  );
-}
 
 export default function ColourBlindness() {
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
   const [activeType, setActiveType] = useState("deuteranopia");
   const [viewMode, setViewMode] = useState<ViewMode>("single");
-  const [embedState, setEmbedState] = useState<EmbedState>("idle");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
     let target = url;
     if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
-    setEmbedState("loading");
     setLoadedUrl(target);
   };
-
-  const handleStateChange = useCallback((s: EmbedState) => {
-    setEmbedState((prev) => (prev === "blocked" ? "blocked" : s));
-  }, []);
 
   const active = VISION_TYPES.find((v) => v.id === activeType)!;
   const svgFilterId = `cb-filter-${activeType}`;
   const filterCss = active.matrix ? `url(#${svgFilterId})` : undefined;
-  const proxiedUrl = loadedUrl ? proxyUrl(loadedUrl) : "";
 
   return (
     <div className="flex flex-col w-full">
@@ -216,60 +153,46 @@ export default function ColourBlindness() {
           )}
 
           <div className={`rounded-2xl border overflow-hidden bg-muted relative ${viewMode === "side-by-side" ? "min-h-[400px]" : "min-h-[520px]"}`}>
-            {embedState === "idle" && (
+            {!loadedUrl && (
               <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                   <span className="text-2xl">👁</span>
                 </div>
                 <p className="text-sm font-semibold font-sans mb-1">Enter a URL above to begin</p>
                 <p className="text-xs text-muted-foreground max-w-sm">
-                  The page renders here with the selected vision simulation applied. Use Compare mode to see normal vs simulated side-by-side.
+                  The page renders here with the selected vision simulation applied via CSS filters. Use Compare mode to see normal vs simulated side-by-side.
                 </p>
               </div>
             )}
 
-            {embedState === "loading" && (
-              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
-                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-4" />
-                <p className="text-sm text-muted-foreground font-sans">Loading page…</p>
-              </div>
-            )}
-
-            {embedState === "blocked" && (
-              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
-                <AlertTriangle className="w-10 h-10 text-primary mb-4" />
-                <p className="text-sm font-bold font-sans mb-2">Could not load page</p>
-                <p className="text-xs text-muted-foreground max-w-sm mb-4">
-                  The page could not be fetched — it may block automated access or require a login.
-                </p>
-                <p className="text-xs text-muted-foreground max-w-sm">
-                  Use a browser extension such as <strong>Colorblindly</strong> (Chrome) or <strong>Color Oracle</strong> (desktop app) to simulate colour blindness on these pages.
-                </p>
-              </div>
-            )}
-
-            {loadedUrl && embedState !== "idle" && embedState !== "blocked" && viewMode === "single" && (
-              <div className={`h-[520px] ${embedState === "loading" ? "absolute inset-0" : ""}`}>
-                <IframePanel
-                  proxyTarget={proxiedUrl}
+            {loadedUrl && viewMode === "single" && (
+              <div className="h-[520px]">
+                <iframe
+                  key={loadedUrl}
+                  src={loadedUrl}
                   title={`${active.label} simulation of ${loadedUrl}`}
-                  filter={filterCss}
-                  onStateChange={handleStateChange}
+                  className="w-full border-0 h-full block"
+                  style={filterCss ? { filter: filterCss } : undefined}
+                  sandbox="allow-scripts allow-forms allow-popups"
+                  aria-label={`${active.label} simulation`}
                 />
               </div>
             )}
 
-            {loadedUrl && embedState !== "idle" && embedState !== "blocked" && viewMode === "side-by-side" && (
-              <div className={`flex h-[400px] ${embedState === "loading" ? "absolute inset-0" : ""}`}>
+            {loadedUrl && viewMode === "side-by-side" && (
+              <div className="flex h-[400px]">
                 <div className="flex-1 flex flex-col border-r overflow-hidden">
                   <div className="px-3 py-1.5 border-b bg-background text-xs font-medium font-sans text-muted-foreground shrink-0">
                     Normal vision
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <IframePanel
-                      proxyTarget={proxiedUrl}
+                    <iframe
+                      key={`${loadedUrl}-normal`}
+                      src={loadedUrl}
                       title={`Normal vision view of ${loadedUrl}`}
-                      onStateChange={handleStateChange}
+                      className="w-full border-0 h-full block"
+                      sandbox="allow-scripts allow-forms allow-popups"
+                      aria-label="Normal vision view"
                     />
                   </div>
                 </div>
@@ -278,17 +201,29 @@ export default function ColourBlindness() {
                     {active.label}
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <IframePanel
-                      proxyTarget={`${proxiedUrl}&panel=simulated`}
+                    <iframe
+                      key={`${loadedUrl}-sim`}
+                      src={loadedUrl}
                       title={`${active.label} simulation of ${loadedUrl}`}
-                      filter={filterCss}
-                      onStateChange={handleStateChange}
+                      className="w-full border-0 h-full block"
+                      style={filterCss ? { filter: filterCss } : undefined}
+                      sandbox="allow-scripts allow-forms allow-popups"
+                      aria-label={`${active.label} simulation`}
                     />
                   </div>
                 </div>
               </div>
             )}
           </div>
+
+          {loadedUrl && (
+            <div className="flex items-start gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3">
+              <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground">
+                Some sites set <code className="font-mono bg-muted px-1 rounded">X-Frame-Options</code> or Content Security Policy headers that prevent iframe embedding — if the frame is blank, the site blocks this. Use a browser extension such as <strong>Colorblindly</strong> (Chrome) or <strong>Color Oracle</strong> (desktop) as an alternative.
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {VISION_TYPES.filter((v) => v.prevalence).map((v) => (

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Lightbulb } from "lucide-react";
+import { CheckCircle2, XCircle, Lightbulb, Pipette } from "lucide-react";
 
 function srgbToLinear(c: number): number {
   const s = c / 255;
@@ -94,12 +94,78 @@ function suggestFix(fg: string, bg: string, targetRatio = 4.5): string {
   return lighterBetter ? "#ffffff" : "#000000";
 }
 
+declare global {
+  interface Window {
+    EyeDropper?: new () => { open: () => Promise<{ sRGBHex: string }> };
+  }
+}
+
+const HAS_EYEDROPPER = typeof window !== "undefined" && "EyeDropper" in window;
+
 interface BadgeProps { label: string; pass: boolean; }
 function Badge({ label, pass }: BadgeProps) {
   return (
     <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-medium font-sans ${pass ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"}`}>
       {pass ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4 shrink-0" />}
       <span>{label}</span>
+    </div>
+  );
+}
+
+interface ColourRowProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (hex: string) => void;
+}
+
+function ColourRow({ id, label, value, onChange }: ColourRowProps) {
+  const pickFromScreen = useCallback(async () => {
+    if (!HAS_EYEDROPPER || !window.EyeDropper) return;
+    try {
+      const dropper = new window.EyeDropper();
+      const result = await dropper.open();
+      onChange(result.sRGBHex);
+    } catch {
+      // User cancelled or API unavailable
+    }
+  }, [onChange]);
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs font-semibold font-sans uppercase tracking-widest text-muted-foreground mb-2">
+        {label}
+      </label>
+      <div className="flex items-center gap-3">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-12 h-12 rounded-lg border border-border cursor-pointer p-0.5 bg-white"
+          aria-label={`${label} colour picker`}
+        />
+        <input
+          id={id}
+          type="text"
+          value={value}
+          onChange={(e) => {
+            if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) onChange(e.target.value);
+          }}
+          className="flex-1 h-12 rounded-xl border border-border bg-input px-4 text-sm font-mono uppercase"
+          aria-label={`${label} hex value`}
+        />
+        {HAS_EYEDROPPER && (
+          <button
+            type="button"
+            onClick={pickFromScreen}
+            title="Pick colour from screen"
+            aria-label={`Pick ${label.toLowerCase()} from screen`}
+            className="w-12 h-12 flex items-center justify-center rounded-xl border border-border bg-background hover:bg-muted transition-colors shrink-0"
+          >
+            <Pipette className="w-4 h-4 text-muted-foreground" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -137,7 +203,8 @@ export default function ContrastChecker() {
             <span className="heading-accent">checker.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl">
-            WCAG 2.1 contrast ratio calculator. Real-time AA and AAA pass/fail with a one-click accessible colour suggestion.
+            WCAG 2.1 contrast ratio calculator. Real-time AA and AAA pass/fail with a one-click accessible colour suggestion
+            {HAS_EYEDROPPER ? " and eyedropper screen picker." : "."}
           </p>
         </div>
       </section>
@@ -146,45 +213,18 @@ export default function ContrastChecker() {
         <div className="container mx-auto max-w-4xl">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-semibold font-sans uppercase tracking-widest text-muted-foreground mb-2">Foreground colour</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={fg}
-                    onChange={(e) => { setFg(e.target.value); setSuggested(null); }}
-                    className="w-12 h-12 rounded-lg border border-border cursor-pointer p-0.5 bg-white"
-                    aria-label="Foreground colour"
-                  />
-                  <input
-                    type="text"
-                    value={fg}
-                    onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) { setFg(e.target.value); setSuggested(null); } }}
-                    className="flex-1 h-12 rounded-xl border border-border bg-input px-4 text-sm font-mono uppercase"
-                    aria-label="Foreground hex value"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold font-sans uppercase tracking-widest text-muted-foreground mb-2">Background colour</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={bg}
-                    onChange={(e) => { setBg(e.target.value); setSuggested(null); }}
-                    className="w-12 h-12 rounded-lg border border-border cursor-pointer p-0.5 bg-white"
-                    aria-label="Background colour"
-                  />
-                  <input
-                    type="text"
-                    value={bg}
-                    onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) { setBg(e.target.value); setSuggested(null); } }}
-                    className="flex-1 h-12 rounded-xl border border-border bg-input px-4 text-sm font-mono uppercase"
-                    aria-label="Background hex value"
-                  />
-                </div>
-              </div>
+              <ColourRow
+                id="fg-hex"
+                label="Foreground colour"
+                value={fg}
+                onChange={(v) => { setFg(v); setSuggested(null); }}
+              />
+              <ColourRow
+                id="bg-hex"
+                label="Background colour"
+                value={bg}
+                onChange={(v) => { setBg(v); setSuggested(null); }}
+              />
 
               <div className="rounded-2xl border p-6 text-center" style={{ backgroundColor: bg }}>
                 <p className="text-2xl font-extrabold font-sans mb-1" style={{ color: fg }}>Large heading text</p>
