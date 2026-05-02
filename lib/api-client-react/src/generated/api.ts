@@ -20,6 +20,7 @@ import type {
   AuditResult,
   CreateAuditBody,
   CreateBatchAuditBody,
+  CreateBatchAuditPdfBody,
   CreateLeadBody,
   CreateMonitorBody,
   CreateMonitorResponse,
@@ -295,6 +296,97 @@ export const useCreateBatchAudit = <
   TContext
 > => {
   return useMutation(getCreateBatchAuditMutationOptions(options));
+};
+
+/**
+ * Accepts an array of auditIds (from a prior batch scan) and generates a branded
+multi-page PDF: a cover page with a site-wide summary followed by a per-page
+section for each successfully scanned URL. Only include auditIds for successful
+pages (failed scans have an empty auditId and are not persisted).
+
+ * @summary Download combined multi-page accessibility report as PDF
+ */
+export const getCreateBatchAuditPdfUrl = () => {
+  return `/api/audit/batch-pdf`;
+};
+
+export const createBatchAuditPdf = async (
+  createBatchAuditPdfBody: CreateBatchAuditPdfBody,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getCreateBatchAuditPdfUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createBatchAuditPdfBody),
+  });
+};
+
+export const getCreateBatchAuditPdfMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBatchAuditPdf>>,
+    TError,
+    { data: BodyType<CreateBatchAuditPdfBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createBatchAuditPdf>>,
+  TError,
+  { data: BodyType<CreateBatchAuditPdfBody> },
+  TContext
+> => {
+  const mutationKey = ["createBatchAuditPdf"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createBatchAuditPdf>>,
+    { data: BodyType<CreateBatchAuditPdfBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createBatchAuditPdf(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateBatchAuditPdfMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createBatchAuditPdf>>
+>;
+export type CreateBatchAuditPdfMutationBody = BodyType<CreateBatchAuditPdfBody>;
+export type CreateBatchAuditPdfMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Download combined multi-page accessibility report as PDF
+ */
+export const useCreateBatchAuditPdf = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBatchAuditPdf>>,
+    TError,
+    { data: BodyType<CreateBatchAuditPdfBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createBatchAuditPdf>>,
+  TError,
+  { data: BodyType<CreateBatchAuditPdfBody> },
+  TContext
+> => {
+  return useMutation(getCreateBatchAuditPdfMutationOptions(options));
 };
 
 /**

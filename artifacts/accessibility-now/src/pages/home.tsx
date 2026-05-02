@@ -142,13 +142,14 @@ function MultiUrlForm() {
       let buffer = "";
       let batchResult: BatchAuditResponse | null = null;
 
-      // Build a local mutable copy of states so we can patch per URL
+      // Track progress by index (not URL) so duplicate URLs don't collide
       const states: UrlScanState[] = filled.map((url) => ({ url, status: "queued" }));
 
-      const patchUrl = (url: string, patch: Partial<UrlScanState>) => {
-        const idx = states.findIndex((s) => s.url === url);
-        if (idx !== -1) states[idx] = { ...states[idx], ...patch };
-        setUrlStates([...states]);
+      const patchIndex = (index: number, patch: Partial<UrlScanState>) => {
+        if (index >= 0 && index < states.length) {
+          states[index] = { ...states[index], ...patch };
+          setUrlStates([...states]);
+        }
       };
 
       outer: while (true) {
@@ -175,10 +176,10 @@ function MultiUrlForm() {
               message?: string;
             } & Partial<BatchAuditResponse>;
 
-            if (data.type === "scanning" && data.url) {
-              patchUrl(data.url, { status: "scanning" });
-            } else if (data.type === "page" && data.url) {
-              patchUrl(data.url, {
+            if (data.type === "scanning" && data.index != null) {
+              patchIndex(data.index, { status: "scanning" });
+            } else if (data.type === "page" && data.index != null) {
+              patchIndex(data.index, {
                 status: data.status === "success" ? "done" : "error",
                 score: data.score,
                 level: data.level,

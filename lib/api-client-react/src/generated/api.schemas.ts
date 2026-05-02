@@ -202,6 +202,14 @@ export interface CreateBatchAuditBody {
   urls: string[];
 }
 
+export interface CreateBatchAuditPdfBody {
+  /**
+   * Array of auditIds from successful batch page scans to include in the PDF
+   * @minItems 1
+   */
+  auditIds: string[];
+}
+
 export type BatchPageResultLevel =
   (typeof BatchPageResultLevel)[keyof typeof BatchPageResultLevel];
 

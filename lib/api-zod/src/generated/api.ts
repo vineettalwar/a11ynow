@@ -85,6 +85,24 @@ export const CreateBatchAuditBody = zod.object({
 });
 
 /**
+ * Accepts an array of auditIds (from a prior batch scan) and generates a branded
+multi-page PDF: a cover page with a site-wide summary followed by a per-page
+section for each successfully scanned URL. Only include auditIds for successful
+pages (failed scans have an empty auditId and are not persisted).
+
+ * @summary Download combined multi-page accessibility report as PDF
+ */
+
+export const CreateBatchAuditPdfBody = zod.object({
+  auditIds: zod
+    .array(zod.string())
+    .min(1)
+    .describe(
+      "Array of auditIds from successful batch page scans to include in the PDF",
+    ),
+});
+
+/**
  * Retrieve a previously run audit result
  * @summary Get audit result by ID
  */
