@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { Search } from "lucide-react";
 import {
   Accordion,
@@ -18,6 +18,7 @@ interface FaqAccordionProps {
 
 export function FaqAccordion({ items }: FaqAccordionProps) {
   const [query, setQuery] = useState("");
+  const searchId = useId();
 
   const q = query.trim().toLowerCase();
   const filtered = q
@@ -32,10 +33,10 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
     <div className="reveal-body">
       {/* Search input */}
       <div className="relative mb-6">
-        <label htmlFor="faq-search" className="sr-only">Search frequently asked questions</label>
+        <label htmlFor={searchId} className="sr-only">Search frequently asked questions</label>
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <input
-          id="faq-search"
+          id={searchId}
           type="search"
           placeholder="Search questions…"
           value={query}
