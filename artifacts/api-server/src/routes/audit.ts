@@ -1,8 +1,39 @@
 import { Router, type IRouter } from "express";
 import * as cheerio from "cheerio";
 import { randomUUID } from "crypto";
+import { lookup as dnsLookup } from "dns";
+import { promisify } from "util";
 import { CreateAuditBody, GetAuditParams } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
+
+const dnsLookupAsync = promisify(dnsLookup);
+
+const PRIVATE_IP_RE = /^(127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1|fc00:|fd|fe80:)/i;
+
+async function validateAuditUrl(raw: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return { ok: false, error: "The provided URL is not valid." };
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { ok: false, error: "Only http and https URLs are allowed." };
+  }
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
+  if (PRIVATE_IP_RE.test(hostname)) {
+    return { ok: false, error: "Scanning internal addresses is not allowed." };
+  }
+  try {
+    const { address } = await dnsLookupAsync(hostname);
+    if (PRIVATE_IP_RE.test(address)) {
+      return { ok: false, error: "Scanning internal addresses is not allowed." };
+    }
+  } catch {
+    return { ok: false, error: "Could not resolve the hostname." };
+  }
+  return { ok: true, url: parsed.href };
+}
 
 const router: IRouter = Router();
 
@@ -299,20 +330,18 @@ router.post("/audit", async (req, res): Promise<void> => {
     return;
   }
 
-  let { url } = parsed.data;
-
-  // Normalize URL
-  if (!/^https?:\/\//i.test(url)) {
-    url = `https://${url}`;
+  let raw = parsed.data.url;
+  if (!/^https?:\/\//i.test(raw)) {
+    raw = `https://${raw}`;
   }
 
-  try {
-    new URL(url);
-  } catch {
-    res.status(400).json({ error: "invalid_url", message: "The provided URL is not valid." });
+  const validation = await validateAuditUrl(raw);
+  if (!validation.ok) {
+    res.status(400).json({ error: "invalid_url", message: validation.error });
     return;
   }
 
+  const { url } = validation;
   req.log.info({ url }, "Running accessibility audit");
 
   try {
