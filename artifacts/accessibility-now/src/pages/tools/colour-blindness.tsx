@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, Columns2, MonitorPlay } from "lucide-react";
+
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/accessibility-now/, "").replace(/accessibility-now$/, "");
+const PROXY_ORIGIN = window.location.origin;
 
 const VISION_TYPES = [
   {
@@ -42,26 +45,44 @@ const VISION_TYPES = [
 ];
 
 type ViewMode = "single" | "side-by-side";
+type EmbedState = "idle" | "loading" | "ok" | "blocked";
+
+function proxyUrl(target: string) {
+  return `${PROXY_ORIGIN}/api/iframe-proxy?url=${encodeURIComponent(target)}`;
+}
 
 function IframePanel({
-  url,
+  proxyTarget,
   title,
   filter,
-  onEmbedFail,
+  onStateChange,
 }: {
-  url: string;
+  proxyTarget: string;
   title: string;
   filter?: string;
-  onEmbedFail: () => void;
+  onStateChange: (s: EmbedState) => void;
 }) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLoad = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    onStateChange("ok");
+  }, [onStateChange]);
+
+  const handleError = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    onStateChange("blocked");
+  }, [onStateChange]);
+
   return (
     <iframe
-      key={url + (filter ?? "none")}
-      src={url}
+      key={proxyTarget}
+      src={proxyTarget}
       title={title}
       className="w-full border-0 h-full block"
       style={filter ? { filter } : undefined}
-      onError={onEmbedFail}
+      onLoad={handleLoad}
+      onError={handleError}
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
       aria-label={title}
     />
@@ -73,20 +94,25 @@ export default function ColourBlindness() {
   const [loadedUrl, setLoadedUrl] = useState("");
   const [activeType, setActiveType] = useState("deuteranopia");
   const [viewMode, setViewMode] = useState<ViewMode>("single");
-  const [embedFailed, setEmbedFailed] = useState(false);
+  const [embedState, setEmbedState] = useState<EmbedState>("idle");
 
-  const handleLoad = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
     let target = url;
     if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
-    setEmbedFailed(false);
+    setEmbedState("loading");
     setLoadedUrl(target);
   };
+
+  const handleStateChange = useCallback((s: EmbedState) => {
+    setEmbedState((prev) => (prev === "blocked" ? "blocked" : s));
+  }, []);
 
   const active = VISION_TYPES.find((v) => v.id === activeType)!;
   const svgFilterId = `cb-filter-${activeType}`;
   const filterCss = active.matrix ? `url(#${svgFilterId})` : undefined;
+  const proxiedUrl = loadedUrl ? proxyUrl(loadedUrl) : "";
 
   return (
     <div className="flex flex-col w-full">
@@ -114,7 +140,7 @@ export default function ColourBlindness() {
 
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto max-w-5xl space-y-8">
-          <form onSubmit={handleLoad} className="flex gap-3 max-w-2xl">
+          <form onSubmit={handleSubmit} className="flex gap-3 max-w-2xl">
             <label htmlFor="cb-url" className="sr-only">Website URL</label>
             <Input
               id="cb-url"
@@ -180,7 +206,7 @@ export default function ColourBlindness() {
           )}
 
           <div className={`rounded-2xl border overflow-hidden bg-muted relative ${viewMode === "side-by-side" ? "min-h-[400px]" : "min-h-[520px]"}`}>
-            {!loadedUrl && (
+            {embedState === "idle" && (
               <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                   <span className="text-2xl">👁</span>
@@ -192,41 +218,48 @@ export default function ColourBlindness() {
               </div>
             )}
 
-            {loadedUrl && embedFailed && (
+            {embedState === "loading" && (
+              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
+                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-4" />
+                <p className="text-sm text-muted-foreground font-sans">Loading page…</p>
+              </div>
+            )}
+
+            {embedState === "blocked" && (
               <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
                 <AlertTriangle className="w-10 h-10 text-primary mb-4" />
-                <p className="text-sm font-bold font-sans mb-2">Site blocks embedding</p>
+                <p className="text-sm font-bold font-sans mb-2">Could not load page</p>
                 <p className="text-xs text-muted-foreground max-w-sm mb-4">
-                  This site uses <code className="font-mono bg-muted px-1 py-0.5 rounded">X-Frame-Options</code> or a Content Security Policy that prevents iframes. Many large sites do this.
+                  The page could not be fetched — it may block automated access or require a login.
                 </p>
                 <p className="text-xs text-muted-foreground max-w-sm">
-                  Use a browser extension such as <strong>Colorblindly</strong> (Chrome) or <strong>Color Oracle</strong> (desktop app) to simulate colour blindness on these sites.
+                  Use a browser extension such as <strong>Colorblindly</strong> (Chrome) or <strong>Color Oracle</strong> (desktop app) to simulate colour blindness on these pages.
                 </p>
               </div>
             )}
 
-            {loadedUrl && !embedFailed && viewMode === "single" && (
-              <div className="h-[520px]">
+            {loadedUrl && embedState !== "idle" && embedState !== "blocked" && viewMode === "single" && (
+              <div className={`h-[520px] ${embedState === "loading" ? "absolute inset-0" : ""}`}>
                 <IframePanel
-                  url={loadedUrl}
+                  proxyTarget={proxiedUrl}
                   title={`${active.label} simulation of ${loadedUrl}`}
                   filter={filterCss}
-                  onEmbedFail={() => setEmbedFailed(true)}
+                  onStateChange={handleStateChange}
                 />
               </div>
             )}
 
-            {loadedUrl && !embedFailed && viewMode === "side-by-side" && (
-              <div className="flex h-[400px]">
+            {loadedUrl && embedState !== "idle" && embedState !== "blocked" && viewMode === "side-by-side" && (
+              <div className={`flex h-[400px] ${embedState === "loading" ? "absolute inset-0" : ""}`}>
                 <div className="flex-1 flex flex-col border-r overflow-hidden">
                   <div className="px-3 py-1.5 border-b bg-background text-xs font-medium font-sans text-muted-foreground shrink-0">
                     Normal vision
                   </div>
                   <div className="flex-1 overflow-hidden">
                     <IframePanel
-                      url={loadedUrl}
+                      proxyTarget={proxiedUrl}
                       title={`Normal vision view of ${loadedUrl}`}
-                      onEmbedFail={() => setEmbedFailed(true)}
+                      onStateChange={handleStateChange}
                     />
                   </div>
                 </div>
@@ -236,10 +269,10 @@ export default function ColourBlindness() {
                   </div>
                   <div className="flex-1 overflow-hidden">
                     <IframePanel
-                      url={loadedUrl}
+                      proxyTarget={`${proxiedUrl}&panel=simulated`}
                       title={`${active.label} simulation of ${loadedUrl}`}
                       filter={filterCss}
-                      onEmbedFail={() => setEmbedFailed(true)}
+                      onStateChange={handleStateChange}
                     />
                   </div>
                 </div>

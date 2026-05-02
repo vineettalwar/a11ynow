@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle } from "lucide-react";
+
+const PROXY_ORIGIN = window.location.origin;
 
 interface VisionMode {
   id: string;
@@ -54,13 +56,19 @@ const MODES: VisionMode[] = [
   },
 ];
 
+type EmbedState = "idle" | "loading" | "ok" | "blocked";
+
+function proxyUrl(target: string) {
+  return `${PROXY_ORIGIN}/api/iframe-proxy?url=${encodeURIComponent(target)}`;
+}
+
 export default function LowVision() {
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
   const [activeMode, setActiveMode] = useState("normal");
   const [blurOverride, setBlurOverride] = useState<number | null>(null);
   const [vignetteOverride, setVignetteOverride] = useState<number | null>(null);
-  const [iframeError, setIframeError] = useState(false);
+  const [embedState, setEmbedState] = useState<EmbedState>("idle");
 
   const mode = MODES.find((m) => m.id === activeMode)!;
   const blur = blurOverride ?? mode.blur;
@@ -76,12 +84,12 @@ export default function LowVision() {
       .join(" ") || undefined,
   };
 
-  const handleLoad = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
     let target = url;
     if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
-    setIframeError(false);
+    setEmbedState("loading");
     setBlurOverride(null);
     setVignetteOverride(null);
     setLoadedUrl(target);
@@ -92,6 +100,16 @@ export default function LowVision() {
     setBlurOverride(null);
     setVignetteOverride(null);
   };
+
+  const handleLoad = useCallback(() => {
+    setEmbedState((prev) => (prev === "blocked" ? "blocked" : "ok"));
+  }, []);
+
+  const handleError = useCallback(() => {
+    setEmbedState("blocked");
+  }, []);
+
+  const proxiedUrl = loadedUrl ? proxyUrl(loadedUrl) : "";
 
   return (
     <div className="flex flex-col w-full">
@@ -109,7 +127,7 @@ export default function LowVision() {
 
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto max-w-5xl space-y-8">
-          <form onSubmit={handleLoad} className="flex gap-3 max-w-2xl">
+          <form onSubmit={handleSubmit} className="flex gap-3 max-w-2xl">
             <label htmlFor="lv-url" className="sr-only">Website URL</label>
             <Input
               id="lv-url"
@@ -206,7 +224,7 @@ export default function LowVision() {
           )}
 
           <div className="rounded-2xl border overflow-hidden bg-muted relative min-h-[520px]">
-            {!loadedUrl && (
+            {embedState === "idle" && (
               <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                   <span className="text-2xl">👓</span>
@@ -216,25 +234,33 @@ export default function LowVision() {
               </div>
             )}
 
-            {loadedUrl && iframeError && (
+            {embedState === "loading" && (
+              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
+                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-4" />
+                <p className="text-sm text-muted-foreground font-sans">Loading page…</p>
+              </div>
+            )}
+
+            {embedState === "blocked" && (
               <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
                 <AlertTriangle className="w-10 h-10 text-primary mb-4" />
-                <p className="text-sm font-bold font-sans mb-2">Site blocks embedding</p>
+                <p className="text-sm font-bold font-sans mb-2">Could not load page</p>
                 <p className="text-xs text-muted-foreground max-w-sm">
-                  This site uses X-Frame-Options or CSP headers that prevent embedding. Try a different URL, or use browser-level accessibility simulation tools.
+                  The page could not be fetched — it may block automated access or require a login. Try a different URL.
                 </p>
               </div>
             )}
 
-            {loadedUrl && !iframeError && (
-              <div className="relative">
+            {loadedUrl && embedState !== "idle" && embedState !== "blocked" && (
+              <div className={`relative ${embedState === "loading" ? "absolute inset-0" : ""}`}>
                 <iframe
-                  key={loadedUrl}
-                  src={loadedUrl}
+                  key={proxiedUrl}
+                  src={proxiedUrl}
                   title={`${mode.label} simulation of ${loadedUrl}`}
                   className="w-full border-0 h-[520px] block"
                   style={iframeStyle}
-                  onError={() => setIframeError(true)}
+                  onLoad={handleLoad}
+                  onError={handleError}
                   sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 />
                 {mode.vignette && (
