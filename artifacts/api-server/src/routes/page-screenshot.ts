@@ -10,6 +10,36 @@ const PRIVATE_IP_RE =
   /^(127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1$|fc00:|fd[0-9a-f]{2}:|fe80:)/i;
 const SCREENSHOT_TIMEOUT_MS = 20000;
 
+const CACHE_TTL_MS = 60_000;
+const CACHE_MAX_ENTRIES = 50;
+
+interface CacheEntry {
+  png: Buffer;
+  expiresAt: number;
+}
+
+const screenshotCache = new Map<string, CacheEntry>();
+
+function cacheGet(url: string): Buffer | null {
+  const entry = screenshotCache.get(url);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    screenshotCache.delete(url);
+    return null;
+  }
+  return entry.png;
+}
+
+function cacheSet(url: string, png: Buffer): void {
+  if (screenshotCache.size >= CACHE_MAX_ENTRIES) {
+    const oldest = screenshotCache.keys().next().value;
+    if (oldest !== undefined) {
+      screenshotCache.delete(oldest);
+    }
+  }
+  screenshotCache.set(url, { png, expiresAt: Date.now() + CACHE_TTL_MS });
+}
+
 async function validateUrl(
   raw: string,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
@@ -52,6 +82,17 @@ router.get("/page-screenshot", async (req, res): Promise<void> => {
   }
 
   const { url } = validation;
+
+  const cached = cacheGet(url);
+  if (cached) {
+    req.log.info({ url }, "Serving cached page screenshot");
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Screenshot-Cache", "hit");
+    res.send(cached);
+    return;
+  }
+
   req.log.info({ url }, "Taking page screenshot");
 
   let browser: import("playwright").Browser | undefined;
@@ -102,8 +143,11 @@ router.get("/page-screenshot", async (req, res): Promise<void> => {
     const png = await page.screenshot({ type: "png", fullPage: true });
     await context.close();
 
+    cacheSet(url, png);
+
     res.setHeader("Content-Type", "image/png");
     res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Screenshot-Cache", "miss");
     res.send(png);
   } catch (err) {
     logger.warn({ err, url }, "Page screenshot failed");
