@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertOctagon, Loader2, CheckCircle2, Mail } from "lucide-react";
+import { AlertOctagon, Loader2, CheckCircle2, Mail, FileDown } from "lucide-react";
 import { Link } from "wouter";
 
 function LeadCaptureForm({ auditId }: { auditId: string }) {
@@ -93,6 +93,39 @@ function LeadCaptureForm({ auditId }: { auditId: string }) {
       </p>
     </form>
   );
+}
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function useDownloadPdf(auditId: string) {
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function download() {
+    setIsPending(true);
+    setError(null);
+    try {
+      const resp = await fetch(`${BASE}/api/audit/${auditId}/pdf`);
+      if (!resp.ok) throw new Error("PDF generation failed");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const disposition = resp.headers.get("Content-Disposition") ?? "";
+      const match = disposition.match(/filename="([^"]+)"/);
+      a.download = match?.[1] ?? "accessibility-report.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Could not generate the report. Please try again.");
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return { download, isPending, error };
 }
 
 export default function AuditResult() {
@@ -188,18 +221,51 @@ export default function AuditResult() {
     timeStyle: "short",
   });
 
+  return <AuditResultView result={result} scannedDate={scannedDate} />;
+}
+
+function AuditResultView({
+  result,
+  scannedDate,
+}: {
+  result: NonNullable<ReturnType<typeof useCreateAudit>["data"]>;
+  scannedDate: string;
+}) {
+  const { download, isPending: pdfPending, error: pdfError } = useDownloadPdf(result.auditId);
+
   return (
     <div className="flex flex-col w-full">
       {/* Header */}
       <section className="hero-gradient pt-16 pb-12 px-4">
         <div className="container mx-auto max-w-5xl">
-          <h1 className="text-display-md font-extrabold mb-3">
-            Audit <span className="heading-accent">result.</span>
-          </h1>
-          <p className="font-mono text-sm text-muted-foreground bg-muted inline-block px-3 py-1 rounded-lg mb-2">
-            {result.url}
-          </p>
-          <p className="text-xs text-muted-foreground font-mono">Scanned {scannedDate}</p>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+            <div>
+              <h1 className="text-display-md font-extrabold mb-3">
+                Audit <span className="heading-accent">result.</span>
+              </h1>
+              <p className="font-mono text-sm text-muted-foreground bg-muted inline-block px-3 py-1 rounded-lg mb-2">
+                {result.url}
+              </p>
+              <p className="text-xs text-muted-foreground font-mono">Scanned {scannedDate}</p>
+            </div>
+            <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
+              <Button
+                onClick={download}
+                disabled={pdfPending}
+                variant="outline"
+                className="h-11 px-5 text-sm font-semibold border-foreground/20 bg-white/80 hover:bg-white gap-2"
+              >
+                {pdfPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                ) : (
+                  <><FileDown className="w-4 h-4" /> Download Report</>
+                )}
+              </Button>
+              {pdfError && (
+                <p className="text-xs text-destructive">{pdfError}</p>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 

@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@axe-core/playwright": "^4.11.3",
+    "@swc/helpers": "^0.5.21",
+    "@types/pdfkit": "^0.17.6",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "axe-core": "^4.11.4",
@@ -21,6 +23,7 @@
     "express": "^5",
     "jsdom": "^29.1.1",
     "node-fetch": "^3.3.2",
+    "pdfkit": "^0.18.0",
     "pino": "^9",
     "pino-http": "^10",
     "playwright": "^1.59.1"
