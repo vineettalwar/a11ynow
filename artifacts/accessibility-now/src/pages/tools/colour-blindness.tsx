@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, Columns2, MonitorPlay } from "lucide-react";
@@ -63,6 +63,17 @@ function IframePanel({
 }) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === "__a11y_proxy_error") {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        onStateChange("blocked");
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [onStateChange]);
+
   const handleLoad = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     onStateChange("ok");
@@ -82,7 +93,7 @@ function IframePanel({
       style={filter ? { filter } : undefined}
       onLoad={handleLoad}
       onError={handleError}
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+      sandbox="allow-scripts allow-forms allow-popups"
       aria-label={title}
     />
   );

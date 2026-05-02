@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle } from "lucide-react";
@@ -100,6 +100,16 @@ export default function LowVision() {
     setBlurOverride(null);
     setVignetteOverride(null);
   };
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === "__a11y_proxy_error") {
+        setEmbedState("blocked");
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
   const handleLoad = useCallback(() => {
     setEmbedState((prev) => (prev === "blocked" ? "blocked" : "ok"));
@@ -261,7 +271,7 @@ export default function LowVision() {
                   style={iframeStyle}
                   onLoad={handleLoad}
                   onError={handleError}
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  sandbox="allow-scripts allow-forms allow-popups"
                 />
                 {mode.vignette && (
                   <div

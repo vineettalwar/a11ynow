@@ -26,7 +26,7 @@ async function validateUrl(raw: string): Promise<{ ok: true; url: string } | { o
   return { ok: true, url: parsed.href };
 }
 
-async function fetchWithRedirects(startUrl: string): Promise<{ finalUrl: string; html: string; contentType: string }> {
+async function fetchWithRedirects(startUrl: string): Promise<{ finalUrl: string; html: string }> {
   let currentUrl = startUrl;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const controller = new AbortController();
@@ -66,34 +66,52 @@ async function fetchWithRedirects(startUrl: string): Promise<{ finalUrl: string;
     const buf = await fetched.arrayBuffer();
     if (buf.byteLength > MAX_BODY_BYTES) throw new Error("Page too large.");
     const html = new TextDecoder("utf-8", { fatal: false }).decode(buf);
-    return { finalUrl: currentUrl, html, contentType: ct };
+    return { finalUrl: currentUrl, html };
   }
   throw new Error("Too many redirects.");
 }
 
 function rewriteHtml(html: string, baseUrl: string): string {
-  const baseTag = `<base href="${baseUrl.replace(/"/g, "&quot;")}">`;
+  const safeBase = baseUrl.replace(/"/g, "&quot;");
+  const baseTag = `<base href="${safeBase}">`;
 
-  return html
-    .replace(/<head(\s[^>]*)?>/i, (m) => `${m}\n${baseTag}`)
-    .replace(/<base\s[^>]*>/gi, "")
-    .replace(new RegExp(baseTag + "[\n]?" + baseTag, "g"), baseTag)
-    .replace(/<(script)(\s[^>]*)?\s*>/gi, "<noscript data-blocked$2>")
-    .replace(/<\/script>/gi, "</noscript>")
-    .replace(/X-Frame-Options/gi, "x-frame-stripped")
-    .replace(/Content-Security-Policy/gi, "csp-stripped");
+  return (
+    html
+      // 1. Strip all existing <base> tags first
+      .replace(/<base\s[^>]*>/gi, "")
+      // 2. Inject our single <base> immediately after <head>
+      .replace(/<head(\s[^>]*)?>/i, (m) => `${m}\n${baseTag}`)
+      // 3. Neutralise inline scripts to prevent XSS (inline event handlers
+      //    are left in place; the sandbox removes same-origin privilege)
+      .replace(/<script(\s[^>]*)?\s*>/gi, "<noscript data-blocked$1>")
+      .replace(/<\/script>/gi, "</noscript>")
+  );
 }
+
+const ERROR_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Load failed</title></head>
+<body>
+<script>
+try { parent.postMessage({ type: '__a11y_proxy_error' }, '*'); } catch (_) {}
+</script>
+</body>
+</html>`;
 
 router.get("/iframe-proxy", async (req: Request, res: Response): Promise<void> => {
   const rawUrl = req.query["url"];
   if (typeof rawUrl !== "string" || !rawUrl) {
-    res.status(400).json({ error: "bad_request", message: "url query parameter is required." });
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    res.status(400).send(ERROR_HTML);
     return;
   }
 
   const validation = await validateUrl(rawUrl);
   if (!validation.ok) {
-    res.status(400).json({ error: "invalid_url", message: validation.error });
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    res.status(400).send(ERROR_HTML);
     return;
   }
 
@@ -107,7 +125,9 @@ router.get("/iframe-proxy", async (req: Request, res: Response): Promise<void> =
     res.status(200).send(rewritten);
   } catch (err) {
     logger.warn({ err, url: rawUrl }, "iframe-proxy fetch failed");
-    res.status(502).json({ error: "fetch_failed", message: "Could not fetch the page." });
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    res.status(502).send(ERROR_HTML);
   }
 });
 
