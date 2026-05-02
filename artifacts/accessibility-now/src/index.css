@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono:wght@400..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono:wght@400..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -125,7 +125,7 @@
   --chart-5: 0 0% 60%;
 
   --app-font-sans: 'Inter Tight', sans-serif;
-  --app-font-serif: Georgia, serif;
+  --app-font-serif: 'Playfair Display', Georgia, serif;
   --app-font-mono: 'JetBrains Mono', monospace;
   --radius: 12px;
 
@@ -246,15 +246,42 @@
 /* Hero warm gradient background — matches sometech.work */
 .hero-gradient {
   background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 140, 60, 0.10) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255, 77, 28, 0.05) 0%, transparent 60%),
-    hsl(var(--background));
+    radial-gradient(ellipse 90% 70% at 50% -5%, rgba(255, 150, 60, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 15% 60%, rgba(255, 200, 90, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 45% at 85% 75%, rgba(255, 77, 28, 0.09) 0%, transparent 60%),
+    linear-gradient(175deg, hsl(38, 80%, 97%) 0%, hsl(var(--background)) 55%);
 }
 
-/* Heading emphasis — italic orange accent (sometech.work pattern) */
+/* Warm beige section — richer gradient */
+.warm-section {
+  background:
+    radial-gradient(ellipse 80% 60% at 70% 30%, rgba(255, 160, 60, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 20% 80%, rgba(255, 120, 40, 0.06) 0%, transparent 55%),
+    linear-gradient(160deg, hsl(38, 30%, 96%) 0%, hsl(35, 25%, 95%) 100%);
+}
+
+/* Heading emphasis — italic orange serif accent (sometech.work pattern) */
 .heading-accent {
   color: #FF4D1C;
   font-style: italic;
+  font-family: var(--app-font-serif);
+}
+
+/* Nav scrolled state — backdrop blur + subtle background */
+header.scrolled {
+  background: rgba(245, 242, 236, 0.88) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  box-shadow: 0 1px 16px 0 rgba(0,0,0,0.07);
+  border-bottom-color: rgba(180, 165, 140, 0.25);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Service / tool card hover lift */
+.service-card:hover,
+.tool-card:hover {
+  box-shadow: 0 8px 28px -4px rgba(0,0,0,0.12), 0 2px 8px -2px rgba(255,100,40,0.07);
+  transform: translateY(-3px) scale(1.01);
 }
 
 /* Large display heading sizes */

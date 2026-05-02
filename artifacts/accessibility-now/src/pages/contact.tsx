@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, MapPin } from "lucide-react";
+import { useSectionReveal } from "@/hooks/use-section-reveal";
+import gsap from "gsap";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -21,6 +23,25 @@ const formSchema = z.object({
 export default function Contact() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const heroRef = useSectionReveal<HTMLElement>();
+  const formRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el) return;
+    const buttons = el.querySelectorAll<HTMLElement>(".btn-gsap");
+    const cleanups: (() => void)[] = [];
+    buttons.forEach((btn) => {
+      const enter = () => gsap.to(btn, { scale: 1.04, duration: 0.18, ease: "power2.out" });
+      const leave = () => gsap.to(btn, { scale: 1, duration: 0.18, ease: "power2.out" });
+      btn.addEventListener("mouseenter", enter);
+      btn.addEventListener("mouseleave", leave);
+      cleanups.push(() => { btn.removeEventListener("mouseenter", enter); btn.removeEventListener("mouseleave", leave); });
+    });
+    return () => cleanups.forEach((fn) => fn());
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,24 +61,24 @@ export default function Contact() {
   }
 
   return (
-    <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-24 pb-20 px-4">
+    <div ref={pageRef} className="flex flex-col w-full">
+      <section ref={heroRef} className="hero-gradient pt-24 pb-20 px-4">
         <div className="container mx-auto max-w-4xl">
           <h1 className="text-display font-extrabold tracking-tight mb-6">
             Bring us<br />
             <span className="heading-accent">your problem.</span>
           </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
+          <p className="text-muted-foreground text-base max-w-xl reveal-body">
             Fill out the form to request a scope call. We'll discuss your technical architecture,
             current risk profile, and roadmap to EAA compliance.
           </p>
         </div>
       </section>
 
-      <section className="py-16 px-4 bg-white">
+      <section ref={formRef} className="py-16 px-4 bg-white">
         <div className="container mx-auto max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-16">
-            <div className="md:col-span-2">
+            <div className="reveal-child md:col-span-2">
               <div className="space-y-8">
                 <div className="flex items-start gap-4">
                   <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -96,7 +117,7 @@ export default function Contact() {
               </div>
             </div>
 
-            <div className="md:col-span-3 bg-background rounded-2xl border p-8">
+            <div className="reveal-child md:col-span-3 bg-background rounded-2xl border p-8">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -186,7 +207,7 @@ export default function Contact() {
 
                   <Button
                     type="submit"
-                    className="w-full h-12 text-sm font-semibold"
+                    className="btn-gsap w-full h-12 text-sm font-semibold"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Submitting..." : "Book a scope call"}

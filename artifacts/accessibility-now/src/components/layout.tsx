@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import gsap from "gsap";
 
 const NAV_LINKS = [
   { href: "/services", label: "Services" },
@@ -13,10 +14,46 @@ const NAV_LINKS = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const ctaButtonRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    const onScroll = () => {
+      if (window.scrollY > 60) {
+        header.classList.add("scrolled");
+      } else {
+        header.classList.remove("scrolled");
+      }
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const btn = ctaButtonRef.current;
+    if (!btn) return;
+    const enter = () => gsap.to(btn, { scale: 1.04, duration: 0.18, ease: "power2.out" });
+    const leave = () => gsap.to(btn, { scale: 1, duration: 0.18, ease: "power2.out" });
+    btn.addEventListener("mouseenter", enter);
+    btn.addEventListener("mouseleave", leave);
+    return () => {
+      btn.removeEventListener("mouseenter", enter);
+      btn.removeEventListener("mouseleave", leave);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+      <header
+        ref={headerRef}
+        className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50"
+        style={{ transition: "background 0.3s ease, box-shadow 0.3s ease" }}
+      >
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <Link
             href="/"
@@ -43,7 +80,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link href="/contact">Contact</Link>
             </Button>
             <Button className="hidden md:flex h-9 px-5 text-sm font-semibold" asChild>
-              <Link href="/contact">Get an audit →</Link>
+              <Link href="/contact" ref={ctaButtonRef as React.Ref<HTMLAnchorElement>}>Get an audit →</Link>
             </Button>
 
             <button
