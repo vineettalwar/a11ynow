@@ -33,6 +33,8 @@ export interface AuditViolation {
   impact: AuditViolationImpact;
   /** Number of affected elements on the page */
   affectedElements: number;
+  /** Up to 3 representative CSS selectors for affected elements */
+  topSelectors: string[];
 }
 
 /**

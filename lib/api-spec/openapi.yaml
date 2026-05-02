@@ -87,6 +87,45 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /audit/{auditId}/pdf:
+    get:
+      operationId: getAuditPdf
+      tags: [audit]
+      summary: Download audit result as PDF
+      description: Generates and returns a branded PDF report for a previously run audit
+      parameters:
+        - name: auditId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PDF report file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Invalid audit ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Audit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: PDF generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /leads:
     post:
       operationId: createLead
@@ -149,12 +188,18 @@ components:
         affectedElements:
           type: integer
           description: Number of affected elements on the page
+        topSelectors:
+          type: array
+          items:
+            type: string
+          description: Up to 3 representative CSS selectors for affected elements
       required:
         - id
         - wcagCriteria
         - description
         - impact
         - affectedElements
+        - topSelectors
 
     AuditResult:
       type: object

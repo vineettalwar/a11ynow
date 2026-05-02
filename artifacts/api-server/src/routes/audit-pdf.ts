@@ -92,10 +92,7 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       timeStyle: "short",
     });
 
-    /* ── Header bar ─────────────────────────────────────────────── */
-    doc
-      .rect(0, 0, PAGE_WIDTH, 72)
-      .fill(BRAND_DARK);
+    doc.rect(0, 0, PAGE_WIDTH, 72).fill(BRAND_DARK);
 
     doc
       .fontSize(20)
@@ -111,14 +108,9 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       .fillColor("rgba(255,255,255,0.55)")
       .text("WCAG 2.1 AA Compliance Report", PAGE_MARGIN, 50);
 
-    /* ── Meta block ─────────────────────────────────────────────── */
     let y = 96;
 
-    doc
-      .fontSize(9)
-      .font("Helvetica")
-      .fillColor(BRAND_LIGHT)
-      .text("URL AUDITED", PAGE_MARGIN, y);
+    doc.fontSize(9).font("Helvetica").fillColor(BRAND_LIGHT).text("URL AUDITED", PAGE_MARGIN, y);
 
     y += 14;
     doc
@@ -147,14 +139,11 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       .lineWidth(0.5)
       .stroke();
 
-    /* ── Score callout ──────────────────────────────────────────── */
     y += 20;
 
     const scoreBoxW = 110;
     const scoreBoxH = 80;
-    doc
-      .roundedRect(PAGE_MARGIN, y, scoreBoxW, scoreBoxH, 8)
-      .fillAndStroke("#FAFAFA", BRAND_RULE);
+    doc.roundedRect(PAGE_MARGIN, y, scoreBoxW, scoreBoxH, 8).fillAndStroke("#FAFAFA", BRAND_RULE);
 
     const sColor = scoreColor(row.score);
     doc
@@ -175,9 +164,7 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       .fillColor(BRAND_LIGHT)
       .text("Automated score / 100", PAGE_MARGIN, y + 65, { width: scoreBoxW, align: "center" });
 
-    /* severity stat boxes — all 4 severities + passed */
     const statBoxW = (CONTENT_WIDTH - scoreBoxW - 12) / 5;
-    const statBoxH = scoreBoxH;
     const stats = [
       { label: "Critical", value: row.criticalViolations, color: "#DC2626" },
       { label: "Serious", value: row.seriousViolations, color: "#EA580C" },
@@ -187,9 +174,7 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
     ];
     let sx = PAGE_MARGIN + scoreBoxW + 12;
     for (const stat of stats) {
-      doc
-        .roundedRect(sx, y, statBoxW - 3, statBoxH, 8)
-        .fillAndStroke("#FAFAFA", BRAND_RULE);
+      doc.roundedRect(sx, y, statBoxW - 3, scoreBoxH, 8).fillAndStroke("#FAFAFA", BRAND_RULE);
 
       const valStr = String(stat.value);
       const fontSize = valStr.length > 4 ? 14 : 22;
@@ -212,26 +197,25 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
 
     y += scoreBoxH + 28;
 
-    /* ── Violations table ───────────────────────────────────────── */
     doc
       .fontSize(12)
       .font("Helvetica-Bold")
       .fillColor(BRAND_DARK)
       .text("Top Violations Found", PAGE_MARGIN, y);
 
-    y += 6;
+    y += 16;
     doc
       .fontSize(8)
       .font("Helvetica")
       .fillColor(BRAND_LIGHT)
       .text(
-        `Showing ${top10.length} of ${row.totalViolations} violation${row.totalViolations === 1 ? "" : "s"} · automated WCAG 2.1 AA scan`,
-        PAGE_MARGIN, y + 10,
+        `${top10.length} of ${row.totalViolations} violation${row.totalViolations === 1 ? "" : "s"} · automated WCAG 2.1 AA scan`,
+        PAGE_MARGIN,
+        y,
       );
 
-    y += 28;
+    y += 16;
 
-    /* table column positions */
     const COL = {
       severity: PAGE_MARGIN,
       wcag: PAGE_MARGIN + 72,
@@ -240,15 +224,12 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
     };
     const descWidth = COL.elements - COL.description - 8;
 
-    /* table header */
-    doc
-      .rect(PAGE_MARGIN, y, CONTENT_WIDTH, 20)
-      .fill("#F3F4F6");
+    doc.rect(PAGE_MARGIN, y, CONTENT_WIDTH, 20).fill("#F3F4F6");
 
     const headerLabels: Array<[string, number, object?]> = [
       ["SEVERITY", COL.severity + 4, {}],
       ["WCAG", COL.wcag + 4, {}],
-      ["DESCRIPTION", COL.description + 4, { width: descWidth }],
+      ["DESCRIPTION / SELECTORS", COL.description + 4, { width: descWidth }],
       ["ELEMENTS", COL.elements, { width: 44, align: "right" as const }],
     ];
     for (const [label, x, opts] of headerLabels) {
@@ -272,27 +253,21 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       for (let i = 0; i < top10.length; i++) {
         const v = top10[i];
         const selectors = (v.topSelectors ?? []).filter(Boolean);
+        const selText = selectors.join("\n");
 
-        /* measure height: description + selectors */
         const descH = doc.heightOfString(v.description, { width: descWidth });
-        const selText = selectors.length > 0 ? selectors.join("\n") : "";
-        const selH = selText
-          ? doc.heightOfString(selText, { width: descWidth }) + 4
-          : 0;
+        const selH = selText ? doc.heightOfString(selText, { width: descWidth }) + 4 : 0;
         const rowH = Math.max(30, descH + selH + 14);
 
-        /* check page overflow */
         if (y + rowH > doc.page.height - PAGE_MARGIN - 50) {
           doc.addPage();
           y = PAGE_MARGIN;
         }
 
-        /* alternating row background */
         if (i % 2 === 0) {
           doc.rect(PAGE_MARGIN, y, CONTENT_WIDTH, rowH).fill("#FAFAFA");
         }
 
-        /* severity accent bar */
         const iColor = impactColor(v.impact);
         doc.rect(COL.severity, y, 3, rowH).fill(iColor);
 
@@ -302,31 +277,30 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
           .fillColor(iColor)
           .text(v.impact.toUpperCase(), COL.severity + 8, y + 8, { lineBreak: false });
 
-        /* wcag */
         doc
           .fontSize(7.5)
           .font("Helvetica")
           .fillColor(BRAND_MID)
           .text(v.wcagCriteria, COL.wcag + 4, y + 8, { lineBreak: false, width: 48 });
 
-        /* description */
         doc
           .fontSize(8)
           .font("Helvetica")
           .fillColor(BRAND_DARK)
           .text(v.description, COL.description + 4, y + 6, { width: descWidth, lineBreak: true });
 
-        /* selectors */
         if (selText) {
           const descBottom = y + 6 + descH;
           doc
             .fontSize(6.5)
             .font("Helvetica")
             .fillColor(BRAND_LIGHT)
-            .text(selText, COL.description + 4, descBottom + 2, { width: descWidth, lineBreak: true });
+            .text(selText, COL.description + 4, descBottom + 2, {
+              width: descWidth,
+              lineBreak: true,
+            });
         }
 
-        /* element count */
         doc
           .fontSize(10)
           .font("Helvetica-Bold")
@@ -337,7 +311,6 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
             lineBreak: false,
           });
 
-        /* row separator */
         doc
           .moveTo(PAGE_MARGIN, y + rowH)
           .lineTo(PAGE_WIDTH - PAGE_MARGIN, y + rowH)
@@ -349,7 +322,6 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       }
     }
 
-    /* ── EAA compliance note ────────────────────────────────────── */
     y += 20;
     if (y > doc.page.height - PAGE_MARGIN - 90) {
       doc.addPage();
@@ -364,7 +336,11 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       .fontSize(8.5)
       .font("Helvetica-Bold")
       .fillColor(BRAND_ORANGE)
-      .text("Important — Automated scans detect ~30% of WCAG violations", PAGE_MARGIN + 12, y + 10);
+      .text(
+        "Important — Automated scans detect ~30% of WCAG violations",
+        PAGE_MARGIN + 12,
+        y + 10,
+      );
 
     doc
       .fontSize(7.5)
@@ -372,14 +348,13 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       .fillColor(BRAND_MID)
       .text(
         "This report is generated by an automated scanner and should not be used as a sole basis for EAA compliance claims. " +
-        "A full manual audit including screen reader testing is required for legal sign-off. Contact accessibility.now for a comprehensive audit.",
-        PAGE_MARGIN + 12, y + 24,
+          "A full manual audit including screen reader testing is required for legal sign-off. " +
+          "Contact accessibility.now for a comprehensive audit.",
+        PAGE_MARGIN + 12,
+        y + 24,
         { width: CONTENT_WIDTH - 24 },
       );
 
-    y += 62;
-
-    /* ── Footer ─────────────────────────────────────────────────── */
     const footerY = doc.page.height - PAGE_MARGIN + 10;
     doc
       .moveTo(PAGE_MARGIN, footerY - 8)
@@ -392,20 +367,17 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       .fontSize(7)
       .font("Helvetica")
       .fillColor(BRAND_LIGHT)
-      .text(
-        "accessibility.now · sometech.work · WCAG 2.1 AA Automated Report",
-        PAGE_MARGIN, footerY,
-        { width: CONTENT_WIDTH, align: "center" },
-      );
+      .text("accessibility.now · sometech.work · WCAG 2.1 AA Automated Report", PAGE_MARGIN, footerY, {
+        width: CONTENT_WIDTH,
+        align: "center",
+      });
 
     doc.end();
   });
 }
 
 router.get("/audit/:auditId/pdf", async (req, res): Promise<void> => {
-  const auditId = Array.isArray(req.params.auditId)
-    ? req.params.auditId[0]
-    : req.params.auditId;
+  const { auditId } = req.params;
 
   if (!auditId || !/^[0-9a-f-]{36}$/i.test(auditId)) {
     res.status(400).json({ error: "invalid_id", message: "Invalid audit ID." });

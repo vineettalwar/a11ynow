@@ -52,6 +52,9 @@ export const CreateAuditResponse = zod.object({
       affectedElements: zod
         .number()
         .describe("Number of affected elements on the page"),
+      topSelectors: zod
+        .array(zod.string())
+        .describe("Up to 3 representative CSS selectors for affected elements"),
     }),
   ),
   passedChecks: zod.number(),
@@ -95,10 +98,21 @@ export const GetAuditResponse = zod.object({
       affectedElements: zod
         .number()
         .describe("Number of affected elements on the page"),
+      topSelectors: zod
+        .array(zod.string())
+        .describe("Up to 3 representative CSS selectors for affected elements"),
     }),
   ),
   passedChecks: zod.number(),
   totalChecks: zod.number(),
+});
+
+/**
+ * Generates and returns a branded PDF report for a previously run audit
+ * @summary Download audit result as PDF
+ */
+export const GetAuditPdfParams = zod.object({
+  auditId: zod.coerce.string(),
 });
 
 /**

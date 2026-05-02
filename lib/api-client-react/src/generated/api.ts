@@ -284,6 +284,94 @@ export function useGetAudit<
 }
 
 /**
+ * Generates and returns a branded PDF report for a previously run audit
+ * @summary Download audit result as PDF
+ */
+export const getGetAuditPdfUrl = (auditId: string) => {
+  return `/api/audit/${auditId}/pdf`;
+};
+
+export const getAuditPdf = async (
+  auditId: string,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getGetAuditPdfUrl(auditId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAuditPdfQueryKey = (auditId: string) => {
+  return [`/api/audit/${auditId}/pdf`] as const;
+};
+
+export const getGetAuditPdfQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAuditPdf>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  auditId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAuditPdf>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAuditPdfQueryKey(auditId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuditPdf>>> = ({
+    signal,
+  }) => getAuditPdf(auditId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!auditId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAuditPdf>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAuditPdfQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAuditPdf>>
+>;
+export type GetAuditPdfQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Download audit result as PDF
+ */
+
+export function useGetAuditPdf<
+  TData = Awaited<ReturnType<typeof getAuditPdf>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  auditId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAuditPdf>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAuditPdfQueryOptions(auditId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * Stores a visitor's name and email after they view a compliance snapshot
  * @summary Capture a lead from an audit result
  */
