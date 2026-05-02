@@ -4,7 +4,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "crypto";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
+import { eq } from "drizzle-orm";
 import { CreateAuditBody, GetAuditParams } from "@workspace/api-zod";
+import { db, auditsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 
 const dnsLookupAsync = promisify(dnsLookup);
@@ -39,8 +41,6 @@ async function validateAuditUrl(raw: string): Promise<{ ok: true; url: string } 
 }
 
 const router: IRouter = Router();
-
-const auditCache = new Map<string, AuditResultData>();
 
 interface AuditViolationData {
   id: string;
@@ -140,6 +140,8 @@ async function runPlaywrightAudit(
 
   const passedChecks = axeResults.passes.length;
   const totalChecks = axeResults.violations.length + axeResults.passes.length;
+
+  await context.close();
 
   return { violations, passedChecks, totalChecks };
 }
@@ -262,6 +264,22 @@ async function runAccessibilityAudit(url: string): Promise<AuditResultData> {
   };
 }
 
+function dbRowToResult(row: typeof auditsTable.$inferSelect): AuditResultData {
+  return {
+    auditId: row.auditId,
+    url: row.url,
+    scannedAt: row.scannedAt.toISOString(),
+    score: row.score,
+    level: row.level as AuditResultData["level"],
+    totalViolations: row.totalViolations,
+    criticalViolations: row.criticalViolations,
+    seriousViolations: row.seriousViolations,
+    violations: row.violations as AuditViolationData[],
+    passedChecks: row.passedChecks,
+    totalChecks: row.totalChecks,
+  };
+}
+
 router.post("/audit", async (req, res): Promise<void> => {
   const parsed = CreateAuditBody.safeParse(req.body);
   if (!parsed.success) {
@@ -285,7 +303,21 @@ router.post("/audit", async (req, res): Promise<void> => {
 
   try {
     const result = await runAccessibilityAudit(url);
-    auditCache.set(result.auditId, result);
+
+    await db.insert(auditsTable).values({
+      auditId: result.auditId,
+      url: result.url,
+      scannedAt: new Date(result.scannedAt),
+      score: result.score,
+      level: result.level,
+      totalViolations: result.totalViolations,
+      criticalViolations: result.criticalViolations,
+      seriousViolations: result.seriousViolations,
+      violations: result.violations,
+      passedChecks: result.passedChecks,
+      totalChecks: result.totalChecks,
+    });
+
     res.json(result);
   } catch (err) {
     req.log.error({ err, url }, "Audit failed");
@@ -302,13 +334,23 @@ router.get("/audit/:auditId", async (req, res): Promise<void> => {
     return;
   }
 
-  const result = auditCache.get(params.data.auditId);
-  if (!result) {
-    res.status(404).json({ error: "not_found", message: "Audit result not found or has expired." });
-    return;
-  }
+  try {
+    const rows = await db
+      .select()
+      .from(auditsTable)
+      .where(eq(auditsTable.auditId, params.data.auditId))
+      .limit(1);
 
-  res.json(result);
+    if (rows.length === 0) {
+      res.status(404).json({ error: "not_found", message: "Audit result not found." });
+      return;
+    }
+
+    res.json(dbRowToResult(rows[0]));
+  } catch (err) {
+    req.log.error({ err }, "Failed to retrieve audit from database");
+    res.status(500).json({ error: "db_error", message: "Could not retrieve the audit result." });
+  }
 });
 
 export default router;
