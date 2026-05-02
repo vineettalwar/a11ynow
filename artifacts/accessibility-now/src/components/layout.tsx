@@ -1,30 +1,76 @@
-import { Link, useLocation } from "wouter";
+import { useState } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
+
+const NAV_LINKS = [
+  { href: "/services", label: "Services" },
+  { href: "/eaa", label: "EAA" },
+  { href: "/work", label: "Work" },
+  { href: "/resources", label: "Resources" },
+  { href: "/about", label: "About" },
+];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex flex-col font-sans">
       <header className="border-b bg-background sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="font-bold text-xl tracking-tight flex items-center gap-2">
-            <span>accessibility.now</span>
+          <Link href="/" className="font-bold text-xl tracking-tight" onClick={() => setMobileOpen(false)}>
+            accessibility.now
           </Link>
+
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link href="/services" className="hover:text-primary transition-colors">Services</Link>
-            <Link href="/eaa" className="hover:text-primary transition-colors">EAA</Link>
-            <Link href="/work" className="hover:text-primary transition-colors">Work</Link>
-            <Link href="/resources" className="hover:text-primary transition-colors">Resources</Link>
-            <Link href="/about" className="hover:text-primary transition-colors">About</Link>
+            {NAV_LINKS.map(({ href, label }) => (
+              <Link key={href} href={href} className="hover:text-primary transition-colors">
+                {label}
+              </Link>
+            ))}
           </nav>
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-2">
             <Button variant="ghost" className="hidden md:flex" asChild>
               <Link href="/contact">Contact</Link>
             </Button>
-            <Button className="rounded-full px-6 font-semibold shadow-none" asChild>
+            <Button className="hidden md:flex rounded-full px-6 font-semibold shadow-none" asChild>
               <Link href="/contact">Get a free audit</Link>
             </Button>
+
+            <button
+              className="md:hidden p-2 rounded-md hover:bg-muted transition-colors"
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((o) => !o)}
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {mobileOpen && (
+          <div className="md:hidden border-t bg-background px-4 py-6 flex flex-col gap-4">
+            {NAV_LINKS.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="text-lg font-medium hover:text-primary transition-colors"
+                onClick={() => setMobileOpen(false)}
+              >
+                {label}
+              </Link>
+            ))}
+            <div className="pt-4 border-t flex flex-col gap-3">
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/contact" onClick={() => setMobileOpen(false)}>Contact</Link>
+              </Button>
+              <Button className="w-full rounded-full font-semibold shadow-none" asChild>
+                <Link href="/contact" onClick={() => setMobileOpen(false)}>Get a free audit</Link>
+              </Button>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="flex-1">{children}</main>

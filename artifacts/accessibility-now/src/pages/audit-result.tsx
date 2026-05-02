@@ -84,13 +84,19 @@ export default function AuditResult() {
 
   if (!result) return null;
 
+  const scannedDate = new Date(result.scannedAt).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
   return (
     <div className="container mx-auto px-4 py-16 max-w-5xl">
       <div className="mb-12">
         <h1 className="text-4xl font-bold mb-4">Compliance Snapshot</h1>
-        <p className="text-xl text-muted-foreground font-mono bg-muted inline-block px-3 py-1 rounded-md">
+        <p className="text-xl text-muted-foreground font-mono bg-muted inline-block px-3 py-1 rounded-md mb-3">
           {result.url}
         </p>
+        <p className="text-sm text-muted-foreground">Scanned {scannedDate}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
