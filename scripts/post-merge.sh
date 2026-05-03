@@ -3,11 +3,11 @@ set -e
 
 pnpm install --frozen-lockfile
 
-# Apply any pending database migrations (versioned SQL files in lib/db/migrations/)
-pnpm --filter @workspace/db run migrate
-
-# Fall back to push only if migrate fails (e.g. first-time setup without migrations)
-# pnpm --filter @workspace/db run push
+# Sync DB schema — push-force is idempotent (safe to run against an already-up-to-date DB).
+# We use push-force rather than migrate because the live database was bootstrapped via push
+# before versioned migrations were introduced. The __drizzle_migrations table is now seeded
+# with the initial migration hash so migrate will work correctly for any future migrations.
+pnpm --filter @workspace/db run push-force
 
 # Ensure Playwright Chromium browser is present (needed by page-screenshot endpoint)
 pnpm --filter @workspace/api-server exec playwright install chromium
