@@ -13,7 +13,7 @@ pnpm --filter @workspace/db run push-force
 pnpm --filter @workspace/api-server exec playwright install chromium
 
 # ── GitHub sync ──────────────────────────────────────────────────────────────
-if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPO" ]; then
+if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then
   # Ensure origin points to the configured repo (token-free URL)
   if git remote get-url origin >/dev/null 2>&1; then
     git remote set-url origin "$GITHUB_REPO"
@@ -22,14 +22,14 @@ if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPO" ]; then
   fi
 
   # Authenticate via Authorization header — token never stored in remote URL
-  ENCODED=$(printf 'x-access-token:%s' "${GITHUB_TOKEN}" | base64 -w0 2>/dev/null \
-            || printf 'x-access-token:%s' "${GITHUB_TOKEN}" | base64)
+  ENCODED=$(printf 'x-access-token:%s' "${GITHUB_PAT}" | base64 -w0 2>/dev/null \
+            || printf 'x-access-token:%s' "${GITHUB_PAT}" | base64)
 
   git -c "http.https://github.com/.extraheader=Authorization: Basic ${ENCODED}" \
     push --force origin HEAD:main
 
   echo "Pushed to ${GITHUB_REPO}"
 else
-  [ -z "$GITHUB_TOKEN" ] && echo "GITHUB_TOKEN not set — skipping GitHub push"
-  [ -z "$GITHUB_REPO"  ] && echo "GITHUB_REPO not set — skipping GitHub push"
+  [ -z "$GITHUB_PAT" ]  && echo "GITHUB_PAT not set — skipping GitHub push"
+  [ -z "$GITHUB_REPO" ] && echo "GITHUB_REPO not set — skipping GitHub push"
 fi
