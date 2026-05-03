@@ -74,6 +74,11 @@ Uses Recharts `LineChart` on `/monitor/:token`. The chart is conditionally rende
 ### EAA Checklist localStorage key
 `"eaa-checklist-v2"` — the `v2` suffix was added when the checklist was rewritten with 5 sections (the old key used a different data shape). If the checklist is restructured again, increment to `v3` to avoid stale data bugs.
 
+### Media and audio asset policy
+Static assets served at runtime belong in `artifacts/accessibility-now/public/`. The `attached_assets/` directory is a Replit system folder for working reference files (screenshots, branding uploads) and is **not** served by the app.
+
+For audio or video files: any file over **1 MB** must be hosted on a remote CDN (e.g. Cloudflare R2, AWS S3, Cloudinary) and referenced via an HTTPS URL — do not commit binary media files over 1 MB to the repo. Files under 1 MB may be committed to `public/` if genuinely needed at runtime.
+
 ### CSS variable / Tailwind interaction
 The site uses Tailwind v4 (CSS-first config). Custom brand colours are NOT in a `tailwind.config.js` — they are used as arbitrary values: `text-[#FF4D1C]`, `bg-[#F7F7F5]`. If a colour is used more than ~5 times, add it to the Tailwind theme in `tailwind.css` using `@theme`.
 

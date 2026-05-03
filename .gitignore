@@ -47,3 +47,10 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# attached_assets/ is a Replit system upload folder used during AI-assisted development.
+# It contains working reference files (screenshots, branding uploads) shared with the agent.
+# These files are NOT served by the application — production assets live in
+# artifacts/accessibility-now/public/ instead. We commit attached_assets/ so the files
+# are available across sessions, but large binary uploads should be avoided.
+# See attached_assets/README.md for full guidance.
