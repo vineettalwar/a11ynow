@@ -6,6 +6,7 @@ import gsap from "gsap";
 
 const NAV_LINKS = [
   { href: "/services", label: "Services" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/eaa", label: "EAA" },
   { href: "/tools", label: "Tools" },
   { href: "/resources", label: "Resources" },
@@ -163,6 +164,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div>
             <h4 className="font-semibold text-sm mb-4 font-sans">Legal</h4>
             <ul className="space-y-2 text-xs text-muted-foreground">
+              <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
               <li><Link href="/legal/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
               <li><Link href="/legal/accessibility" className="hover:text-foreground transition-colors">Accessibility Statement</Link></li>
               <li><Link href="/eaa" className="hover:text-foreground transition-colors">EAA Guide</Link></li>

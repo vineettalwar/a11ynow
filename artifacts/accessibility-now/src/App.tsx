@@ -20,6 +20,7 @@ import WcagGuide from "@/pages/resources/wcag-guide";
 import EaaChecklist from "@/pages/resources/eaa-checklist";
 import Blog from "@/pages/resources/blog";
 import About from "@/pages/about";
+import Pricing from "@/pages/pricing";
 import PrivacyPolicy from "@/pages/legal/privacy";
 import AccessibilityStatement from "@/pages/legal/accessibility";
 
@@ -58,6 +59,7 @@ function Router() {
         <Route path="/resources/eaa-checklist" component={EaaChecklist} />
         <Route path="/resources/blog" component={Blog} />
         <Route path="/about" component={About} />
+        <Route path="/pricing" component={Pricing} />
         <Route path="/legal/privacy" component={PrivacyPolicy} />
         <Route path="/legal/accessibility" component={AccessibilityStatement} />
         <Route path="/monitor/:token" component={MonitorPage} />
