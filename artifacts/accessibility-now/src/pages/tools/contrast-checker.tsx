@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Lightbulb, Pipette } from "lucide-react";
+import { CheckCircle2, XCircle, Lightbulb, Pipette, Link as LinkIcon, Check as CheckIcon } from "lucide-react";
 
 function srgbToLinear(c: number): number {
   const s = c / 255;
@@ -94,6 +94,12 @@ function suggestFix(fg: string, bg: string, targetRatio = 4.5): string {
   return lighterBetter ? "#ffffff" : "#000000";
 }
 
+function parseHexParam(val: string | null): string | null {
+  if (!val) return null;
+  const clean = val.startsWith("#") ? val : `#${val}`;
+  return hexToRgb(clean) ? clean : null;
+}
+
 declare global {
   interface Window {
     EyeDropper?: new () => { open: () => Promise<{ sRGBHex: string }> };
@@ -174,6 +180,26 @@ export default function ContrastChecker() {
   const [fg, setFg] = useState("#1a1a1a");
   const [bg, setBg] = useState("#f5f2ec");
   const [suggested, setSuggested] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fgParam = parseHexParam(params.get("fg"));
+    const bgParam = parseHexParam(params.get("bg"));
+    if (fgParam) setFg(fgParam);
+    if (bgParam) setBg(bgParam);
+  }, []);
+
+  useEffect(() => {
+    const fgClean = fg.replace("#", "");
+    const bgClean = bg.replace("#", "");
+    if (fgClean.length === 6 && bgClean.length === 6) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("fg", fgClean);
+      url.searchParams.set("bg", bgClean);
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, [fg, bg]);
 
   const ratio = contrastRatio(fg, bg);
   const ratioDisplay = ratio.toFixed(2);
@@ -184,6 +210,13 @@ export default function ContrastChecker() {
 
   const applyFix = () => {
     if (suggested) { setFg(suggested); setSuggested(null); }
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const checks = [
@@ -241,7 +274,7 @@ export default function ContrastChecker() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <Button variant="outline" className="flex-1 gap-2 [box-shadow:none]" onClick={handleSuggest}>
                   <Lightbulb className="w-4 h-4" /> Suggest AA fix
                 </Button>
@@ -252,6 +285,25 @@ export default function ContrastChecker() {
                   </Button>
                 )}
               </div>
+
+              <button
+                type="button"
+                onClick={copyLink}
+                className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-border text-xs font-sans font-semibold text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                aria-label="Copy shareable link to this colour pair"
+              >
+                {copied ? (
+                  <>
+                    <CheckIcon className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-primary">Link copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <LinkIcon className="w-3.5 h-3.5" />
+                    <span>Copy shareable link</span>
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="space-y-3">

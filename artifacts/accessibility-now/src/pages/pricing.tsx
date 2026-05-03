@@ -1,10 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import gsap from "gsap";
 import { Button } from "@/components/ui/button";
 import { FaqAccordion } from "@/components/faq-accordion";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
-import { Check, Zap, Search, ShieldCheck, ArrowRight } from "lucide-react";
+import { Check, Zap, Search, ShieldCheck, ArrowRight, Minus } from "lucide-react";
 
 const TIERS = [
   {
@@ -75,6 +75,23 @@ const TIERS = [
   },
 ];
 
+const COMPARISON: { label: string; values: (boolean | string)[] }[] = [
+  { label: "Automated WCAG scan", values: [true, true, true] },
+  { label: "Manual expert testing", values: [false, true, "Quarterly"] },
+  { label: "Pages covered", values: ["Unlimited", "Up to 25", "Key pages"] },
+  { label: "Turnaround", values: ["Instant", "2–3 weeks", "Ongoing"] },
+  { label: "PDF report", values: [true, true, true] },
+  { label: "Severity-ranked remediation plan", values: [false, true, false] },
+  { label: "VPAT / ACR statement", values: [false, true, false] },
+  { label: "12-month audit certificate", values: [false, true, false] },
+  { label: "CI/CD integration", values: [false, false, true] },
+  { label: "Regression alerting", values: [false, false, true] },
+  { label: "EAA compliance dashboard", values: [false, false, true] },
+  { label: "Dedicated Slack channel", values: [false, false, true] },
+  { label: "Annual full re-audit", values: [false, false, true] },
+  { label: "Account required", values: ["No", "No", "Yes"] },
+];
+
 const FAQS = [
   {
     question: "What if my site has hundreds of pages?",
@@ -87,7 +104,7 @@ const FAQS = [
       "Yes. We offer a 20% reduction for registered charities and NGOs, and we work on framework agreements with public-sector bodies. Get in touch and mention your organisation type when booking.",
   },
   {
-    question: "What does 'from \u20ac3,500' mean -- what drives the final price?",
+    question: "What does 'from €3,500' mean — what drives the final price?",
     answer:
       "The starting figure covers a focused audit of up to 10 pages for a typical marketing or SaaS site. Price increases with page count, technology complexity (e.g. complex SPAs, native mobile apps), turnaround urgency, and whether you need a VPAT / ACR statement for procurement. We provide a fixed quote before any work begins.",
   },
@@ -111,9 +128,14 @@ const FAQS = [
 export default function Pricing() {
   const heroRef = useSectionReveal<HTMLElement>();
   const cardsRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
+  const comparisonRef = useSectionReveal<HTMLElement>();
   const faqRef = useSectionReveal<HTMLElement>();
+  const talkRef = useSectionReveal<HTMLElement>();
   const ctaRef = useSectionReveal<HTMLElement>();
   const pageRef = useRef<HTMLDivElement>(null);
+
+  const [form, setForm] = useState({ name: "", email: "" });
+  const [talkStatus, setTalkStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
 
   useEffect(() => {
     const el = pageRef.current;
@@ -133,9 +155,25 @@ export default function Pricing() {
     return () => cleanups.forEach((fn) => fn());
   }, []);
 
+  async function handleTalkSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (talkStatus === "submitting") return;
+    setTalkStatus("submitting");
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email }),
+      });
+      if (!res.ok) throw new Error("failed");
+      setTalkStatus("done");
+    } catch {
+      setTalkStatus("error");
+    }
+  }
+
   return (
     <div ref={pageRef} className="flex flex-col w-full">
-      {/* Hero */}
       <section ref={heroRef} className="hero-gradient pt-24 pb-20 px-4">
         <div className="container mx-auto max-w-4xl">
           <p className="section-label text-xs font-semibold text-primary uppercase tracking-widest mb-4">
@@ -153,7 +191,6 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Pricing cards */}
       <section ref={cardsRef} className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
@@ -175,14 +212,8 @@ export default function Pricing() {
                     {badge}
                   </div>
                 )}
-
                 <div className="flex items-center gap-3 mb-6">
-                  <div
-                    className={[
-                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                      highlighted ? "bg-primary/15" : "bg-muted",
-                    ].join(" ")}
-                  >
+                  <div className={["w-10 h-10 rounded-xl flex items-center justify-center shrink-0", highlighted ? "bg-primary/15" : "bg-muted"].join(" ")}>
                     <Icon className={["w-5 h-5", highlighted ? "text-primary" : "text-muted-foreground"].join(" ")} />
                   </div>
                   <div>
@@ -190,28 +221,19 @@ export default function Pricing() {
                     <p className="text-xs text-muted-foreground">{tagline}</p>
                   </div>
                 </div>
-
                 <div className="mb-5">
-                  <p className="text-3xl font-extrabold font-sans tracking-tight">
-                    {price}
-                  </p>
+                  <p className="text-3xl font-extrabold font-sans tracking-tight">{price}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{priceNote}</p>
                 </div>
-
                 <p className="text-sm text-muted-foreground leading-relaxed mb-7">{description}</p>
-
                 <ul className="space-y-2.5 mb-8 flex-1">
                   {features.map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-sm">
-                      <Check
-                        className={["w-4 h-4 mt-0.5 shrink-0", highlighted ? "text-primary" : "text-muted-foreground"].join(" ")}
-                        strokeWidth={2.5}
-                      />
+                      <Check className={["w-4 h-4 mt-0.5 shrink-0", highlighted ? "text-primary" : "text-muted-foreground"].join(" ")} strokeWidth={2.5} />
                       <span>{f}</span>
                     </li>
                   ))}
                 </ul>
-
                 <Button
                   asChild
                   variant={highlighted ? "default" : "outline"}
@@ -223,7 +245,6 @@ export default function Pricing() {
             ))}
           </div>
 
-          {/* Enterprise callout */}
           <div className="mt-10 flex flex-col md:flex-row items-center justify-between gap-4 rounded-2xl border border-border bg-muted/40 px-8 py-6">
             <div>
               <p className="font-bold text-sm font-sans mb-1">Need something larger?</p>
@@ -238,8 +259,59 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section ref={faqRef} className="py-20 px-4 warm-section">
+      <section ref={comparisonRef} className="py-20 px-4 warm-section">
+        <div className="container mx-auto max-w-5xl">
+          <p className="section-label text-xs font-semibold text-primary uppercase tracking-widest mb-3">
+            Compare plans
+          </p>
+          <h2 className="text-display-md font-extrabold mb-10">
+            All three tiers, <span className="heading-accent">side by side.</span>
+          </h2>
+          <div className="overflow-x-auto rounded-2xl border border-border bg-white">
+            <table className="w-full text-sm" role="table">
+              <thead>
+                <tr className="border-b border-border">
+                  <th scope="col" className="text-left py-5 px-6 font-bold font-sans text-muted-foreground w-[40%]">
+                    Feature
+                  </th>
+                  {TIERS.map((t) => (
+                    <th
+                      key={t.id}
+                      scope="col"
+                      className={["py-5 px-4 text-center font-bold font-sans", t.highlighted ? "text-primary" : "text-foreground"].join(" ")}
+                    >
+                      <div>{t.name}</div>
+                      <div className="text-xs font-normal text-muted-foreground mt-0.5">{t.price}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARISON.map((row, i) => (
+                  <tr key={row.label} className={i % 2 === 0 ? "bg-white" : "bg-muted/20"}>
+                    <td className="py-3.5 px-6 text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)", fontSize: "0.8rem" }}>
+                      {row.label}
+                    </td>
+                    {row.values.map((val, j) => (
+                      <td key={j} className="py-3.5 px-4 text-center">
+                        {val === true ? (
+                          <Check className="w-4 h-4 text-primary mx-auto" strokeWidth={2.5} aria-label="Included" />
+                        ) : val === false ? (
+                          <Minus className="w-4 h-4 text-muted-foreground/30 mx-auto" aria-label="Not included" />
+                        ) : (
+                          <span className="text-xs font-sans text-muted-foreground">{val}</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section ref={faqRef} className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-3xl">
           <p className="section-label text-xs font-semibold text-primary uppercase tracking-widest mb-3">
             Common questions
@@ -254,16 +326,82 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* CTA */}
+      <section ref={talkRef} className="py-20 px-4 warm-section">
+        <div className="container mx-auto max-w-3xl">
+          <p className="section-label text-xs font-semibold text-primary uppercase tracking-widest mb-3">
+            Talk to us
+          </p>
+          <h2 className="text-display-md font-extrabold mb-3">
+            Not sure which <span className="heading-accent">tier fits?</span>
+          </h2>
+          <p className="text-muted-foreground text-sm max-w-xl mb-10 reveal-body">
+            Leave your name and work email and we'll come back within one business day with a recommendation — no sales pitch, just honest advice.
+          </p>
+
+          {talkStatus === "done" ? (
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 px-8 py-10 text-center">
+              <p className="text-lg font-extrabold font-sans mb-2">Message received.</p>
+              <p className="text-sm text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
+                We'll be in touch within one business day.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleTalkSubmit} className="space-y-5 max-w-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="talk-name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground font-sans">
+                    Your name
+                  </label>
+                  <input
+                    id="talk-name"
+                    type="text"
+                    required
+                    placeholder="Jane Smith"
+                    value={form.name}
+                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                    className="h-12 rounded-xl border border-border bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    style={{ fontFamily: "var(--app-font-mono)" }}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="talk-email" className="text-xs font-bold uppercase tracking-widest text-muted-foreground font-sans">
+                    Work email
+                  </label>
+                  <input
+                    id="talk-email"
+                    type="email"
+                    required
+                    placeholder="jane@company.com"
+                    value={form.email}
+                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                    className="h-12 rounded-xl border border-border bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    style={{ fontFamily: "var(--app-font-mono)" }}
+                  />
+                </div>
+              </div>
+              {talkStatus === "error" && (
+                <p className="text-sm text-red-600 font-sans">Something went wrong — please try again or email us directly.</p>
+              )}
+              <Button
+                type="submit"
+                className="btn-gsap h-12 px-8 text-sm font-bold"
+                disabled={talkStatus === "submitting"}
+              >
+                {talkStatus === "submitting" ? "Sending…" : "Send message →"}
+              </Button>
+            </form>
+          )}
+        </div>
+      </section>
+
       <section ref={ctaRef} className="py-24 px-4 hero-gradient text-center">
         <div className="container mx-auto max-w-2xl">
           <h2 className="text-display-md font-extrabold mb-5">
-            Not sure which<br />
-            <span className="heading-accent">tier fits?</span>
+            Start in<br />
+            <span className="heading-accent">30 seconds.</span>
           </h2>
           <p className="text-muted-foreground mb-10 reveal-body">
-            Start with a free automated scan — it takes 30 seconds and gives you a
-            directional score. Then book a call if you need expert eyes on the result.
+            Run a free automated scan — no account, no commitment. See your baseline score instantly.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild className="btn-gsap h-12 px-8 text-sm font-semibold">

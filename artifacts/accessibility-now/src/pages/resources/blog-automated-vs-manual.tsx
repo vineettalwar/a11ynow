@@ -112,6 +112,15 @@ export default function BlogAutomatedVsManual() {
             what they can and cannot find -- and why manual testing is non-negotiable for EAA compliance
             -- will change how you plan your testing strategy.
           </p>
+          <div className="flex items-center gap-3 mt-8 pt-6 border-t border-border/40">
+            <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold font-sans text-primary shrink-0" aria-hidden="true">
+              MC
+            </div>
+            <div>
+              <p className="text-sm font-bold font-sans leading-tight">Marcus Chen</p>
+              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>Engineering & Strategy · 8 min read</p>
+            </div>
+          </div>
         </div>
       </section>
 

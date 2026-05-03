@@ -52,6 +52,15 @@ export default function BlogEaaEnforcement() {
             the European Accessibility Act requires, when, and what the consequences of missing the
             deadline look like.
           </p>
+          <div className="flex items-center gap-3 mt-8 pt-6 border-t border-border/40">
+            <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold font-sans text-primary shrink-0" aria-hidden="true">
+              JR
+            </div>
+            <div>
+              <p className="text-sm font-bold font-sans leading-tight">James Reid</p>
+              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>Lead Accessibility Engineer · 7 min read</p>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
-import { Check, AlertTriangle, CalendarClock, FileText, ShieldCheck, MonitorSmartphone, Download } from "lucide-react";
+import { Check, AlertTriangle, CalendarClock, FileText, ShieldCheck, MonitorSmartphone, Download, Sparkles } from "lucide-react";
 
 const STORAGE_KEY = "eaa-checklist-v2";
 
@@ -266,6 +266,47 @@ const SECTIONS: ChecklistSection[] = [
       {
         id: "m7",
         text: "Accessibility feedback from users is routed to the product/engineering team and tracked.",
+      },
+    ],
+  },
+  {
+    id: "wcag22",
+    title: "WCAG 2.2 Additions",
+    icon: Sparkles,
+    description: "WCAG 2.2 (October 2023) introduced six new criteria at Level A and AA. EN 301 549 v3.2.1 references these, and EAA-scoped audits are increasingly expected to cover them.",
+    items: [
+      {
+        id: "w1",
+        text: "Focus indicators meet the enhanced appearance requirements: at least 2 CSS pixels of outline, with a 3:1 contrast ratio between focused and unfocused states (SC 2.4.11).",
+        critical: true,
+        note: "WCAG 2.2 SC 2.4.11 Focus Appearance (AA). This strengthens the existing 2.4.7 requirement — a faint dotted outline is no longer sufficient.",
+      },
+      {
+        id: "w2",
+        text: "All functionality that uses a dragging movement also has a single-pointer alternative (e.g. click-to-place, keyboard controls, or step buttons) (SC 2.5.7).",
+        note: "WCAG 2.2 SC 2.5.7 Dragging Movements (AA). Affects drag-and-drop file uploads, sliders, kanban boards, and sorting interfaces.",
+      },
+      {
+        id: "w3",
+        text: "Interactive targets (buttons, links, form controls) have a minimum bounding area of 24×24 CSS pixels, or adequate spacing around smaller targets (SC 2.5.8).",
+        critical: true,
+        note: "WCAG 2.2 SC 2.5.8 Target Size Minimum (AA). 24×24px is the floor; 44×44px is still best practice for mobile. Targets can be smaller if spacing compensates.",
+      },
+      {
+        id: "w4",
+        text: "Help mechanisms (chat links, phone numbers, contact forms, self-help pages) appear in the same location relative to page content across all pages where they appear (SC 3.2.6).",
+        note: "WCAG 2.2 SC 3.2.6 Consistent Help (A). Applies wherever a repeated help mechanism exists — typically site-wide footers, nav bars, or persistent widgets.",
+      },
+      {
+        id: "w5",
+        text: "Users are not required to re-enter information they have already provided in the same process or session, unless re-entering is essential or required for security (SC 3.3.7).",
+        note: "WCAG 2.2 SC 3.3.7 Redundant Entry (A). Common in multi-step checkout, form wizards, and registration flows. Auto-fill or echoing previous answers satisfies this.",
+      },
+      {
+        id: "w6",
+        text: "Authentication steps do not rely solely on a cognitive function test (memorising a password, solving a puzzle, transcribing characters) without offering an alternative method or assistance such as copy-paste or a password manager (SC 3.3.8).",
+        critical: true,
+        note: "WCAG 2.2 SC 3.3.8 Accessible Authentication Minimum (AA). Copy-paste must work in password fields. Object recognition (e.g. 'click the bicycle') is a cognitive function test — it must have an alternative.",
       },
     ],
   },

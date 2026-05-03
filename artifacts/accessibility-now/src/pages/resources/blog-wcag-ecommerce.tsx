@@ -149,6 +149,15 @@ export default function BlogWcagEcommerce() {
             Based on hundreds of audits across European e-commerce platforms, these are the violations we
             encounter most reliably -- and the ones most likely to trigger EAA enforcement action.
           </p>
+          <div className="flex items-center gap-3 mt-8 pt-6 border-t border-border/40">
+            <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold font-sans text-primary shrink-0" aria-hidden="true">
+              SP
+            </div>
+            <div>
+              <p className="text-sm font-bold font-sans leading-tight">Sarai Patel</p>
+              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>Senior Frontend Engineer · 10 min read</p>
+            </div>
+          </div>
         </div>
       </section>
 
