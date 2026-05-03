@@ -1,5 +1,7 @@
 # accessibility.now
 
+<img src="./artifacts/accessibility-now/public/opengraph.jpg" alt="accessibility.now — EAA compliance platform" width="100%" />
+
 **B2B digital accessibility agency website** — helping European enterprises achieve EAA compliance before the June 2025 deadline.
 
 Built on the **sometech.work** brand. Live URL audit, monitoring, and WCAG tooling in a single product.
