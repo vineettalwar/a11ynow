@@ -2,7 +2,12 @@
 set -e
 
 pnpm install --frozen-lockfile
-pnpm --filter db push
+
+# Apply any pending database migrations (versioned SQL files in lib/db/migrations/)
+pnpm --filter @workspace/db run migrate
+
+# Fall back to push only if migrate fails (e.g. first-time setup without migrations)
+# pnpm --filter @workspace/db run push
 
 # Ensure Playwright Chromium browser is present (needed by page-screenshot endpoint)
 pnpm --filter @workspace/api-server exec playwright install chromium
