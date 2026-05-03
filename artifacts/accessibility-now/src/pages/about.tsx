@@ -38,8 +38,6 @@ export default function About() {
 
   return (
     <div ref={pageRef} className="flex flex-col w-full">
-
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
       <section ref={heroRef} className="hero-gradient pt-32 pb-24 px-6">
         <div className="container mx-auto max-w-5xl">
           <h1 className="text-display font-extrabold tracking-tight mb-6 leading-[1.05]">
@@ -52,7 +50,7 @@ export default function About() {
             We hand you pull requests. Every audit we run is led by senior software engineers
             who know the DOM, ARIA, and your stack.
           </p>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-4 reveal-body">
             <Button asChild className="btn-gsap h-12 px-8 text-sm font-bold">
               <Link href="/contact">Book a scope call</Link>
             </Button>
@@ -63,10 +61,10 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── Stat bar ────────────────────────────────────────────────────── */}
       <section ref={statsRef} className="bg-[#1A1A1A] py-16 px-6">
         <div className="container mx-auto max-w-5xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
+          <h2 className="sr-only">By the numbers</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 reveal-body">
             {STATS.map((s) => (
               <div key={s.label} className="flex flex-col gap-1">
                 <span
@@ -87,12 +85,9 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── sometech.work brand card ─────────────────────────────────────── */}
       <section ref={brandRef} className="py-20 px-6 bg-white">
         <div className="container mx-auto max-w-5xl">
-          <div className="grid md:grid-cols-2 gap-0 rounded-2xl overflow-hidden border border-[#1A1A1A]/10 shadow-sm">
-
-            {/* Left column */}
+          <div className="grid md:grid-cols-2 gap-0 rounded-2xl overflow-hidden border border-[#1A1A1A]/10 shadow-sm reveal-body">
             <div className="p-10 flex flex-col justify-between gap-8">
               <div>
                 <p
@@ -119,8 +114,6 @@ export default function About() {
                 </a>
               </Button>
             </div>
-
-            {/* Right column — dark brand block */}
             <div
               className="p-10 flex flex-col justify-center items-start"
               style={{ background: "#1A1A1A" }}
@@ -139,16 +132,14 @@ export default function About() {
                 Applied to accessibility.
               </p>
             </div>
-
           </div>
         </div>
       </section>
 
-      {/* ── CTA ─────────────────────────────────────────────────────────── */}
       <section ref={ctaRef} className="py-24 px-6 hero-gradient text-center">
         <div className="container mx-auto max-w-2xl">
           <p
-            className="text-2xl font-extrabold mb-8"
+            className="text-2xl font-extrabold mb-8 reveal-body"
             style={{ fontFamily: "var(--app-font-sans)" }}
           >
             Ready to make your product accessible?
@@ -158,7 +149,6 @@ export default function About() {
           </Button>
         </div>
       </section>
-
     </div>
   );
 }
