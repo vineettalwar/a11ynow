@@ -22,6 +22,33 @@ import Blog from "@/pages/resources/blog";
 import BlogEaaEnforcement from "@/pages/resources/blog-eaa-enforcement";
 import BlogWcagEcommerce from "@/pages/resources/blog-wcag-ecommerce";
 import BlogAutomatedVsManual from "@/pages/resources/blog-automated-vs-manual";
+import Glossary from "@/pages/resources/glossary";
+
+// Compliance
+import ComplianceIndex from "@/pages/resources/compliance/index";
+import ComplianceAda from "@/pages/resources/compliance/ada";
+import ComplianceSection508 from "@/pages/resources/compliance/section-508";
+import ComplianceAoda from "@/pages/resources/compliance/aoda";
+import ComplianceEn301549 from "@/pages/resources/compliance/en-301-549";
+
+// Technologies
+import TechnologiesIndex from "@/pages/resources/technologies/index";
+import TechWordpress from "@/pages/resources/technologies/wordpress";
+import TechTypo3 from "@/pages/resources/technologies/typo3";
+import TechDrupal from "@/pages/resources/technologies/drupal";
+import TechShopify from "@/pages/resources/technologies/shopify";
+import TechReact from "@/pages/resources/technologies/react";
+import TechNextjs from "@/pages/resources/technologies/nextjs";
+
+// Guides
+import GuidesIndex from "@/pages/resources/guides/index";
+import GuideAria from "@/pages/resources/guides/aria";
+import GuideKeyboard from "@/pages/resources/guides/keyboard-accessibility";
+import GuideScreenReaders from "@/pages/resources/guides/screen-readers";
+
+// Checklists
+import ChecklistsIndex from "@/pages/resources/checklists/index";
+
 import About from "@/pages/about";
 import Pricing from "@/pages/pricing";
 import PrivacyPolicy from "@/pages/legal/privacy";
@@ -57,13 +84,40 @@ function Router() {
         <Route path="/services/monitoring" component={Monitoring} />
         <Route path="/eaa" component={EAA} />
         <Route path="/work" component={Work} />
+
         <Route path="/resources" component={Resources} />
         <Route path="/resources/wcag-guide" component={WcagGuide} />
         <Route path="/resources/eaa-checklist" component={EaaChecklist} />
+        <Route path="/resources/glossary" component={Glossary} />
         <Route path="/resources/blog" component={Blog} />
         <Route path="/resources/blog/eaa-enforcement" component={BlogEaaEnforcement} />
         <Route path="/resources/blog/wcag-ecommerce" component={BlogWcagEcommerce} />
         <Route path="/resources/blog/automated-vs-manual" component={BlogAutomatedVsManual} />
+
+        <Route path="/resources/guides" component={GuidesIndex} />
+        <Route path="/resources/guides/wcag" component={WcagGuide} />
+        <Route path="/resources/guides/aria" component={GuideAria} />
+        <Route path="/resources/guides/keyboard-accessibility" component={GuideKeyboard} />
+        <Route path="/resources/guides/screen-readers" component={GuideScreenReaders} />
+
+        <Route path="/resources/checklists" component={ChecklistsIndex} />
+        <Route path="/resources/checklists/eaa" component={EaaChecklist} />
+
+        <Route path="/resources/compliance" component={ComplianceIndex} />
+        <Route path="/resources/compliance/eaa" component={EAA} />
+        <Route path="/resources/compliance/ada" component={ComplianceAda} />
+        <Route path="/resources/compliance/section-508" component={ComplianceSection508} />
+        <Route path="/resources/compliance/aoda" component={ComplianceAoda} />
+        <Route path="/resources/compliance/en-301-549" component={ComplianceEn301549} />
+
+        <Route path="/resources/technologies" component={TechnologiesIndex} />
+        <Route path="/resources/technologies/wordpress" component={TechWordpress} />
+        <Route path="/resources/technologies/typo3" component={TechTypo3} />
+        <Route path="/resources/technologies/drupal" component={TechDrupal} />
+        <Route path="/resources/technologies/shopify" component={TechShopify} />
+        <Route path="/resources/technologies/react" component={TechReact} />
+        <Route path="/resources/technologies/nextjs" component={TechNextjs} />
+
         <Route path="/about" component={About} />
         <Route path="/pricing" component={Pricing} />
         <Route path="/legal/privacy" component={PrivacyPolicy} />
