@@ -11,10 +11,32 @@ const STATS = [
   { value: "100%", label: "Engineer-led" },
 ];
 
+const TEAM = [
+  {
+    initials: "JR",
+    name: "James Reid",
+    role: "Lead Accessibility Engineer",
+    bio: "12 years React, ex-Shopify — wrote ARIA fixes for 200+ production apps.",
+  },
+  {
+    initials: "SP",
+    name: "Sarai Patel",
+    role: "Senior Frontend Engineer",
+    bio: "WCAG 2.2 specialist, ex-Atlassian — turns audit findings into merge-ready PRs.",
+  },
+  {
+    initials: "MC",
+    name: "Marcus Chen",
+    role: "Engineering & Strategy",
+    bio: "10 years Node.js & design systems — bridges engineering and product teams.",
+  },
+];
+
 export default function About() {
   const heroRef = useSectionReveal<HTMLElement>();
   const statsRef = useSectionReveal<HTMLElement>();
   const brandRef = useSectionReveal<HTMLElement>();
+  const teamRef = useSectionReveal<HTMLElement>();
   const ctaRef = useSectionReveal<HTMLElement>();
   const pageRef = useRef<HTMLDivElement>(null);
 
@@ -132,6 +154,53 @@ export default function About() {
                 Applied to accessibility.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section ref={teamRef} className="py-20 px-6 bg-[#1A1A1A]">
+        <div className="container mx-auto max-w-5xl">
+          <h2
+            className="text-3xl font-extrabold tracking-tight text-white mb-10 reveal-body"
+            style={{ fontFamily: "var(--app-font-sans)" }}
+          >
+            The team.
+          </h2>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 reveal-body">
+            {TEAM.map((member) => (
+              <div
+                key={member.name}
+                className="flex flex-col gap-4 rounded-2xl p-6"
+                style={{ background: "#242424", border: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-extrabold text-white flex-shrink-0"
+                  style={{ background: "#FF4D1C", fontFamily: "var(--app-font-mono)" }}
+                >
+                  {member.initials}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span
+                    className="text-base font-bold text-white leading-tight"
+                    style={{ fontFamily: "var(--app-font-sans)" }}
+                  >
+                    {member.name}
+                  </span>
+                  <span
+                    className="text-xs font-bold uppercase tracking-widest"
+                    style={{ color: "#FF4D1C", fontFamily: "var(--app-font-mono)" }}
+                  >
+                    {member.role}
+                  </span>
+                </div>
+                <p
+                  className="text-sm text-white/50 leading-relaxed"
+                  style={{ fontFamily: "var(--app-font-mono)" }}
+                >
+                  {member.bio}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
