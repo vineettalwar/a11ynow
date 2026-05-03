@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Search, Code, ShieldCheck } from "lucide-react";
+import { ArrowRight, Search, Code, ShieldCheck, Check, Minus, Cpu, FileCode, BadgeCheck } from "lucide-react";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
 
 const journeySteps = [
@@ -29,9 +29,41 @@ const journeySteps = [
   },
 ];
 
+const COMPARE_ROWS: { label: string; vals: (string | boolean)[] }[] = [
+  { label: "Output", vals: ["Findings report", "Merged PRs", "Live dashboard"] },
+  { label: "Time to value", vals: ["1–2 weeks", "First sprint, ~2 weeks", "Day 1"] },
+  { label: "Investment", vals: ["from €3,500", "from €4,800 / sprint", "from €890 / month"] },
+  { label: "WCAG 2.2 AA covered", vals: [true, true, true] },
+  { label: "Real screen-reader testing", vals: [true, true, "Quarterly"] },
+  { label: "Code-level fixes shipped", vals: [false, true, false] },
+  { label: "CI / PR gating", vals: [false, "Optional", true] },
+  { label: "VPAT / ACR statement", vals: [true, "On request", "Annual"] },
+  { label: "Best for", vals: ["Legal sign-off", "Audit backlog", "Post-launch teams"] },
+];
+
+const differentiators = [
+  {
+    icon: Cpu,
+    title: "Engineering-led, not overlay-led",
+    body: "We don't sell a JS overlay that hides issues. We test like real users, then patch the source. The DOJ and EU regulators have explicitly ruled overlays do not produce conformance.",
+  },
+  {
+    icon: FileCode,
+    title: "Code, not screenshots",
+    body: "Every report ships with the exact selector, the failing condition, and a working fix. Your developers merge, not interpret.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "WCAG-certified engineers",
+    body: "Senior testers hold IAAP CPACC / WAS certification and have shipped against EAA, ADA, AODA, and Section 508 in production.",
+  },
+];
+
 export default function Services() {
   const heroRef = useSectionReveal<HTMLElement>();
   const journeyRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
+  const compareRef = useSectionReveal<HTMLElement>();
+  const diffRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const ctaRef = useSectionReveal<HTMLElement>();
   const pageRef = useRef<HTMLDivElement>(null);
 
@@ -54,12 +86,13 @@ export default function Services() {
     <div ref={pageRef} className="flex flex-col w-full">
       <section ref={heroRef} className="hero-gradient pt-24 pb-20 px-4">
         <div className="container mx-auto max-w-4xl">
+          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-4 font-sans">Services</p>
           <h1 className="text-display font-extrabold tracking-tight mb-6">
             Audit. Fix.<br />
             <span className="heading-accent">Stay compliant.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
-            Three services. Same engineering team start to finish.
+            Three engagements. The same senior engineering team start to finish. No subcontractors, no overlays, no hand-offs.
           </p>
         </div>
       </section>
@@ -110,6 +143,79 @@ export default function Services() {
         </div>
       </section>
 
+      <section ref={compareRef} className="py-20 px-4 bg-white">
+        <div className="container mx-auto max-w-5xl">
+          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3 font-sans">Compare engagements</p>
+          <h2 className="text-display-md font-extrabold mb-3">
+            Pick the one that <span className="heading-accent">matches your gap.</span>
+          </h2>
+          <p className="text-muted-foreground text-sm max-w-xl mb-10 reveal-body">
+            Most clients start with an Audit, escalate to Remediation if the backlog is large, then move to Monitoring once shipped.
+          </p>
+          <div className="overflow-x-auto rounded-2xl border border-border">
+            <table className="w-full text-sm" role="table">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th scope="col" className="text-left py-5 px-6 font-bold font-sans text-muted-foreground w-[28%]">&nbsp;</th>
+                  {[
+                    { label: "Audit", href: "/services/audits", highlight: false },
+                    { label: "Remediation", href: "/services/remediation", highlight: true },
+                    { label: "Monitoring", href: "/services/monitoring", highlight: false },
+                  ].map((t) => (
+                    <th key={t.label} scope="col" className="py-5 px-4 text-center font-bold font-sans">
+                      <Link
+                        href={t.href}
+                        className={["inline-flex items-center gap-1 hover:underline", t.highlight ? "text-primary" : "text-foreground"].join(" ")}
+                      >
+                        {t.label} <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARE_ROWS.map((row, i) => (
+                  <tr key={row.label} className={i % 2 === 0 ? "bg-white" : "bg-muted/20"}>
+                    <td className="py-3.5 px-6 text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)", fontSize: "0.8rem" }}>{row.label}</td>
+                    {row.vals.map((v, j) => (
+                      <td key={j} className="py-3.5 px-4 text-center text-xs">
+                        {v === true ? (
+                          <Check className="w-4 h-4 text-primary mx-auto" strokeWidth={2.5} aria-label="Yes" />
+                        ) : v === false ? (
+                          <Minus className="w-4 h-4 text-muted-foreground/30 mx-auto" aria-label="No" />
+                        ) : (
+                          <span className="font-sans">{v}</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section ref={diffRef} className="py-20 px-4 warm-section">
+        <div className="container mx-auto max-w-5xl">
+          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3 font-sans">Why us</p>
+          <h2 className="text-display-md font-extrabold mb-12">
+            What "engineering-led" <span className="heading-accent">actually means.</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {differentiators.map(({ icon: Icon, title, body }) => (
+              <div key={title} className="reveal-child p-7 rounded-2xl border bg-background">
+                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+                  <Icon className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="font-extrabold text-base font-sans mb-2.5">{title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section ref={ctaRef} className="py-24 px-4 hero-gradient text-center">
         <div className="container mx-auto max-w-2xl">
           <h2 className="text-display-md font-extrabold mb-5">
@@ -117,7 +223,7 @@ export default function Services() {
             <span className="heading-accent">to start?</span>
           </h2>
           <p className="text-muted-foreground mb-10 reveal-body">
-            Run a free scan to see your baseline. We scope from there.
+            Run a free scan to see your baseline. We scope from there - no sales pitch, just a route forward.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild className="btn-gsap h-12 px-8 text-sm font-semibold">
