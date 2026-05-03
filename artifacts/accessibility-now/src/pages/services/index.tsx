@@ -45,7 +45,7 @@ const differentiators = [
   {
     icon: Cpu,
     title: "Engineering-led, not overlay-led",
-    body: "We don't sell a JS overlay that hides issues. We test like real users, then patch the source. The DOJ and EU regulators have explicitly ruled overlays do not produce conformance.",
+    body: "We don't sell a JS overlay that hides issues. We test like real users, then patch the source. DOJ guidance and EU enforcement reviews have repeatedly flagged overlays as insufficient for WCAG conformance.",
   },
   {
     icon: FileCode,

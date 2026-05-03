@@ -11,7 +11,7 @@ const principles = [
   {
     icon: Eye,
     name: "Perceivable",
-    count: "22 criteria",
+    count: "20 criteria",
     examples: [
       "1.4.3 Contrast (Min) - 4.5:1 body text",
       "1.4.10 Reflow - 320 CSS px no scroll",
@@ -22,7 +22,7 @@ const principles = [
   {
     icon: MousePointer2,
     name: "Operable",
-    count: "11 criteria",
+    count: "20 criteria",
     examples: [
       "2.1.1 Keyboard - all functionality reachable",
       "2.4.7 Focus visible - 2px+ outline, 3:1",
@@ -33,7 +33,7 @@ const principles = [
   {
     icon: Brain,
     name: "Understandable",
-    count: "10 criteria",
+    count: "13 criteria",
     examples: [
       "3.3.7 Redundant entry (2.2)",
       "3.3.8 Accessible authentication (2.2)",
@@ -44,12 +44,12 @@ const principles = [
   {
     icon: Wrench,
     name: "Robust",
-    count: "7 criteria",
+    count: "2 criteria",
     examples: [
       "4.1.2 Name, role, value - ARIA",
       "4.1.3 Status messages - live regions",
-      "Component-level testing across iOS / Android",
-      "ARIA Authoring Practices conformance",
+      "(4.1.1 Parsing was deprecated in WCAG 2.2)",
+      "Plus ARIA Authoring Practices conformance",
     ],
   },
 ];
@@ -155,7 +155,7 @@ export default function Audits() {
             <span className="heading-accent">violation.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
-            All 50 WCAG 2.2 AA success criteria, tested by IAAP-certified engineers across NVDA, JAWS, VoiceOver, TalkBack, and keyboard-only. Real assistive tech, not just axe-core.
+            All 55 WCAG 2.2 AA success criteria, tested by IAAP-certified engineers across NVDA, JAWS, VoiceOver, TalkBack, and keyboard-only. Real assistive tech, not just axe-core.
           </p>
         </div>
       </section>
@@ -164,7 +164,7 @@ export default function Audits() {
         <div className="container mx-auto max-w-5xl">
           <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3 font-sans">Coverage</p>
           <h2 className="text-display-md font-extrabold mb-3">
-            All 50 WCAG 2.2 AA <span className="heading-accent">success criteria.</span>
+            All 55 WCAG 2.2 AA <span className="heading-accent">success criteria.</span>
           </h2>
           <p className="text-muted-foreground text-sm max-w-xl mb-10 reveal-body">
             Grouped by the four POUR principles - so you can see what's tested at a glance.
