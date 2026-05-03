@@ -90,7 +90,7 @@ export default function EAA() {
             </p>
             <p className="reveal-body">
               The practical implication: if your product operates in the EU market, your web and mobile
-              applications must meet WCAG 2.1 AA across all key user journeys — purchase flows, account
+              applications must meet WCAG 2.1 AA across all key user journeys - purchase flows, account
               management, content consumption, and support.
             </p>
           </div>
@@ -103,7 +103,7 @@ export default function EAA() {
             Who it <span className="heading-accent">applies to.</span>
           </h2>
           <p className="text-muted-foreground mb-10 max-w-2xl reveal-body">
-            The EAA applies to companies of all sizes that provide these services within the EU — regardless
+            The EAA applies to companies of all sizes that provide these services within the EU - regardless
             of where the company is headquartered. Microenterprises (&lt; 10 employees, ≤ €2M turnover) are
             exempt for some services but not all.
           </p>
@@ -121,7 +121,7 @@ export default function EAA() {
               What WCAG 2.1 AA means in practice
             </h3>
             <p className="text-gray-400 mb-6">
-              EN 301 549 — the harmonised standard cited by the EAA — maps almost entirely to WCAG 2.1 Level AA
+              EN 301 549 - the harmonised standard cited by the EAA - maps almost entirely to WCAG 2.1 Level AA
               for web and mobile applications. Achieving WCAG 2.1 AA is the accepted path to legal compliance.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -147,7 +147,7 @@ export default function EAA() {
           </h2>
           <p className="text-muted-foreground mb-10 max-w-2xl reveal-body">
             Unlike GDPR, the EAA is enforced nationally by designated market surveillance authorities.
-            Penalties vary — but market exclusion and substantial fines are available in every jurisdiction.
+            Penalties vary - but market exclusion and substantial fines are available in every jurisdiction.
           </p>
           <div className="space-y-3 mb-12">
             {memberStates.map(({ country, body, note }) => (
@@ -169,7 +169,7 @@ export default function EAA() {
             <p className="text-muted-foreground text-sm">
               <strong className="text-foreground font-sans">Penalties</strong> include significant fines,
               mandatory market withdrawal, and injunctions blocking the sale of non-compliant products.
-              Multiple member states allow third-party complaints — disabled users can trigger enforcement
+              Multiple member states allow third-party complaints - disabled users can trigger enforcement
               directly against your product.
             </p>
           </div>

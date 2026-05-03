@@ -1,15 +1,59 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChevronDown, BookOpen, CheckSquare, BookMarked, ShieldCheck, Layers, FileText } from "lucide-react";
+import { Menu, X, ChevronDown, BookOpen, CheckSquare, BookMarked, ShieldCheck, Layers, FileText, Search, Code, Activity } from "lucide-react";
 import gsap from "gsap";
 
 type SimpleLink = { href: string; label: string };
 
 const NAV_LINKS: SimpleLink[] = [
-  { href: "/services", label: "Services" },
   { href: "/pricing", label: "Pricing" },
   { href: "/tools", label: "Tools" },
+];
+
+const SERVICES_COLUMNS: {
+  href: string;
+  title: string;
+  description: string;
+  icon: typeof BookOpen;
+  items: SimpleLink[];
+}[] = [
+  {
+    href: "/services/audits",
+    title: "Audits",
+    description: "Manual + automated.",
+    icon: Search,
+    items: [
+      { href: "/services/audits", label: "WCAG 2.2 conformance audit" },
+      { href: "/eaa", label: "EAA / BFSG compliance audit" },
+      { href: "/services/audits", label: "Mobile app audit" },
+      { href: "/resources/compliance/section-508", label: "VPAT / ACR for procurement" },
+    ],
+  },
+  {
+    href: "/services/remediation",
+    title: "Remediation",
+    description: "Engineers paired with yours.",
+    icon: Code,
+    items: [
+      { href: "/services/remediation", label: "Sprint-based engineering" },
+      { href: "/services/remediation", label: "Pull request delivery" },
+      { href: "/services/remediation", label: "Component library fixes" },
+      { href: "/services/remediation", label: "Design system advisory" },
+    ],
+  },
+  {
+    href: "/services/monitoring",
+    title: "Monitoring",
+    description: "Continuous compliance.",
+    icon: Activity,
+    items: [
+      { href: "/services/monitoring", label: "Monthly automated scans" },
+      { href: "/services/monitoring", label: "Regression alerts" },
+      { href: "/services/monitoring", label: "Compliance dashboard" },
+      { href: "/services/monitoring", label: "Annual conformance review" },
+    ],
+  },
 ];
 
 const RESOURCES_COLUMNS: {
@@ -96,18 +140,24 @@ const RESOURCES_COLUMNS: {
 export function Layout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
+  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const ctaButtonRef = useRef<HTMLAnchorElement>(null);
   const megaRef = useRef<HTMLDivElement>(null);
+  const servicesMegaRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const servicesCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [location] = useLocation();
 
   // Close mega menu and mobile menu on route change
   useEffect(() => {
     setResourcesOpen(false);
+    setServicesOpen(false);
     setMobileOpen(false);
     setMobileResourcesOpen(false);
+    setMobileServicesOpen(false);
   }, [location]);
 
   useEffect(() => {
@@ -135,26 +185,39 @@ export function Layout({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Mega menu reveal animation
+  // Mega menu reveal animations
   useEffect(() => {
     const el = megaRef.current;
-    if (!el) return;
-    if (resourcesOpen) {
-      gsap.fromTo(
-        el,
-        { y: -10, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.18, ease: "power2.out" },
-      );
-    }
+    if (!el || !resourcesOpen) return;
+    gsap.fromTo(el, { y: -10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.18, ease: "power2.out" });
   }, [resourcesOpen]);
+
+  useEffect(() => {
+    const el = servicesMegaRef.current;
+    if (!el || !servicesOpen) return;
+    gsap.fromTo(el, { y: -10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.18, ease: "power2.out" });
+  }, [servicesOpen]);
 
   const openResources = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
+    if (servicesCloseTimer.current) clearTimeout(servicesCloseTimer.current);
+    setServicesOpen(false);
     setResourcesOpen(true);
   };
   const scheduleCloseResources = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     closeTimer.current = setTimeout(() => setResourcesOpen(false), 120);
+  };
+
+  const openServices = () => {
+    if (servicesCloseTimer.current) clearTimeout(servicesCloseTimer.current);
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setResourcesOpen(false);
+    setServicesOpen(true);
+  };
+  const scheduleCloseServices = () => {
+    if (servicesCloseTimer.current) clearTimeout(servicesCloseTimer.current);
+    servicesCloseTimer.current = setTimeout(() => setServicesOpen(false), 120);
   };
 
   return (
@@ -174,6 +237,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
 
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium" aria-label="Main navigation">
+            {/* Services mega menu trigger */}
+            <div
+              className="relative"
+              onMouseEnter={openServices}
+              onMouseLeave={scheduleCloseServices}
+            >
+              <button
+                type="button"
+                aria-expanded={servicesOpen}
+                aria-haspopup="true"
+                onClick={() => setServicesOpen((o) => !o)}
+                onFocus={openServices}
+                className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors duration-150"
+              >
+                Services
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${servicesOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+              </button>
+            </div>
+
             {NAV_LINKS.map(({ href, label }) => (
               <Link
                 key={href}
@@ -230,7 +312,61 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Desktop mega menu panel — full-width under header */}
+        {/* Services mega menu panel */}
+        {servicesOpen && (
+          <div
+            ref={servicesMegaRef}
+            className="hidden md:block absolute left-0 right-0 top-full bg-background border-b shadow-lg"
+            onMouseEnter={openServices}
+            onMouseLeave={scheduleCloseServices}
+          >
+            <div className="container mx-auto px-4 py-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {SERVICES_COLUMNS.map(({ href, title, description, icon: Icon, items }) => (
+                  <div key={title} className="min-w-0">
+                    <Link
+                      href={href}
+                      className="flex items-center gap-2 mb-3 text-foreground hover:text-primary transition-colors group"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                        <Icon className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <span className="font-extrabold text-sm">{title}</span>
+                    </Link>
+                    <p className="text-xs font-mono text-muted-foreground mb-3">{description}</p>
+                    <ul className="space-y-2">
+                      {items.map((it, idx) => (
+                        <li key={`${it.href}-${idx}`}>
+                          <Link
+                            href={it.href}
+                            className="text-xs text-muted-foreground hover:text-primary transition-colors block leading-snug"
+                          >
+                            {it.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-7 pt-5 border-t flex items-center justify-between">
+                <p className="text-xs text-muted-foreground font-mono">
+                  EAA-ready engineering. Senior team, fixed scope, sprint cadence.
+                </p>
+                <div className="flex items-center gap-5">
+                  <Link href="/services" className="text-xs font-semibold text-primary hover:underline">
+                    All services →
+                  </Link>
+                  <Link href="/pricing" className="text-xs font-semibold text-primary hover:underline">
+                    Pricing →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop mega menu panel - full-width under header */}
         {resourcesOpen && (
           <div
             ref={megaRef}
@@ -295,6 +431,54 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 {label}
               </Link>
             ))}
+
+            {/* Mobile Services accordion */}
+            <div>
+              <button
+                type="button"
+                className="w-full flex items-center justify-between text-base font-medium text-foreground py-1"
+                aria-expanded={mobileServicesOpen}
+                onClick={() => setMobileServicesOpen((o) => !o)}
+              >
+                Services
+                <ChevronDown className={`w-4 h-4 transition-transform ${mobileServicesOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+              </button>
+              {mobileServicesOpen && (
+                <div className="mt-3 pl-3 border-l-2 border-border space-y-4">
+                  {SERVICES_COLUMNS.map(({ href, title, items }) => (
+                    <div key={title}>
+                      <Link
+                        href={href}
+                        className="block text-sm font-bold text-foreground mb-1.5"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        {title}
+                      </Link>
+                      <ul className="space-y-1.5">
+                        {items.map((it, idx) => (
+                          <li key={`${it.href}-${idx}`}>
+                            <Link
+                              href={it.href}
+                              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                              onClick={() => setMobileOpen(false)}
+                            >
+                              {it.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                  <Link
+                    href="/services"
+                    className="block text-xs font-semibold text-primary"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    All services →
+                  </Link>
+                </div>
+              )}
+            </div>
 
             {/* Mobile Resources accordion */}
             <div>

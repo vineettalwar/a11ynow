@@ -279,7 +279,7 @@ const SECTIONS: ChecklistSection[] = [
         id: "w1",
         text: "Focus indicators meet the enhanced appearance requirements: at least 2 CSS pixels of outline, with a 3:1 contrast ratio between focused and unfocused states (SC 2.4.11).",
         critical: true,
-        note: "WCAG 2.2 SC 2.4.11 Focus Appearance (AA). This strengthens the existing 2.4.7 requirement — a faint dotted outline is no longer sufficient.",
+        note: "WCAG 2.2 SC 2.4.11 Focus Appearance (AA). This strengthens the existing 2.4.7 requirement - a faint dotted outline is no longer sufficient.",
       },
       {
         id: "w2",
@@ -295,7 +295,7 @@ const SECTIONS: ChecklistSection[] = [
       {
         id: "w4",
         text: "Help mechanisms (chat links, phone numbers, contact forms, self-help pages) appear in the same location relative to page content across all pages where they appear (SC 3.2.6).",
-        note: "WCAG 2.2 SC 3.2.6 Consistent Help (A). Applies wherever a repeated help mechanism exists — typically site-wide footers, nav bars, or persistent widgets.",
+        note: "WCAG 2.2 SC 3.2.6 Consistent Help (A). Applies wherever a repeated help mechanism exists - typically site-wide footers, nav bars, or persistent widgets.",
       },
       {
         id: "w5",
@@ -306,7 +306,7 @@ const SECTIONS: ChecklistSection[] = [
         id: "w6",
         text: "Authentication steps do not rely solely on a cognitive function test (memorising a password, solving a puzzle, transcribing characters) without offering an alternative method or assistance such as copy-paste or a password manager (SC 3.3.8).",
         critical: true,
-        note: "WCAG 2.2 SC 3.3.8 Accessible Authentication Minimum (AA). Copy-paste must work in password fields. Object recognition (e.g. 'click the bicycle') is a cognitive function test — it must have an alternative.",
+        note: "WCAG 2.2 SC 3.3.8 Accessible Authentication Minimum (AA). Copy-paste must work in password fields. Object recognition (e.g. 'click the bicycle') is a cognitive function test - it must have an alternative.",
       },
     ],
   },

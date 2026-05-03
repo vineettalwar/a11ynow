@@ -18,7 +18,7 @@ const benefits = [
   },
   {
     title: "Compliance dashboard",
-    body: "Real-time tracking of your accessibility posture — perfect for stakeholder and legal reporting.",
+    body: "Real-time tracking of your accessibility posture - perfect for stakeholder and legal reporting.",
   },
   {
     title: "On-demand consultation",
@@ -70,7 +70,7 @@ const profiles = [
 
 const faqs: FaqItem[] = [
   {
-    question: "What does monitoring cover — just automated scans?",
+    question: "What does monitoring cover - just automated scans?",
     answer:
       "Our monitoring service includes automated scanning as its backbone, but also covers quarterly manual spot-checks on high-risk components, regression alerting, and on-demand consultation hours. Fully manual monthly testing is available as an add-on.",
   },
@@ -132,7 +132,7 @@ export default function Monitoring() {
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
             Accessibility is a continuous process. We ensure your application remains compliant
-            with every new feature — automated re-scans, regression alerts, and a compliance dashboard.
+            with every new feature - automated re-scans, regression alerts, and a compliance dashboard.
           </p>
         </div>
       </section>
@@ -254,7 +254,7 @@ export default function Monitoring() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm font-sans mb-0.5">Audits</p>
-                <p className="text-muted-foreground text-xs">Establish your baseline — manual and automated WCAG testing.</p>
+                <p className="text-muted-foreground text-xs">Establish your baseline - manual and automated WCAG testing.</p>
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             </Link>
@@ -264,7 +264,7 @@ export default function Monitoring() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm font-sans mb-0.5">Remediation</p>
-                <p className="text-muted-foreground text-xs">Fix the debt before monitoring it — sprint-based engineering support.</p>
+                <p className="text-muted-foreground text-xs">Fix the debt before monitoring it - sprint-based engineering support.</p>
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             </Link>

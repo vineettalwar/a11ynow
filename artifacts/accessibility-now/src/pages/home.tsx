@@ -216,7 +216,7 @@ function MultiUrlForm() {
       <div className="max-w-2xl mx-auto">
         <div className="bg-white/70 border border-border rounded-2xl p-5 space-y-2.5">
           <p className="text-xs font-semibold font-sans text-muted-foreground uppercase tracking-wide mb-3">
-            Scanning {urlStates.length} pages — {doneCount} of {urlStates.length} complete
+            Scanning {urlStates.length} pages - {doneCount} of {urlStates.length} complete
           </p>
           {urlStates.map((s, i) => (
             <div key={i} className="flex items-center gap-3 py-2 border-b border-border/40 last:border-0">
@@ -392,7 +392,7 @@ export default function Home() {
           </h1>
 
           <p className="hero-subtitle text-base text-muted-foreground mb-8 max-w-xl mx-auto" style={{ fontFamily: "var(--app-font-mono)" }}>
-            Run a free WCAG 2.2 scan in 30 seconds — no account, no forms, just results.<br />
+            Run a free WCAG 2.2 scan in 30 seconds - no account, no forms, just results.<br />
             Then talk to us when you need the manual audit that actually holds up in court.
           </p>
 
@@ -491,7 +491,7 @@ export default function Home() {
               <span className="heading-accent">An engineering team.</span>
             </h2>
             <p className="text-muted-foreground max-w-2xl reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
-              Automated tools catch ~30% of WCAG issues. We find the rest — through NVDA, VoiceOver, keyboard-only
+              Automated tools catch ~30% of WCAG issues. We find the rest - through NVDA, VoiceOver, keyboard-only
               navigation, and 10+ years of screen reader quirks your CI pipeline will never see.
             </p>
           </div>
@@ -551,7 +551,7 @@ export default function Home() {
               </h2>
               <p className="text-muted-foreground mb-8 reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
                 Eight browser-based tools. No install. Simulate colour blindness, tunnel vision,
-                a screen reader's reading order, keyboard tab flow — or visualise focus order with
+                a screen reader's reading order, keyboard tab flow - or visualise focus order with
                 numbered markers on a live screenshot.
               </p>
               <Button asChild className="btn-gsap h-12 px-7 font-semibold">
@@ -566,8 +566,8 @@ export default function Home() {
                 { icon: <Keyboard className="w-4 h-4" />, title: "Keyboard Tester", desc: "Tab order, focus traps, visible focus rings" },
                 { icon: <ShieldCheck className="w-4 h-4" />, title: "Contrast Checker", desc: "WCAG AA/AAA with EyeDropper colour picker" },
                 { icon: <Smartphone className="w-4 h-4" />, title: "Mobile Checklist", desc: "iOS & Android with VoiceOver/TalkBack items" },
-                { icon: <ClipboardList className="w-4 h-4" />, title: "WCAG 2.1 AA Checklist", desc: "50 success criteria — mark Pass, Fail, or N/A" },
-                { icon: <TabletSmartphone className="w-4 h-4" />, title: "Focus Order Visualizer", desc: "Numbered markers on a screenshot — keyboard Tab order at a glance" },
+                { icon: <ClipboardList className="w-4 h-4" />, title: "WCAG 2.1 AA Checklist", desc: "50 success criteria - mark Pass, Fail, or N/A" },
+                { icon: <TabletSmartphone className="w-4 h-4" />, title: "Focus Order Visualizer", desc: "Numbered markers on a screenshot - keyboard Tab order at a glance" },
               ].map(({ icon, title, desc }) => (
                 <Link
                   key={title}
@@ -585,7 +585,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Process — dark */}
+      {/* Process - dark */}
       <section ref={processRef} className="py-24 px-4 bg-foreground text-background">
         <div className="container mx-auto max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
@@ -595,7 +595,7 @@ export default function Home() {
                 <span style={{ color: "#FF4D1C", fontStyle: "italic", fontFamily: "var(--app-font-serif)" }}>actually works.</span>
               </h2>
               <p className="text-gray-400 mb-10 reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
-                Four weeks from kick-off to signed statement of conformance. You stay in Jira — we work in your stack.
+                Four weeks from kick-off to signed statement of conformance. You stay in Jira - we work in your stack.
               </p>
               <div className="space-y-8">
                 {[
@@ -616,9 +616,9 @@ export default function Home() {
             </div>
 
             <div className="reveal-child bg-[#111] rounded-2xl p-8 border border-white/10 sticky top-8">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary mb-5 font-sans">EAA — who it covers</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary mb-5 font-sans">EAA - who it covers</p>
               <p className="text-gray-400 mb-6 text-sm" style={{ fontFamily: "var(--app-font-mono)" }}>
-                If you sell or operate a digital service in the EU — regardless of where you are incorporated — the EAA applies to you.
+                If you sell or operate a digital service in the EU - regardless of where you are incorporated - the EAA applies to you.
               </p>
               <ul className="space-y-3 mb-8">
                 {[

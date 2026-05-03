@@ -16,19 +16,19 @@ const TEAM = [
     initials: "JR",
     name: "James Reid",
     role: "Lead Accessibility Engineer",
-    bio: "12 years React, ex-Shopify — wrote ARIA fixes for 200+ production apps.",
+    bio: "12 years React, ex-Shopify - wrote ARIA fixes for 200+ production apps.",
   },
   {
     initials: "SP",
     name: "Sarai Patel",
     role: "Senior Frontend Engineer",
-    bio: "WCAG 2.2 specialist, ex-Atlassian — turns audit findings into merge-ready PRs.",
+    bio: "WCAG 2.2 specialist, ex-Atlassian - turns audit findings into merge-ready PRs.",
   },
   {
     initials: "MC",
     name: "Marcus Chen",
     role: "Engineering & Strategy",
-    bio: "10 years Node.js & design systems — bridges engineering and product teams.",
+    bio: "10 years Node.js & design systems - bridges engineering and product teams.",
   },
 ];
 
@@ -122,7 +122,7 @@ export default function About() {
                   className="text-lg text-[#1A1A1A] leading-relaxed"
                   style={{ fontFamily: "var(--app-font-mono)" }}
                 >
-                  accessibility.now operates under the sometech.work brand — a senior
+                  accessibility.now operates under the sometech.work brand - a senior
                   engineering collective specialising in enterprise React and Node.js.
                 </p>
               </div>

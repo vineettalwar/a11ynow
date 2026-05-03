@@ -77,7 +77,7 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Warm cream — matches sometech.work parent brand */
+  /* Warm cream - matches sometech.work parent brand */
   --background: 48 20% 96%;   /* #F5F2EC warm cream */
   --foreground: 0 0% 5%;      /* #0D0D0D near-black */
   --border: 40 15% 88%;
@@ -229,7 +229,7 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 
-  /* JetBrains Mono for all body paragraph text — brand spec */
+  /* JetBrains Mono for all body paragraph text - brand spec */
   p, li, blockquote {
     font-family: var(--app-font-mono);
     font-size: 0.8125rem; /* 13px */
@@ -243,7 +243,7 @@
   }
 }
 
-/* Hero warm gradient background — matches sometech.work */
+/* Hero warm gradient background - matches sometech.work */
 .hero-gradient {
   background:
     radial-gradient(ellipse 90% 70% at 50% -5%, rgba(255, 150, 60, 0.18) 0%, transparent 60%),
@@ -252,7 +252,7 @@
     linear-gradient(175deg, hsl(38, 80%, 97%) 0%, hsl(var(--background)) 55%);
 }
 
-/* Warm beige section — richer gradient */
+/* Warm beige section - richer gradient */
 .warm-section {
   background:
     radial-gradient(ellipse 80% 60% at 70% 30%, rgba(255, 160, 60, 0.08) 0%, transparent 60%),
@@ -260,14 +260,14 @@
     linear-gradient(160deg, hsl(38, 30%, 96%) 0%, hsl(35, 25%, 95%) 100%);
 }
 
-/* Heading emphasis — italic orange serif accent (sometech.work pattern) */
+/* Heading emphasis - italic orange serif accent (sometech.work pattern) */
 .heading-accent {
   color: #FF4D1C;
   font-style: italic;
   font-family: var(--app-font-serif);
 }
 
-/* Nav scrolled state — backdrop blur + subtle background */
+/* Nav scrolled state - backdrop blur + subtle background */
 header.scrolled {
   background: rgba(245, 242, 236, 0.88) !important;
   backdrop-filter: blur(14px) !important;

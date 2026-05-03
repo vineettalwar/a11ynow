@@ -6,7 +6,7 @@ import { useSectionReveal } from "@/hooks/use-section-reveal";
 type Term = { term: string; short: string; body: string };
 
 const TERMS: Term[] = [
-  { term: "ACR", short: "Accessibility Conformance Report", body: "A completed VPAT — the published document a vendor provides to demonstrate how a specific product version conforms with WCAG, Section 508, or EN 301 549." },
+  { term: "ACR", short: "Accessibility Conformance Report", body: "A completed VPAT - the published document a vendor provides to demonstrate how a specific product version conforms with WCAG, Section 508, or EN 301 549." },
   { term: "ADA", short: "Americans with Disabilities Act", body: "U.S. civil rights law from 1990. Title III is regularly applied to private-sector websites and mobile apps; WCAG 2.1 AA is the de facto standard regulators use." },
   { term: "AODA", short: "Accessibility for Ontarians with Disabilities Act", body: "Ontario provincial law requiring WCAG 2.0 AA conformance for most public-sector and private organisations with 50+ Ontario employees." },
   { term: "ARIA", short: "Accessible Rich Internet Applications", body: "A W3C specification defining HTML attributes (roles, states, properties) used to make custom widgets understandable to assistive technology." },
@@ -17,7 +17,7 @@ const TERMS: Term[] = [
   { term: "EAA", short: "European Accessibility Act", body: "EU Directive 2019/882, applied from 28 June 2025. Requires accessibility for a broad range of consumer products and digital services across the EU single market." },
   { term: "EN 301 549", short: "European accessibility standard", body: "The harmonised European standard for ICT accessibility (V3.2.1). Referenced by the EAA, the Web Accessibility Directive, and EU procurement rules." },
   { term: "Focus indicator", short: "Visible focus", body: "The visual outline shown around the currently focused element. WCAG 2.4.7 (Level AA) and 2.4.11 (Level AA, new in 2.2) define the requirements." },
-  { term: "Headings", short: "h1–h6", body: "The structural skeleton of a page used by screen readers as a primary navigation mechanism. Hierarchy must be strict — never skip a level." },
+  { term: "Headings", short: "h1–h6", body: "The structural skeleton of a page used by screen readers as a primary navigation mechanism. Hierarchy must be strict - never skip a level." },
   { term: "JAWS", short: "Job Access With Speech", body: "Commercial Windows screen reader by Vispero, dominant in U.S. enterprise and government. Roughly 40% of screen-reader users globally as of 2024 WebAIM survey." },
   { term: "Landmark", short: "Semantic region", body: "Top-level page regions screen readers can jump between: header, nav, main, aside, footer, search, form. Defined by HTML elements or ARIA roles." },
   { term: "Live region", short: "aria-live", body: "An ARIA mechanism for announcing dynamic content changes to screen readers. 'polite' waits, 'assertive' interrupts. Use sparingly and intentionally." },

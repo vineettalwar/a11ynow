@@ -22,7 +22,7 @@ const ARTICLES = [
     readTime: "9 min read",
     title: "The 8 most common WCAG failures in e-commerce.",
     excerpt:
-      "Based on hundreds of audits across European e-commerce platforms — the violations we encounter most reliably and the ones most likely to trigger EAA enforcement action.",
+      "Based on hundreds of audits across European e-commerce platforms - the violations we encounter most reliably and the ones most likely to trigger EAA enforcement action.",
     featured: false,
   },
   {
@@ -32,7 +32,7 @@ const ARTICLES = [
     readTime: "8 min read",
     title: "Automated vs manual accessibility testing.",
     excerpt:
-      "Automated scanners catch around 30% of WCAG violations. Understanding what they miss — and why manual testing with screen readers is non-negotiable — changes how you plan your testing strategy.",
+      "Automated scanners catch around 30% of WCAG violations. Understanding what they miss - and why manual testing with screen readers is non-negotiable - changes how you plan your testing strategy.",
     featured: false,
   },
 ];

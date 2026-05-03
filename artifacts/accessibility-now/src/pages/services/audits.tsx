@@ -14,7 +14,7 @@ const included = [
   },
   {
     title: "Severity tagging",
-    body: "Issues are prioritised by impact — Critical, Serious, Moderate, Minor — to guide remediation.",
+    body: "Issues are prioritised by impact - Critical, Serious, Moderate, Minor - to guide remediation.",
   },
   {
     title: "Screen reader testing",
@@ -72,7 +72,7 @@ const profiles = [
   },
   {
     title: "Teams before a major redesign",
-    body: "You want to understand your current debt before investing in a rebuild, so accessibility requirements are baked in from day one — not bolted on.",
+    body: "You want to understand your current debt before investing in a rebuild, so accessibility requirements are baked in from day one - not bolted on.",
   },
 ];
 
@@ -267,7 +267,7 @@ export default function Audits() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm font-sans mb-0.5">Remediation</p>
-                <p className="text-muted-foreground text-xs">We implement the fixes — PRs, annotated code, sprint delivery.</p>
+                <p className="text-muted-foreground text-xs">We implement the fixes - PRs, annotated code, sprint delivery.</p>
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             </Link>
@@ -277,7 +277,7 @@ export default function Audits() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm font-sans mb-0.5">Monitoring</p>
-                <p className="text-muted-foreground text-xs">Stay compliant after launch — monthly re-scans and regression alerts.</p>
+                <p className="text-muted-foreground text-xs">Stay compliant after launch - monthly re-scans and regression alerts.</p>
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             </Link>

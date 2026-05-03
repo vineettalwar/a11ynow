@@ -58,15 +58,15 @@ export default function PrivacyPolicy() {
               </p>
               <p><strong>Data you provide directly:</strong></p>
               <ul>
-                <li><strong>Identity data</strong> — first name, last name, job title, company name.</li>
-                <li><strong>Contact data</strong> — email address, phone number.</li>
-                <li><strong>Communications</strong> — content of messages sent via our contact form or by email.</li>
-                <li><strong>Service data</strong> — URLs you submit for automated accessibility scanning.</li>
+                <li><strong>Identity data</strong> - first name, last name, job title, company name.</li>
+                <li><strong>Contact data</strong> - email address, phone number.</li>
+                <li><strong>Communications</strong> - content of messages sent via our contact form or by email.</li>
+                <li><strong>Service data</strong> - URLs you submit for automated accessibility scanning.</li>
               </ul>
               <p><strong>Data collected automatically:</strong></p>
               <ul>
-                <li><strong>Technical data</strong> — IP address, browser type and version, operating system, device type, referring URL, pages visited, time on page.</li>
-                <li><strong>Usage data</strong> — how you interact with our tools and which features you use.</li>
+                <li><strong>Technical data</strong> - IP address, browser type and version, operating system, device type, referring URL, pages visited, time on page.</li>
+                <li><strong>Usage data</strong> - how you interact with our tools and which features you use.</li>
               </ul>
               <p>
                 We do not collect special category data (health data, biometric data, racial or ethnic origin,
@@ -78,27 +78,27 @@ export default function PrivacyPolicy() {
               <p>We use personal data for the following purposes, each with the corresponding legal basis:</p>
               <ul>
                 <li>
-                  <strong>To provide the accessibility scanning service</strong> — processing URLs you submit
+                  <strong>To provide the accessibility scanning service</strong> - processing URLs you submit
                   to run automated WCAG audits. Basis: contract performance / legitimate interest.
                 </li>
                 <li>
-                  <strong>To respond to enquiries</strong> — processing contact form submissions and email to
+                  <strong>To respond to enquiries</strong> - processing contact form submissions and email to
                   answer your questions. Basis: legitimate interest.
                 </li>
                 <li>
-                  <strong>To send service-related communications</strong> — audit result notifications,
+                  <strong>To send service-related communications</strong> - audit result notifications,
                   monitoring alerts. Basis: contract performance.
                 </li>
                 <li>
-                  <strong>To send marketing communications</strong> — compliance updates, new features,
+                  <strong>To send marketing communications</strong> - compliance updates, new features,
                   articles (only where you have opted in). Basis: consent.
                 </li>
                 <li>
-                  <strong>To improve the service</strong> — analysing usage patterns to understand how to
+                  <strong>To improve the service</strong> - analysing usage patterns to understand how to
                   make the platform more useful. Basis: legitimate interest.
                 </li>
                 <li>
-                  <strong>To comply with legal obligations</strong> — retaining records as required by law.
+                  <strong>To comply with legal obligations</strong> - retaining records as required by law.
                   Basis: legal obligation.
                 </li>
               </ul>
@@ -110,10 +110,10 @@ export default function PrivacyPolicy() {
                 providers who process it on our behalf, under data processing agreements that comply with GDPR:
               </p>
               <ul>
-                <li><strong>Cloud infrastructure providers</strong> — for hosting and database services.</li>
-                <li><strong>Email service providers</strong> — for transactional and marketing emails.</li>
-                <li><strong>Analytics providers</strong> — for anonymised usage analytics.</li>
-                <li><strong>Payment processors</strong> — for billing (where applicable).</li>
+                <li><strong>Cloud infrastructure providers</strong> - for hosting and database services.</li>
+                <li><strong>Email service providers</strong> - for transactional and marketing emails.</li>
+                <li><strong>Analytics providers</strong> - for anonymised usage analytics.</li>
+                <li><strong>Payment processors</strong> - for billing (where applicable).</li>
               </ul>
               <p>
                 We may disclose personal data to competent authorities where required by law, or to protect
@@ -133,24 +133,24 @@ export default function PrivacyPolicy() {
             <Section title="6." accent="Data retention.">
               <p>We retain personal data only as long as necessary for the purposes for which it was collected:</p>
               <ul>
-                <li><strong>Audit results</strong> — retained for 12 months from the scan date, then deleted.</li>
-                <li><strong>Contact enquiries</strong> — retained for 2 years from last contact.</li>
-                <li><strong>Client records</strong> — retained for 6 years to meet legal obligations (contract and financial records).</li>
-                <li><strong>Marketing data</strong> — retained until you withdraw consent or unsubscribe.</li>
-                <li><strong>Technical logs</strong> — retained for 90 days, then automatically purged.</li>
+                <li><strong>Audit results</strong> - retained for 12 months from the scan date, then deleted.</li>
+                <li><strong>Contact enquiries</strong> - retained for 2 years from last contact.</li>
+                <li><strong>Client records</strong> - retained for 6 years to meet legal obligations (contract and financial records).</li>
+                <li><strong>Marketing data</strong> - retained until you withdraw consent or unsubscribe.</li>
+                <li><strong>Technical logs</strong> - retained for 90 days, then automatically purged.</li>
               </ul>
             </Section>
 
             <Section title="7." accent="Your rights.">
               <p>Under GDPR, you have the following rights regarding your personal data:</p>
               <ul>
-                <li><strong>Right of access</strong> — to request a copy of the personal data we hold about you.</li>
-                <li><strong>Right to rectification</strong> — to have inaccurate data corrected.</li>
-                <li><strong>Right to erasure</strong> — to request deletion of your data ("the right to be forgotten") where no lawful basis for retention exists.</li>
-                <li><strong>Right to restrict processing</strong> — to request that we limit how we use your data in certain circumstances.</li>
-                <li><strong>Right to data portability</strong> — to receive your data in a structured, machine-readable format.</li>
-                <li><strong>Right to object</strong> — to object to processing based on legitimate interests or for direct marketing purposes.</li>
-                <li><strong>Rights related to automated decision-making</strong> — to not be subject to solely automated decisions that have a significant effect on you.</li>
+                <li><strong>Right of access</strong> - to request a copy of the personal data we hold about you.</li>
+                <li><strong>Right to rectification</strong> - to have inaccurate data corrected.</li>
+                <li><strong>Right to erasure</strong> - to request deletion of your data ("the right to be forgotten") where no lawful basis for retention exists.</li>
+                <li><strong>Right to restrict processing</strong> - to request that we limit how we use your data in certain circumstances.</li>
+                <li><strong>Right to data portability</strong> - to receive your data in a structured, machine-readable format.</li>
+                <li><strong>Right to object</strong> - to object to processing based on legitimate interests or for direct marketing purposes.</li>
+                <li><strong>Rights related to automated decision-making</strong> - to not be subject to solely automated decisions that have a significant effect on you.</li>
               </ul>
               <p>
                 To exercise any of these rights, contact us at{" "}
@@ -174,17 +174,17 @@ export default function PrivacyPolicy() {
               </p>
               <ul>
                 <li>
-                  <strong>Strictly necessary cookies</strong> — essential for the website to function. These
+                  <strong>Strictly necessary cookies</strong> - essential for the website to function. These
                   cannot be disabled. They include session management, security tokens, and accessibility
                   preference storage.
                 </li>
                 <li>
-                  <strong>Analytics cookies</strong> — to understand how visitors use the site (page views,
+                  <strong>Analytics cookies</strong> - to understand how visitors use the site (page views,
                   interaction patterns). We use privacy-respecting, cookieless analytics where possible.
                   Where cookies are used, consent is requested before setting them.
                 </li>
                 <li>
-                  <strong>Functional cookies</strong> — to remember your preferences (e.g. EAA checklist
+                  <strong>Functional cookies</strong> - to remember your preferences (e.g. EAA checklist
                   progress saved in localStorage). These do not contain personal data.
                 </li>
               </ul>

@@ -81,14 +81,14 @@ export default function BlogEaaEnforcement() {
             <p>
               Before the EAA, accessibility legislation in Europe was a patchwork. Germany had the BITV,
               France the RGAA, the UK the Public Sector Bodies Accessibility Regulations. A product compliant
-              in one country might not be compliant in another. The EAA creates a single standard — and a
-              single enforcement framework — across the bloc.
+              in one country might not be compliant in another. The EAA creates a single standard - and a
+              single enforcement framework - across the bloc.
             </p>
 
             <h2 className="text-xl font-extrabold font-sans not-prose mb-4 mt-12">
               What products and services does it cover?
             </h2>
-            <p>The EAA applies to a defined — but substantial — list of product and service categories:</p>
+            <p>The EAA applies to a defined - but substantial - list of product and service categories:</p>
             <ul>
               <li>Computers and operating systems</li>
               <li>ATMs, ticketing machines, and check-in kiosks</li>
@@ -139,7 +139,7 @@ export default function BlogEaaEnforcement() {
                     {
                       date: "27 June 2030",
                       event: "Grace period expires",
-                      detail: "Products already on the market before June 2025 must comply by this date — unless substantially modified earlier, which resets the clock.",
+                      detail: "Products already on the market before June 2025 must comply by this date - unless substantially modified earlier, which resets the clock.",
                       status: "future",
                     },
                     {
@@ -182,7 +182,7 @@ export default function BlogEaaEnforcement() {
               have their own accessibility requirements.
             </p>
             <p>
-              Manufacturers (hardware and software product companies) do not benefit from this exemption —
+              Manufacturers (hardware and software product companies) do not benefit from this exemption -
               only service providers do.
             </p>
 
@@ -203,7 +203,7 @@ export default function BlogEaaEnforcement() {
               <li>Reassess the situation regularly</li>
             </ol>
             <p>
-              Authorities can — and will — challenge disproportionate burden claims. A large e-commerce
+              Authorities can - and will - challenge disproportionate burden claims. A large e-commerce
               company claiming burden because fixing an inaccessible checkout would be "too expensive" is
               unlikely to succeed.
             </p>
@@ -213,7 +213,7 @@ export default function BlogEaaEnforcement() {
             </h2>
             <p>
               Enforcement is handled at national level by market surveillance authorities. The specific
-              agency varies by country — in Germany it is the Federal Network Agency, in Ireland it is CCPC.
+              agency varies by country - in Germany it is the Federal Network Agency, in Ireland it is CCPC.
             </p>
             <p>Penalties also vary by member state, but the enforcement toolkit typically includes:</p>
             <ul>

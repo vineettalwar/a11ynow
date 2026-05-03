@@ -53,7 +53,7 @@ const VISION_TYPES: VisionType[] = [
   {
     id: "achromatopsia",
     label: "Achromatopsia",
-    description: "Complete colour blindness — the world appears in greyscale.",
+    description: "Complete colour blindness - the world appears in greyscale.",
     prevalence: "~0.003% of people",
     filter: "grayscale(1)",
     matrix: null,
@@ -342,7 +342,7 @@ export default function ColourBlindness() {
               </div>
             )}
 
-            {/* Hidden loader img — drives loading/error state */}
+            {/* Hidden loader img - drives loading/error state */}
             {loadedUrl && imgState !== "loaded" && imgState !== "error" && (
               <img
                 key={screenshotSrcUrl}

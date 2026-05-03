@@ -220,11 +220,11 @@ export default function ContrastChecker() {
   };
 
   const checks = [
-    { label: "AA — Normal text (4.5:1)", pass: ratio >= 4.5 },
-    { label: "AA — Large text (3:1)", pass: ratio >= 3 },
-    { label: "AAA — Normal text (7:1)", pass: ratio >= 7 },
-    { label: "AAA — Large text (4.5:1)", pass: ratio >= 4.5 },
-    { label: "AA — UI components (3:1)", pass: ratio >= 3 },
+    { label: "AA - Normal text (4.5:1)", pass: ratio >= 4.5 },
+    { label: "AA - Large text (3:1)", pass: ratio >= 3 },
+    { label: "AAA - Normal text (7:1)", pass: ratio >= 7 },
+    { label: "AAA - Large text (4.5:1)", pass: ratio >= 4.5 },
+    { label: "AA - UI components (3:1)", pass: ratio >= 3 },
   ];
 
   return (
@@ -281,7 +281,7 @@ export default function ContrastChecker() {
                 {suggested && (
                   <Button className="flex-1 gap-2" onClick={applyFix} style={{ backgroundColor: suggested }}>
                     <span className="font-mono text-xs uppercase">{suggested}</span>
-                    <span>— apply</span>
+                    <span>- apply</span>
                   </Button>
                 )}
               </div>
@@ -314,10 +314,10 @@ export default function ContrastChecker() {
               <div className="mt-8 pt-8 border-t">
                 <h3 className="text-sm font-bold font-sans mb-3">What these levels mean</h3>
                 <ul className="space-y-2 text-xs text-muted-foreground">
-                  <li><strong className="text-foreground">AA Normal (4.5:1)</strong> — Required by EAA for body text under 18pt.</li>
-                  <li><strong className="text-foreground">AA Large (3:1)</strong> — Required for text 18pt+ or 14pt bold.</li>
-                  <li><strong className="text-foreground">AAA (7:1)</strong> — Gold standard. Not legally required but best practice.</li>
-                  <li><strong className="text-foreground">UI Components (3:1)</strong> — Required for borders, icons, and focus rings.</li>
+                  <li><strong className="text-foreground">AA Normal (4.5:1)</strong> - Required by EAA for body text under 18pt.</li>
+                  <li><strong className="text-foreground">AA Large (3:1)</strong> - Required for text 18pt+ or 14pt bold.</li>
+                  <li><strong className="text-foreground">AAA (7:1)</strong> - Gold standard. Not legally required but best practice.</li>
+                  <li><strong className="text-foreground">UI Components (3:1)</strong> - Required for borders, icons, and focus rings.</li>
                 </ul>
               </div>
             </div>

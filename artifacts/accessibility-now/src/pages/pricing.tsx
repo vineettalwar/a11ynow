@@ -15,7 +15,7 @@ const TIERS = [
     price: "Free",
     priceNote: "No account required",
     description:
-      "Run an instant WCAG 2.1 automated scan on any public URL. Get a scored report in seconds — the fastest way to understand your baseline.",
+      "Run an instant WCAG 2.1 automated scan on any public URL. Get a scored report in seconds - the fastest way to understand your baseline.",
     features: [
       "Automated WCAG 2.1 scan",
       "Accessibility score 0–100",
@@ -36,7 +36,7 @@ const TIERS = [
     price: "from €3,500",
     priceNote: "per engagement",
     description:
-      "Rigorous manual testing across your key user journeys by a WCAG-certified specialist. Covers automated gaps — focus order, colour contrast in context, cognitive load, screen-reader compatibility.",
+      "Rigorous manual testing across your key user journeys by a WCAG-certified specialist. Covers automated gaps - focus order, colour contrast in context, cognitive load, screen-reader compatibility.",
     features: [
       "Up to 25 representative pages",
       "Manual + automated testing",
@@ -59,7 +59,7 @@ const TIERS = [
     price: "from €890",
     priceNote: "per month",
     description:
-      "Stay compliant as you ship. Monthly re-scans, CI/CD pipeline integration, and instant regression alerts mean you catch issues before your users — or regulators — do.",
+      "Stay compliant as you ship. Monthly re-scans, CI/CD pipeline integration, and instant regression alerts mean you catch issues before your users - or regulators - do.",
     features: [
       "Monthly automated re-scans",
       "CI/CD integration & PR checks",
@@ -96,7 +96,7 @@ const FAQS = [
   {
     question: "What if my site has hundreds of pages?",
     answer:
-      "The Manual Audit covers up to 25 representative pages — chosen to reflect the broadest range of UI patterns and user journeys. We work with you to select the right pages. For larger sites, we can scope a phased audit across multiple engagements, or focus the first round on your highest-traffic paths.",
+      "The Manual Audit covers up to 25 representative pages - chosen to reflect the broadest range of UI patterns and user journeys. We work with you to select the right pages. For larger sites, we can scope a phased audit across multiple engagements, or focus the first round on your highest-traffic paths.",
   },
   {
     question: "Do you offer discounts for non-profits or public-sector organisations?",
@@ -104,7 +104,7 @@ const FAQS = [
       "Yes. We offer a 20% reduction for registered charities and NGOs, and we work on framework agreements with public-sector bodies. Get in touch and mention your organisation type when booking.",
   },
   {
-    question: "What does 'from €3,500' mean — what drives the final price?",
+    question: "What does 'from €3,500' mean - what drives the final price?",
     answer:
       "The starting figure covers a focused audit of up to 10 pages for a typical marketing or SaaS site. Price increases with page count, technology complexity (e.g. complex SPAs, native mobile apps), turnaround urgency, and whether you need a VPAT / ACR statement for procurement. We provide a fixed quote before any work begins.",
   },
@@ -116,12 +116,12 @@ const FAQS = [
   {
     question: "Do you help with EAA compliance specifically?",
     answer:
-      "Absolutely — EAA compliance is one of our core specialisms. The European Accessibility Act requires many digital products and services to meet EN 301 549 / WCAG 2.1 AA by June 2025. Our audits are scoped to cover the EAA obligations relevant to your product category, and we can produce the conformance statement required for procurement.",
+      "Absolutely - EAA compliance is one of our core specialisms. The European Accessibility Act requires many digital products and services to meet EN 301 549 / WCAG 2.1 AA by June 2025. Our audits are scoped to cover the EAA obligations relevant to your product category, and we can produce the conformance statement required for procurement.",
   },
   {
     question: "Can I start with the free scan and upgrade later?",
     answer:
-      "Yes. The Snapshot Audit is a great first step — it gives you a directional score and highlights the most common automated violations. When you're ready for a full manual assessment, we take the automated results as a starting point, so you're not paying twice for the same work.",
+      "Yes. The Snapshot Audit is a great first step - it gives you a directional score and highlights the most common automated violations. When you're ready for a full manual assessment, we take the automated results as a starting point, so you're not paying twice for the same work.",
   },
 ];
 
@@ -184,7 +184,7 @@ export default function Pricing() {
             <span className="heading-accent">no surprises.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
-            Three tiers to match where you are — a free automated scan to start, a full
+            Three tiers to match where you are - a free automated scan to start, a full
             manual audit when you need depth, and a monitoring retainer to stay compliant
             as you ship.
           </p>
@@ -335,7 +335,7 @@ export default function Pricing() {
             Not sure which <span className="heading-accent">tier fits?</span>
           </h2>
           <p className="text-muted-foreground text-sm max-w-xl mb-10 reveal-body">
-            Leave your name and work email and we'll come back within one business day with a recommendation — no sales pitch, just honest advice.
+            Leave your name and work email and we'll come back within one business day with a recommendation - no sales pitch, just honest advice.
           </p>
 
           {talkStatus === "done" ? (
@@ -380,7 +380,7 @@ export default function Pricing() {
                 </div>
               </div>
               {talkStatus === "error" && (
-                <p className="text-sm text-red-600 font-sans">Something went wrong — please try again or email us directly.</p>
+                <p className="text-sm text-red-600 font-sans">Something went wrong - please try again or email us directly.</p>
               )}
               <Button
                 type="submit"
@@ -401,7 +401,7 @@ export default function Pricing() {
             <span className="heading-accent">30 seconds.</span>
           </h2>
           <p className="text-muted-foreground mb-10 reveal-body">
-            Run a free automated scan — no account, no commitment. See your baseline score instantly.
+            Run a free automated scan - no account, no commitment. See your baseline score instantly.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild className="btn-gsap h-12 px-8 text-sm font-semibold">

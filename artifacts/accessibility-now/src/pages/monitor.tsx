@@ -219,7 +219,7 @@ export default function MonitorPage() {
                       className="text-5xl font-extrabold font-sans"
                       style={{ color: latestScore !== null ? scoreColor(latestScore) : undefined }}
                     >
-                      {latestScore ?? "—"}
+                      {latestScore ?? "-"}
                     </div>
                     <div className="text-xs text-muted-foreground font-mono uppercase tracking-wider">Current score</div>
                     {scoreDelta !== null && (
@@ -330,7 +330,7 @@ export default function MonitorPage() {
               {latest && latest.violations.length > 0 && (
                 <div>
                   <h2 className="text-xl font-extrabold font-sans mb-5">
-                    Latest violations — {formatDate(latest.scannedAt)}
+                    Latest violations - {formatDate(latest.scannedAt)}
                   </h2>
                   <div className="space-y-3">
                     {latest.violations.map((v, i) => (
@@ -373,7 +373,7 @@ export default function MonitorPage() {
           </h2>
           <p className="text-gray-400 text-sm mb-10 max-w-xl mx-auto">
             Monitoring tells you where you are. Our remediation service fixes the issues and keeps
-            your site EAA compliant — permanently.
+            your site EAA compliant - permanently.
           </p>
           <Button asChild className="h-12 px-8 text-sm font-bold">
             <Link href="/contact?service=remediation">Get remediation support</Link>

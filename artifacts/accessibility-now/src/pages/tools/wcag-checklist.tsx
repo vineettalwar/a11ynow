@@ -118,7 +118,7 @@ export default function WcagChecklist() {
   function copySummary() {
     const failedItems = WCAG_CRITERIA.filter((c) => state[c.id] === "fail");
     const lines = [
-      "WCAG 2.1 AA Checklist — Failure Summary",
+      "WCAG 2.1 AA Checklist - Failure Summary",
       `Date: ${new Date().toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}`,
       `Reviewed: ${reviewed}/${total} criteria`,
       `Passed: ${passes}  |  Failed: ${failures}  |  N/A: ${nas}`,
@@ -126,7 +126,7 @@ export default function WcagChecklist() {
       failedItems.length === 0
         ? "No failures recorded."
         : `Failures (${failedItems.length}):`,
-      ...failedItems.map((c) => `  ${c.number} ${c.title} [${c.level}] — ${c.description}`),
+      ...failedItems.map((c) => `  ${c.number} ${c.title} [${c.level}] - ${c.description}`),
     ];
     navigator.clipboard.writeText(lines.join("\n")).then(() => {
       setCopied(true);
@@ -143,7 +143,7 @@ export default function WcagChecklist() {
             <span className="heading-accent">interactive checklist.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl">
-            Work through all 50 WCAG 2.1 AA success criteria. Mark each as Pass, Fail, or N/A — progress is saved in your browser automatically.
+            Work through all 50 WCAG 2.1 AA success criteria. Mark each as Pass, Fail, or N/A - progress is saved in your browser automatically.
           </p>
         </div>
       </section>
@@ -234,11 +234,11 @@ export default function WcagChecklist() {
                 <p className="font-bold font-sans text-foreground mb-1">Level guide</p>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-foreground text-background font-sans">A</span>
-                  <span>Minimum level — must meet.</span>
+                  <span>Minimum level - must meet.</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border border-foreground text-foreground font-sans">AA</span>
-                  <span>Standard level — required for most regulations.</span>
+                  <span>Standard level - required for most regulations.</span>
                 </div>
               </div>
             </div>

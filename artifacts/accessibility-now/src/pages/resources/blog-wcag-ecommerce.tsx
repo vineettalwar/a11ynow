@@ -74,7 +74,7 @@ const FAILURES = [
     description:
       "When a user applies a filter ('Size: Medium', 'Colour: Blue') or sorts a product list, the page typically updates without focus moving. A sighted user sees the result count change and the product grid update. A screen reader user hears nothing. They have no way of knowing whether their action did anything.",
     what:
-      "Use an aria-live=\"polite\" region to announce the result of filtering or sorting operations: 'Showing 24 products for Size: Medium'. The announcement must be in the DOM and change when the filter is applied. Don't move focus to the announcement — just make it audible in place.",
+      "Use an aria-live=\"polite\" region to announce the result of filtering or sorting operations: 'Showing 24 products for Size: Medium'. The announcement must be in the DOM and change when the filter is applied. Don't move focus to the announcement - just make it audible in place.",
     common:
       "Filter applied with no screen reader announcement. Result count updated visually but not in a live region. Loading spinners not announced. 'No results' states not announced.",
   },

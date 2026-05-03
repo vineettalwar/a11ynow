@@ -250,7 +250,7 @@ export default function LowVision() {
               {(mode.blur > 0 || mode.id === "moderate" || mode.id === "severe") && (
                 <div>
                   <label htmlFor="blur-slider" className="block text-xs font-semibold font-sans uppercase tracking-widest text-muted-foreground mb-2">
-                    Blur intensity — {(blurOverride ?? mode.blur).toFixed(1)}px
+                    Blur intensity - {(blurOverride ?? mode.blur).toFixed(1)}px
                   </label>
                   <input
                     id="blur-slider"
@@ -270,7 +270,7 @@ export default function LowVision() {
               {mode.vignette && (
                 <div>
                   <label htmlFor="vignette-slider" className="block text-xs font-semibold font-sans uppercase tracking-widest text-muted-foreground mb-2">
-                    Tunnel strength — {Math.round((vignetteOverride ?? vignetteStrength) * 100)}%
+                    Tunnel strength - {Math.round((vignetteOverride ?? vignetteStrength) * 100)}%
                   </label>
                   <input
                     id="vignette-slider"

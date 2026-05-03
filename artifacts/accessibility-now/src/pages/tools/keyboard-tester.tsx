@@ -179,7 +179,7 @@ export default function KeyboardTester() {
 
   const exportSummary = () => {
     const lines = [
-      `Keyboard Accessibility Test — ${projectName}`,
+      `Keyboard Accessibility Test - ${projectName}`,
       `URL: ${loadedUrl || url || "(not set)"}`,
       `Date: ${new Date().toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}`,
       "",
@@ -260,7 +260,7 @@ export default function KeyboardTester() {
                       <Keyboard className="w-10 h-10 text-muted-foreground mb-3" />
                       <p className="text-sm font-semibold font-sans mb-1">Load a URL to begin</p>
                       <p className="text-xs text-muted-foreground max-w-sm">
-                        The live overlay works on same-origin pages. For cross-origin sites, the overlay won't inject — use Checklist mode instead.
+                        The live overlay works on same-origin pages. For cross-origin sites, the overlay won't inject - use Checklist mode instead.
                       </p>
                     </div>
                   )}
@@ -269,7 +269,7 @@ export default function KeyboardTester() {
                       ref={iframeRef}
                       key={loadedUrl}
                       src={loadedUrl}
-                      title={`Keyboard testing — ${loadedUrl}`}
+                      title={`Keyboard testing - ${loadedUrl}`}
                       className="w-full border-0 h-[360px] block"
                       onLoad={handleIframeLoad}
                       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"

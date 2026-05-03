@@ -23,7 +23,7 @@ export default function GuidesIndex() {
             Accessibility <span className="heading-accent">guides.</span>
           </h1>
           <p className="text-muted-foreground text-base md:text-lg max-w-2xl leading-relaxed">
-            Engineering-grade guides written by accessibility specialists. No fluff, no overlay marketing — just the patterns and pitfalls we see every week.
+            Engineering-grade guides written by accessibility specialists. No fluff, no overlay marketing - just the patterns and pitfalls we see every week.
           </p>
         </div>
       </section>

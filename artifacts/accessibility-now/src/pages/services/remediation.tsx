@@ -14,7 +14,7 @@ const howWeWork = [
   },
   {
     title: "Direct Pull Requests",
-    body: "Our engineers write the code and submit PRs directly to your repositories — no ticket handoffs.",
+    body: "Our engineers write the code and submit PRs directly to your repositories - no ticket handoffs.",
   },
   {
     title: "Annotated code",
@@ -35,7 +35,7 @@ const processSteps = [
   {
     number: "02",
     title: "Sprint planning",
-    body: "We align with your development cadence — weekly or fortnightly sprints. Each sprint has a defined set of issues with clear acceptance criteria.",
+    body: "We align with your development cadence - weekly or fortnightly sprints. Each sprint has a defined set of issues with clear acceptance criteria.",
   },
   {
     number: "03",
@@ -56,7 +56,7 @@ const profiles = [
   },
   {
     title: "Organisations under a legal deadline",
-    body: "You need a significant portion of violations resolved within a defined window — EAA compliance dates, procurement deadlines, or legal settlement timelines.",
+    body: "You need a significant portion of violations resolved within a defined window - EAA compliance dates, procurement deadlines, or legal settlement timelines.",
   },
   {
     title: "Startups scaling rapidly",
@@ -72,12 +72,12 @@ const faqs: FaqItem[] = [
   {
     question: "Do we need an audit first before starting remediation?",
     answer:
-      "Ideally yes — remediation is most efficient when the full scope of issues is known upfront. If you don't have an existing audit, we can run one before scoping the remediation engagement. We can also start remediation in parallel with an ongoing audit for time-sensitive projects.",
+      "Ideally yes - remediation is most efficient when the full scope of issues is known upfront. If you don't have an existing audit, we can run one before scoping the remediation engagement. We can also start remediation in parallel with an ongoing audit for time-sensitive projects.",
   },
   {
     question: "How do you work with our codebase and repositories?",
     answer:
-      "We work directly in your version control system (GitHub, GitLab, Bitbucket, or Azure DevOps). We'll need read/write access to the relevant repositories. All changes go through your normal PR review process — we never merge directly to main without your team's approval.",
+      "We work directly in your version control system (GitHub, GitLab, Bitbucket, or Azure DevOps). We'll need read/write access to the relevant repositories. All changes go through your normal PR review process - we never merge directly to main without your team's approval.",
   },
   {
     question: "What frameworks and tech stacks can you work in?",
@@ -131,7 +131,7 @@ export default function Remediation() {
             <span className="heading-accent">We fix.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
-            Our engineers work alongside your team to implement robust accessibility solutions — PRs,
+            Our engineers work alongside your team to implement robust accessibility solutions - PRs,
             annotated code, and sprint-based delivery against your actual backlog.
           </p>
         </div>
@@ -207,7 +207,7 @@ export default function Remediation() {
             <div className="reveal-child p-6 rounded-xl border bg-background">
               <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">Timeline</p>
               <p className="font-bold text-sm font-sans mb-1">4–12 weeks</p>
-              <p className="text-muted-foreground text-xs">Dependent on issue count and complexity. We scope each engagement individually — no one-size-fits-all contracts.</p>
+              <p className="text-muted-foreground text-xs">Dependent on issue count and complexity. We scope each engagement individually - no one-size-fits-all contracts.</p>
             </div>
             <div className="reveal-child p-6 rounded-xl border bg-background">
               <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">Deliverables</p>
@@ -264,7 +264,7 @@ export default function Remediation() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm font-sans mb-0.5">Monitoring</p>
-                <p className="text-muted-foreground text-xs">Protect your compliance investment — continuous re-scans and alerts.</p>
+                <p className="text-muted-foreground text-xs">Protect your compliance investment - continuous re-scans and alerts.</p>
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             </Link>

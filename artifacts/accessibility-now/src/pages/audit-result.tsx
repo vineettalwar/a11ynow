@@ -470,7 +470,7 @@ function AuditResultView({
                   </h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Automated tools catch ~30% of WCAG violations. Leave your details and we'll
-                    send a summary of what a full manual audit would uncover — no obligation.
+                    send a summary of what a full manual audit would uncover - no obligation.
                   </p>
                 </div>
                 <div className="md:col-span-3">
@@ -493,7 +493,7 @@ function AuditResultView({
                   </h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     EAA compliance isn't a one-time fix. Set up weekly or monthly re-scans and
-                    receive an email summary whenever your score changes — completely free.
+                    receive an email summary whenever your score changes - completely free.
                   </p>
                 </div>
                 <div className="md:col-span-3">
@@ -514,7 +514,7 @@ function AuditResultView({
           </h2>
           <p className="text-gray-400 text-sm mb-10 max-w-xl mx-auto">
             Automated tools only detect roughly 30% of WCAG violations. A full manual audit with
-            screen readers will reveal 3–5× more issues — and is required for legal sign-off.
+            screen readers will reveal 3–5× more issues - and is required for legal sign-off.
           </p>
           <Button asChild className="h-12 px-8 text-sm font-bold">
             <Link href="/contact">Get a full audit</Link>

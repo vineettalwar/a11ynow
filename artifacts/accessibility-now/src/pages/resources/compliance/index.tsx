@@ -4,11 +4,11 @@ import { ArrowRight, Globe, Flag, Building2, ShieldCheck, FileText } from "lucid
 import { useSectionReveal } from "@/hooks/use-section-reveal";
 
 const ITEMS = [
-  { href: "/eaa", icon: Globe, title: "European Accessibility Act", description: "EU Directive 2019/882 — applied from 28 June 2025 across all member states.", region: "EU" },
+  { href: "/eaa", icon: Globe, title: "European Accessibility Act", description: "EU Directive 2019/882 - applied from 28 June 2025 across all member states.", region: "EU" },
   { href: "/resources/compliance/en-301-549", icon: ShieldCheck, title: "EN 301 549", description: "The harmonised European standard for ICT accessibility, referenced by the EAA and WAD.", region: "EU" },
   { href: "/resources/compliance/ada", icon: Flag, title: "ADA", description: "Americans with Disabilities Act, applied to U.S. websites and apps by federal courts.", region: "US" },
   { href: "/resources/compliance/section-508", icon: Building2, title: "Section 508", description: "U.S. federal procurement standard. VPATs and ACRs explained.", region: "US Federal" },
-  { href: "/resources/compliance/aoda", icon: FileText, title: "AODA", description: "Accessibility for Ontarians with Disabilities Act — Ontario, Canada.", region: "CA" },
+  { href: "/resources/compliance/aoda", icon: FileText, title: "AODA", description: "Accessibility for Ontarians with Disabilities Act - Ontario, Canada.", region: "CA" },
 ];
 
 export default function ComplianceIndex() {

@@ -156,7 +156,7 @@ export default function FocusOrderVisualizer() {
             <span className="heading-accent">visualizer.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl">
-            Enter a URL to capture a screenshot and overlay numbered markers showing the keyboard Tab order of every interactive element — colour-coded by type.
+            Enter a URL to capture a screenshot and overlay numbered markers showing the keyboard Tab order of every interactive element - colour-coded by type.
           </p>
         </div>
       </section>
@@ -400,7 +400,7 @@ export default function FocusOrderVisualizer() {
               </div>
               <p className="text-sm font-semibold font-sans mb-2">Enter a URL to visualise focus order</p>
               <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                The tool captures a full-page screenshot via a headless browser, extracts every focusable element in keyboard Tab order, and overlays numbered markers — colour-coded by element type.
+                The tool captures a full-page screenshot via a headless browser, extracts every focusable element in keyboard Tab order, and overlays numbered markers - colour-coded by element type.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
                 {(Object.keys(TYPE_COLORS) as ElementType[]).map((t) => (

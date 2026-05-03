@@ -91,7 +91,7 @@ export default function ScreenReaderPreview() {
             <span className="heading-accent">preview.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl">
-            See the exact reading order NVDA, JAWS, and VoiceOver would announce — landmarks, headings, links, buttons, and image alt text.
+            See the exact reading order NVDA, JAWS, and VoiceOver would announce - landmarks, headings, links, buttons, and image alt text.
           </p>
         </div>
       </section>
@@ -180,7 +180,7 @@ export default function ScreenReaderPreview() {
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-bold font-sans ${TYPE_COLORS[item.type]}`}>
                           {item.type === "heading" && item.level ? `H${item.level}` : TYPE_LABELS[item.type]}
-                          {item.role ? ` — ${item.role}` : ""}
+                          {item.role ? ` - ${item.role}` : ""}
                         </span>
                         {!item.pass && item.issue && (
                           <span className="text-xs text-red-600 font-medium">{item.issue}</span>

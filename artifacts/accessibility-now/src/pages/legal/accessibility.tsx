@@ -15,7 +15,7 @@ function Section({ title, accent, children }: { title: string; accent?: string; 
 
 const KNOWN_ISSUES = [
   {
-    component: "Focus Order Visualizer — screenshot overlay",
+    component: "Focus Order Visualizer - screenshot overlay",
     criterion: "1.4.11 Non-text Contrast (AA)",
     status: "Partial",
     note: "SVG marker overlays on the screenshot may have insufficient contrast against some page backgrounds. A fix is in progress.",
@@ -80,7 +80,7 @@ export default function AccessibilityStatement() {
                 <div>
                   <p className="font-bold text-sm font-sans text-green-800 mb-1">Target conformance level</p>
                   <p className="text-xs text-green-700">
-                    WCAG 2.1 Level AA — substantially conforms, with the exceptions listed below. We are
+                    WCAG 2.1 Level AA - substantially conforms, with the exceptions listed below. We are
                     actively working towards full conformance. This statement will be updated when known issues
                     are resolved.
                   </p>
@@ -99,7 +99,7 @@ export default function AccessibilityStatement() {
               <ul>
                 <li><strong>HTML5</strong> with semantic landmark regions (<code>header</code>, <code>nav</code>, <code>main</code>, <code>footer</code>, <code>aside</code>)</li>
                 <li><strong>WAI-ARIA</strong> roles, states, and properties for dynamic content and custom interactive components</li>
-                <li><strong>CSS</strong> for visual styling — no information is conveyed by colour alone</li>
+                <li><strong>CSS</strong> for visual styling - no information is conveyed by colour alone</li>
                 <li><strong>JavaScript / React</strong> with progressive-enhancement principles where possible</li>
               </ul>
               <p>

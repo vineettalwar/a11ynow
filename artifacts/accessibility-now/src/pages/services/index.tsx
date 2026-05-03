@@ -19,7 +19,7 @@ const selectorScenarios = [
     icon: Code,
     heading: "Go straight to Remediation",
     cue: "If you already have an audit report",
-    body: "You have a list of accessibility issues and need experienced engineers to implement the fixes — without slowing down your own team. We integrate into your sprint process and deliver pull requests.",
+    body: "You have a list of accessibility issues and need experienced engineers to implement the fixes - without slowing down your own team. We integrate into your sprint process and deliver pull requests.",
     href: "/services/remediation",
     label: "Explore Remediation",
   },
@@ -66,7 +66,7 @@ const journeySteps = [
     icon: Code,
     step: "02",
     label: "Remediation",
-    description: "Our engineers fix the issues sprint by sprint — delivering pull requests directly to your repo.",
+    description: "Our engineers fix the issues sprint by sprint - delivering pull requests directly to your repo.",
     href: "/services/remediation",
   },
   {
@@ -111,7 +111,7 @@ export default function Services() {
             <span className="heading-accent">Stay compliant.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
-            End-to-end accessibility services — from initial audits to deep codebase remediation and
+            End-to-end accessibility services - from initial audits to deep codebase remediation and
             continuous monitoring. Same team, start to finish.
           </p>
         </div>
@@ -124,7 +124,7 @@ export default function Services() {
             How the services <span className="heading-accent">connect</span>
           </h2>
           <p className="text-muted-foreground text-sm max-w-xl mb-12 reveal-body">
-            Most clients move through all three stages. Each builds on the last — so you're never starting from scratch.
+            Most clients move through all three stages. Each builds on the last - so you're never starting from scratch.
           </p>
 
           <div className="relative flex flex-col md:flex-row items-stretch gap-0">
@@ -231,7 +231,7 @@ export default function Services() {
             Which service is right <span className="heading-accent">for you?</span>
           </h2>
           <p className="text-muted-foreground text-sm max-w-xl mb-10 reveal-body">
-            Most clients follow the full journey — audit, remediation, then monitoring. But you can join at any point.
+            Most clients follow the full journey - audit, remediation, then monitoring. But you can join at any point.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {selectorScenarios.map(({ icon: Icon, heading, cue, body, href, label }) => (
@@ -284,7 +284,7 @@ export default function Services() {
             <span className="heading-accent">to start?</span>
           </h2>
           <p className="text-muted-foreground mb-10 reveal-body">
-            Run a free automated scan to see your baseline compliance — then we can scope the full work together.
+            Run a free automated scan to see your baseline compliance - then we can scope the full work together.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild className="btn-gsap h-12 px-8 text-sm font-semibold">

@@ -75,7 +75,7 @@ const ITEMS: CheckItem[] = [
   {
     id: "error-labels",
     label: "Form error announcements",
-    detail: "Validation errors are announced by VoiceOver/TalkBack — not just shown visually.",
+    detail: "Validation errors are announced by VoiceOver/TalkBack - not just shown visually.",
     ios: true, android: true,
   },
   {
@@ -133,7 +133,7 @@ export default function MobileChecklist() {
   const exportSummary = () => {
     const platformLabel = platform === "ios" ? "iOS" : "Android";
     const lines = [
-      `Mobile Accessibility Checklist — ${platformLabel}`,
+      `Mobile Accessibility Checklist - ${platformLabel}`,
       `Project: ${projectName}`,
       `Date: ${new Date().toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}`,
       "",
@@ -158,7 +158,7 @@ export default function MobileChecklist() {
             <span className="heading-accent">checklist.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl">
-            iOS and Android accessibility checklist. Results are saved per project in your browser — no account needed.
+            iOS and Android accessibility checklist. Results are saved per project in your browser - no account needed.
           </p>
         </div>
       </section>

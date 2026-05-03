@@ -119,7 +119,7 @@ export default function Contact() {
                 <div className="border-t pt-8">
                   <p className="text-xs text-muted-foreground">
                     We typically respond within one business day.
-                    Engagements start from a brief scope call — no commitment required.
+                    Engagements start from a brief scope call - no commitment required.
                   </p>
                 </div>
               </div>
@@ -187,7 +187,7 @@ export default function Contact() {
                             <SelectItem value="audit">Full Accessibility Audit</SelectItem>
                             <SelectItem value="remediation">Remediation & Development</SelectItem>
                             <SelectItem value="monitoring">Ongoing Monitoring</SelectItem>
-                            <SelectItem value="unsure">Not sure — need a consultation</SelectItem>
+                            <SelectItem value="unsure">Not sure - need a consultation</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

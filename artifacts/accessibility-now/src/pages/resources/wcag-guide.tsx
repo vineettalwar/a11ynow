@@ -34,7 +34,7 @@ const POUR = [
         title: "Use of Colour",
         level: "A",
         what: "Colour must not be the only visual means of conveying information.",
-        how: "Don't mark required fields in red alone — add an asterisk and a legend. Don't show chart categories by colour alone — add labels or patterns.",
+        how: "Don't mark required fields in red alone - add an asterisk and a legend. Don't show chart categories by colour alone - add labels or patterns.",
       },
       {
         sc: "1.4.3",
@@ -116,7 +116,7 @@ const POUR = [
         title: "Headings and Labels",
         level: "AA",
         what: "Headings and labels must be descriptive.",
-        how: "Avoid headings like 'Details' or 'Info'. Labels must describe the purpose of the field — not just the data type. Never use 'Click here' as a link label.",
+        how: "Avoid headings like 'Details' or 'Info'. Labels must describe the purpose of the field - not just the data type. Never use 'Click here' as a link label.",
       },
       {
         sc: "2.5.3",
@@ -135,7 +135,7 @@ const POUR = [
     description:
       "Information and the operation of the UI must be understandable. Users must be able to understand both the content and how to use it.",
     whyItMatters:
-      "Cognitive and learning disabilities affect hundreds of millions. Clear language, predictable UI, and helpful error messages are not optional extras — they are the baseline.",
+      "Cognitive and learning disabilities affect hundreds of millions. Clear language, predictable UI, and helpful error messages are not optional extras - they are the baseline.",
     items: [
       {
         sc: "3.1.1",
@@ -170,7 +170,7 @@ const POUR = [
         title: "Labels or Instructions",
         level: "A",
         what: "Labels or instructions must be provided when content requires user input.",
-        how: "Every form input needs a visible <label>. Complex inputs (e.g. date formats) need additional instructions — place them before the input, not after.",
+        how: "Every form input needs a visible <label>. Complex inputs (e.g. date formats) need additional instructions - place them before the input, not after.",
       },
       {
         sc: "3.3.3",
@@ -196,21 +196,21 @@ const POUR = [
         title: "Parsing",
         level: "A",
         what: "In content implemented using markup, elements have complete start and end tags, are nested correctly, contain no duplicate attributes, and IDs are unique.",
-        how: "Run your HTML through a validator. In React, JSX enforces correct nesting. Watch out for duplicate id attributes — they break aria-labelledby and for/id associations.",
+        how: "Run your HTML through a validator. In React, JSX enforces correct nesting. Watch out for duplicate id attributes - they break aria-labelledby and for/id associations.",
       },
       {
         sc: "4.1.2",
         title: "Name, Role, Value",
         level: "A",
         what: "All UI components must expose their name, role, and value programmatically.",
-        how: "Use native HTML elements where possible (<button>, <a>, <select>) — they expose role automatically. For custom components, use ARIA: role, aria-label, aria-expanded, aria-checked, etc.",
+        how: "Use native HTML elements where possible (<button>, <a>, <select>) - they expose role automatically. For custom components, use ARIA: role, aria-label, aria-expanded, aria-checked, etc.",
       },
       {
         sc: "4.1.3",
         title: "Status Messages",
         level: "AA",
         what: "Status messages (success, error, loading) must be programmatically determinable so they can be announced without receiving focus.",
-        how: "Use role=\"status\" for success/info messages (polite). Use role=\"alert\" for errors (assertive, interrupts the screen reader). Don't just add a CSS class to an existing element — the message text must actually change.",
+        how: "Use role=\"status\" for success/info messages (polite). Use role=\"alert\" for errors (assertive, interrupts the screen reader). Don't just add a CSS class to an existing element - the message text must actually change.",
       },
     ],
   },
@@ -320,7 +320,7 @@ export default function WcagGuide() {
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
             A developer-centric walkthrough of the POUR principles, conformance levels, and the AA
-            success criteria that matter most for EAA compliance — with practical implementation notes
+            success criteria that matter most for EAA compliance - with practical implementation notes
             for each.
           </p>
         </div>
@@ -334,8 +334,8 @@ export default function WcagGuide() {
             Level A, AA, <span className="heading-accent">and AAA.</span>
           </h2>
           <p className="text-muted-foreground text-sm max-w-xl mb-12 reveal-body">
-            WCAG organises success criteria into three levels of conformance. The EAA — and most public-sector
-            legislation globally — targets Level AA. Level A is the floor; Level AAA is aspirational.
+            WCAG organises success criteria into three levels of conformance. The EAA - and most public-sector
+            legislation globally - targets Level AA. Level A is the floor; Level AAA is aspirational.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -345,7 +345,7 @@ export default function WcagGuide() {
                 <h3 className="font-extrabold text-lg font-sans">Level A</h3>
               </div>
               <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                The absolute minimum. Without Level A compliance, the product is impossible — or dangerous — for
+                The absolute minimum. Without Level A compliance, the product is impossible - or dangerous - for
                 some users. These criteria have no reasonable exceptions.
               </p>
               <ul className="text-xs space-y-2 text-muted-foreground">
@@ -367,7 +367,7 @@ export default function WcagGuide() {
               </div>
               <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
                 The legal standard. Balances strong accessibility coverage with realistic design flexibility.
-                Meeting Level AA means meeting Level A first — it's cumulative.
+                Meeting Level AA means meeting Level A first - it's cumulative.
               </p>
               <ul className="text-xs space-y-2 text-muted-foreground">
                 <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span>4.5:1 text colour contrast</li>
@@ -391,7 +391,7 @@ export default function WcagGuide() {
                 <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span>7:1 text colour contrast</li>
                 <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span>Sign language interpretation</li>
                 <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span>No timing constraints</li>
-                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span>Reading level — lower secondary</li>
+                <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span>Reading level - lower secondary</li>
                 <li className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span>Extended audio description</li>
               </ul>
             </div>
@@ -412,7 +412,7 @@ export default function WcagGuide() {
             <span className="heading-accent">your site?</span>
           </h2>
           <p className="text-muted-foreground mb-10 reveal-body">
-            Run a free automated WCAG 2.1 scan in seconds — or book a full manual audit for complete AA coverage.
+            Run a free automated WCAG 2.1 scan in seconds - or book a full manual audit for complete AA coverage.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild className="btn-gsap h-12 px-8 text-sm font-semibold">

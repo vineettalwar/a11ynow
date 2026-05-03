@@ -40,7 +40,7 @@ const TOOLS = [
     name: "axe-core",
     type: "Library / browser extension",
     strengths: "High signal-to-noise ratio. Low false positive rate. Used by Deque Systems. Browser extension and CLI versions. Can integrate into CI/CD.",
-    limitations: "Conservative — misses more than it flags. Does not test dynamic interactions.",
+    limitations: "Conservative - misses more than it flags. Does not test dynamic interactions.",
     best: "Unit and integration testing in your test suite. Baseline CI checks.",
   },
   {

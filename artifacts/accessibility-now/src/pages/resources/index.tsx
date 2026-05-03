@@ -15,7 +15,7 @@ const SECTIONS = [
     href: "/resources/checklists",
     icon: CheckSquare,
     title: "Checklists",
-    description: "Interactive checklists you can run, track, and export — covering EAA, WCAG, and mobile.",
+    description: "Interactive checklists you can run, track, and export - covering EAA, WCAG, and mobile.",
     items: ["EAA Checklist", "WCAG 2.1 AA", "Mobile Accessibility", "Shopify Pre-flight"],
   },
   {
@@ -36,7 +36,7 @@ const SECTIONS = [
     href: "/resources/technologies",
     icon: Layers,
     title: "Technologies",
-    description: "Where each platform helps and where it hurts — from WordPress to Next.js.",
+    description: "Where each platform helps and where it hurts - from WordPress to Next.js.",
     items: ["WordPress", "TYPO3", "Drupal", "Shopify", "React", "Next.js"],
   },
   {
@@ -62,7 +62,7 @@ export default function Resources() {
             <span className="heading-accent">references.</span>
           </h1>
           <p className="text-muted-foreground text-base md:text-lg max-w-2xl leading-relaxed">
-            Everything we wish someone had handed us when we started doing accessibility work — written by engineers, for engineers.
+            Everything we wish someone had handed us when we started doing accessibility work - written by engineers, for engineers.
           </p>
         </div>
       </section>

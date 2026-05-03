@@ -394,7 +394,7 @@ export default function BatchResult() {
                             {page.score}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground font-mono text-xs">—</span>
+                          <span className="text-muted-foreground font-mono text-xs">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-center hidden sm:table-cell">
@@ -424,7 +424,7 @@ export default function BatchResult() {
                             View <ExternalLink className="w-3 h-3" />
                           </Link>
                         ) : (
-                          <span className="text-xs text-muted-foreground font-mono">—</span>
+                          <span className="text-xs text-muted-foreground font-mono">-</span>
                         )}
                       </td>
                     </tr>
@@ -493,7 +493,7 @@ export default function BatchResult() {
                   </h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Automated tools catch ~30% of WCAG violations. Leave your details and we'll
-                    send a combined report with manual findings across all {result.pages.length} pages — no obligation.
+                    send a combined report with manual findings across all {result.pages.length} pages - no obligation.
                   </p>
                 </div>
                 <div className="md:col-span-3">
@@ -519,7 +519,7 @@ export default function BatchResult() {
           </h2>
           <p className="text-gray-400 text-sm mb-10 max-w-xl mx-auto">
             Automated tools detect roughly 30% of WCAG violations. A full manual audit with
-            screen readers across all your key pages will reveal 3–5× more issues — and is required for legal sign-off.
+            screen readers across all your key pages will reveal 3–5× more issues - and is required for legal sign-off.
           </p>
           <Button asChild className="h-12 px-8 text-sm font-bold">
             <Link href="/contact">Get a full audit <ArrowRight className="w-4 h-4 ml-1" /></Link>
