@@ -467,8 +467,8 @@ export default function Home() {
               <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>Europeans lives with a disability</p>
             </div>
             <div className="reveal-child">
-              <p className="text-3xl font-extrabold font-sans text-foreground mb-1">96.3%</p>
-              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>of homepages have WCAG failures</p>
+              <p className="text-3xl font-extrabold font-sans text-foreground mb-1">94.8%</p>
+              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>of homepages fail WCAG (WebAIM '25)</p>
             </div>
             <div className="reveal-child">
               <p className="text-3xl font-extrabold font-sans text-foreground mb-1">€100k</p>
@@ -492,7 +492,7 @@ export default function Home() {
             </h2>
             <p className="text-muted-foreground max-w-2xl reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
               Automated tools catch ~30% of WCAG issues. We find the rest - through NVDA, VoiceOver, keyboard-only
-              navigation, and 10+ years of screen reader quirks your CI pipeline will never see.
+              navigation, and eight years of screen reader quirks your CI pipeline will never see.
             </p>
           </div>
 
