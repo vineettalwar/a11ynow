@@ -19,6 +19,9 @@ import Resources from "@/pages/resources/index";
 import WcagGuide from "@/pages/resources/wcag-guide";
 import EaaChecklist from "@/pages/resources/eaa-checklist";
 import Blog from "@/pages/resources/blog";
+import BlogEaaEnforcement from "@/pages/resources/blog-eaa-enforcement";
+import BlogWcagEcommerce from "@/pages/resources/blog-wcag-ecommerce";
+import BlogAutomatedVsManual from "@/pages/resources/blog-automated-vs-manual";
 import About from "@/pages/about";
 import Pricing from "@/pages/pricing";
 import PrivacyPolicy from "@/pages/legal/privacy";
@@ -58,6 +61,9 @@ function Router() {
         <Route path="/resources/wcag-guide" component={WcagGuide} />
         <Route path="/resources/eaa-checklist" component={EaaChecklist} />
         <Route path="/resources/blog" component={Blog} />
+        <Route path="/resources/blog/eaa-enforcement" component={BlogEaaEnforcement} />
+        <Route path="/resources/blog/wcag-ecommerce" component={BlogWcagEcommerce} />
+        <Route path="/resources/blog/automated-vs-manual" component={BlogAutomatedVsManual} />
         <Route path="/about" component={About} />
         <Route path="/pricing" component={Pricing} />
         <Route path="/legal/privacy" component={PrivacyPolicy} />
