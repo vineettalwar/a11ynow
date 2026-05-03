@@ -561,13 +561,9 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-4">
               {[
                 { icon: <Eye className="w-4 h-4" />, title: "Colour Blindness", desc: "Deuteranopia, Protanopia, Tritanopia, Achromatopsia" },
-                { icon: <Eye className="w-4 h-4" />, title: "Low Vision", desc: "Blur, tunnel vision, central field loss" },
-                { icon: <Search className="w-4 h-4" />, title: "Screen Reader", desc: "Heading structure, landmark order, ARIA issues" },
-                { icon: <Keyboard className="w-4 h-4" />, title: "Keyboard Tester", desc: "Tab order, focus traps, visible focus rings" },
-                { icon: <ShieldCheck className="w-4 h-4" />, title: "Contrast Checker", desc: "WCAG AA/AAA with EyeDropper colour picker" },
-                { icon: <Smartphone className="w-4 h-4" />, title: "Mobile Checklist", desc: "iOS & Android with VoiceOver/TalkBack items" },
-                { icon: <ClipboardList className="w-4 h-4" />, title: "WCAG 2.1 AA Checklist", desc: "50 success criteria - mark Pass, Fail, or N/A" },
-                { icon: <TabletSmartphone className="w-4 h-4" />, title: "Focus Order Visualizer", desc: "Numbered markers on a screenshot - keyboard Tab order at a glance" },
+                { icon: <Search className="w-4 h-4" />, title: "Screen Reader", desc: "Heading structure, landmark order, ARIA" },
+                { icon: <Keyboard className="w-4 h-4" />, title: "Keyboard Tester", desc: "Tab order, focus traps, visible focus" },
+                { icon: <TabletSmartphone className="w-4 h-4" />, title: "Focus Order", desc: "Numbered Tab markers on a live screenshot" },
               ].map(({ icon, title, desc }) => (
                 <Link
                   key={title}
@@ -587,57 +583,29 @@ export default function Home() {
 
       {/* Process - dark */}
       <section ref={processRef} className="py-24 px-4 bg-foreground text-background">
-        <div className="container mx-auto max-w-5xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
-            <div>
-              <h2 className="text-display-md font-extrabold text-white mb-6">
-                How an audit<br />
-                <span style={{ color: "#FF4D1C", fontStyle: "italic", fontFamily: "var(--app-font-serif)" }}>actually works.</span>
-              </h2>
-              <p className="text-gray-400 mb-10 reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
-                Four weeks from kick-off to signed statement of conformance. You stay in Jira - we work in your stack.
-              </p>
-              <div className="space-y-8">
-                {[
-                  { n: "01", title: "Scope & Baseline", body: "We map your critical user journeys (checkout, sign-up, account) and run automated scans to baseline the volume of issues." },
-                  { n: "02", title: "Manual Testing", body: "NVDA on Windows, VoiceOver on iOS and macOS, keyboard-only navigation. We test every component state, not just the happy path." },
-                  { n: "03", title: "Fix Delivery", body: "Exact code diffs, pull requests against your repo, and Jira tickets prioritised by WCAG impact level. Your developers merge; we verify." },
-                  { n: "04", title: "Statement of Conformance", body: "A signed WCAG 2.2 AA conformance report you can publish in your accessibility statement and share with regulators." },
-                ].map(({ n, title, body }) => (
-                  <div key={n} className="reveal-child flex gap-5">
-                    <div className="text-xs font-bold text-primary pt-0.5 shrink-0 w-6 font-sans">{n}</div>
-                    <div>
-                      <h4 className="font-bold text-sm text-white mb-1 font-sans">{title}</h4>
-                      <p className="text-gray-400 text-sm" style={{ fontFamily: "var(--app-font-mono)" }}>{body}</p>
-                    </div>
-                  </div>
-                ))}
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-display-md font-extrabold text-white mb-6">
+            How an audit<br />
+            <span style={{ color: "#FF4D1C", fontStyle: "italic", fontFamily: "var(--app-font-serif)" }}>actually works.</span>
+          </h2>
+          <p className="text-gray-400 mb-12 reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
+            Four weeks. Kick-off to signed conformance.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+            {[
+              { n: "01", title: "Scope & baseline", body: "We map critical journeys, run automated scans." },
+              { n: "02", title: "Manual testing", body: "NVDA, VoiceOver, keyboard-only. Every component state." },
+              { n: "03", title: "Fix delivery", body: "PRs to your repo, Jira tickets ranked by WCAG impact." },
+              { n: "04", title: "Conformance statement", body: "Signed WCAG 2.2 AA report for your accessibility statement." },
+            ].map(({ n, title, body }) => (
+              <div key={n} className="reveal-child flex gap-5">
+                <div className="text-xs font-bold text-primary pt-0.5 shrink-0 w-6 font-sans">{n}</div>
+                <div>
+                  <h4 className="font-bold text-sm text-white mb-1 font-sans">{title}</h4>
+                  <p className="text-gray-400 text-sm" style={{ fontFamily: "var(--app-font-mono)" }}>{body}</p>
+                </div>
               </div>
-            </div>
-
-            <div className="reveal-child bg-[#111] rounded-2xl p-8 border border-white/10 sticky top-8">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary mb-5 font-sans">EAA - who it covers</p>
-              <p className="text-gray-400 mb-6 text-sm" style={{ fontFamily: "var(--app-font-mono)" }}>
-                If you sell or operate a digital service in the EU - regardless of where you are incorporated - the EAA applies to you.
-              </p>
-              <ul className="space-y-3 mb-8">
-                {[
-                  "E-commerce & retail (checkout, product pages)",
-                  "Banking & financial services (online banking, apps)",
-                  "Transportation & ticketing (booking flows)",
-                  "Streaming & on-demand media (players, captions)",
-                  "Telecoms (account portals, support)",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-gray-300 text-sm" style={{ fontFamily: "var(--app-font-mono)" }}>
-                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Button asChild variant="outline" className="btn-gsap w-full bg-transparent border-white/20 text-white hover:bg-white/5 hover:text-white rounded-xl [box-shadow:none]">
-                <Link href="/eaa">Full EAA compliance guide →</Link>
-              </Button>
-            </div>
+            ))}
           </div>
         </div>
       </section>

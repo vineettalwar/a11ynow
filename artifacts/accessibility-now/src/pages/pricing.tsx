@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "wouter";
 import gsap from "gsap";
 import { Button } from "@/components/ui/button";
@@ -94,34 +94,19 @@ const COMPARISON: { label: string; values: (boolean | string)[] }[] = [
 
 const FAQS = [
   {
-    question: "What if my site has hundreds of pages?",
+    question: "What does 'from €3,500' mean?",
     answer:
-      "The Manual Audit covers up to 25 representative pages - chosen to reflect the broadest range of UI patterns and user journeys. We work with you to select the right pages. For larger sites, we can scope a phased audit across multiple engagements, or focus the first round on your highest-traffic paths.",
-  },
-  {
-    question: "Do you offer discounts for non-profits or public-sector organisations?",
-    answer:
-      "Yes. We offer a 20% reduction for registered charities and NGOs, and we work on framework agreements with public-sector bodies. Get in touch and mention your organisation type when booking.",
-  },
-  {
-    question: "What does 'from €3,500' mean - what drives the final price?",
-    answer:
-      "The starting figure covers a focused audit of up to 10 pages for a typical marketing or SaaS site. Price increases with page count, technology complexity (e.g. complex SPAs, native mobile apps), turnaround urgency, and whether you need a VPAT / ACR statement for procurement. We provide a fixed quote before any work begins.",
+      "Starting figure for up to 10 pages of a typical marketing or SaaS site. Price scales with page count, complexity (SPAs, native mobile), turnaround, and VPAT requirements. We give a fixed quote before any work starts.",
   },
   {
     question: "How is the Monitoring retainer structured?",
     answer:
-      "Monthly retainers run on a 3-month minimum, then roll monthly. The fee covers automated re-scans, CI/CD integration, regression alerting, and a quarterly manual spot-check. The annual full re-audit is bundled at no extra cost. You can cancel with 30 days' written notice after the minimum term.",
+      "3-month minimum then rolls monthly. Covers automated re-scans, CI/CD integration, regression alerts, and a quarterly manual spot-check. Annual full re-audit included. 30 days' notice to cancel after the minimum term.",
   },
   {
     question: "Do you help with EAA compliance specifically?",
     answer:
-      "Absolutely - EAA compliance is one of our core specialisms. The European Accessibility Act requires many digital products and services to meet EN 301 549 / WCAG 2.1 AA by June 2025. Our audits are scoped to cover the EAA obligations relevant to your product category, and we can produce the conformance statement required for procurement.",
-  },
-  {
-    question: "Can I start with the free scan and upgrade later?",
-    answer:
-      "Yes. The Snapshot Audit is a great first step - it gives you a directional score and highlights the most common automated violations. When you're ready for a full manual assessment, we take the automated results as a starting point, so you're not paying twice for the same work.",
+      "Yes - it's a core specialism. Audits are scoped to EAA obligations for your product category and we produce the conformance statement procurement needs. Discounts available for non-profits and public sector.",
   },
 ];
 
@@ -130,12 +115,8 @@ export default function Pricing() {
   const cardsRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const comparisonRef = useSectionReveal<HTMLElement>();
   const faqRef = useSectionReveal<HTMLElement>();
-  const talkRef = useSectionReveal<HTMLElement>();
   const ctaRef = useSectionReveal<HTMLElement>();
   const pageRef = useRef<HTMLDivElement>(null);
-
-  const [form, setForm] = useState({ name: "", email: "" });
-  const [talkStatus, setTalkStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
 
   useEffect(() => {
     const el = pageRef.current;
@@ -154,23 +135,6 @@ export default function Pricing() {
     });
     return () => cleanups.forEach((fn) => fn());
   }, []);
-
-  async function handleTalkSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (talkStatus === "submitting") return;
-    setTalkStatus("submitting");
-    try {
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email }),
-      });
-      if (!res.ok) throw new Error("failed");
-      setTalkStatus("done");
-    } catch {
-      setTalkStatus("error");
-    }
-  }
 
   return (
     <div ref={pageRef} className="flex flex-col w-full">
@@ -313,84 +277,10 @@ export default function Pricing() {
 
       <section ref={faqRef} className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-3xl">
-          <p className="section-label text-xs font-semibold text-primary uppercase tracking-widest mb-3">
-            Common questions
-          </p>
-          <h2 className="text-display-md font-extrabold mb-3">
-            Pricing <span className="heading-accent">FAQs</span>
+          <h2 className="text-display-md font-extrabold mb-10">
+            Pricing <span className="heading-accent">questions.</span>
           </h2>
-          <p className="text-muted-foreground text-sm max-w-xl mb-10 reveal-body">
-            Can't find what you're looking for? Drop us a line and we'll answer within one business day.
-          </p>
           <FaqAccordion items={FAQS} />
-        </div>
-      </section>
-
-      <section ref={talkRef} className="py-20 px-4 warm-section">
-        <div className="container mx-auto max-w-3xl">
-          <p className="section-label text-xs font-semibold text-primary uppercase tracking-widest mb-3">
-            Talk to us
-          </p>
-          <h2 className="text-display-md font-extrabold mb-3">
-            Not sure which <span className="heading-accent">tier fits?</span>
-          </h2>
-          <p className="text-muted-foreground text-sm max-w-xl mb-10 reveal-body">
-            Leave your name and work email and we'll come back within one business day with a recommendation - no sales pitch, just honest advice.
-          </p>
-
-          {talkStatus === "done" ? (
-            <div className="rounded-2xl border border-primary/30 bg-primary/5 px-8 py-10 text-center">
-              <p className="text-lg font-extrabold font-sans mb-2">Message received.</p>
-              <p className="text-sm text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
-                We'll be in touch within one business day.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleTalkSubmit} className="space-y-5 max-w-xl">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="talk-name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground font-sans">
-                    Your name
-                  </label>
-                  <input
-                    id="talk-name"
-                    type="text"
-                    required
-                    placeholder="Jane Smith"
-                    value={form.name}
-                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                    className="h-12 rounded-xl border border-border bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    style={{ fontFamily: "var(--app-font-mono)" }}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="talk-email" className="text-xs font-bold uppercase tracking-widest text-muted-foreground font-sans">
-                    Work email
-                  </label>
-                  <input
-                    id="talk-email"
-                    type="email"
-                    required
-                    placeholder="jane@company.com"
-                    value={form.email}
-                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                    className="h-12 rounded-xl border border-border bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    style={{ fontFamily: "var(--app-font-mono)" }}
-                  />
-                </div>
-              </div>
-              {talkStatus === "error" && (
-                <p className="text-sm text-red-600 font-sans">Something went wrong - please try again or email us directly.</p>
-              )}
-              <Button
-                type="submit"
-                className="btn-gsap h-12 px-8 text-sm font-bold"
-                disabled={talkStatus === "submitting"}
-              >
-                {talkStatus === "submitting" ? "Sending…" : "Send message →"}
-              </Button>
-            </form>
-          )}
         </div>
       </section>
 
