@@ -42,7 +42,7 @@ const SECTIONS: ChecklistSection[] = [
       },
       {
         id: "s3",
-        text: "You have confirmed whether the micro-enterprise exemption applies (fewer than 10 employees AND annual turnover or balance sheet \u226420 million).",
+        text: "You have confirmed whether the micro-enterprise exemption applies (fewer than 10 employees AND annual turnover or balance sheet total not exceeding \u20ac2 million).",
         note: "Micro-enterprises providing services are exempt from EAA requirements but not from fundamental accessibility obligations.",
       },
       {
