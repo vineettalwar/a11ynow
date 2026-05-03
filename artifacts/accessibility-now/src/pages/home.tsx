@@ -472,7 +472,7 @@ export default function Home() {
             </div>
             <div className="reveal-child">
               <p className="text-3xl font-extrabold font-sans text-foreground mb-1">€100k</p>
-              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>maximum fine per violation</p>
+              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>max fine per violation (Germany)</p>
             </div>
             <div className="reveal-child">
               <p className="text-3xl font-extrabold font-sans text-foreground mb-1">June 2025</p>

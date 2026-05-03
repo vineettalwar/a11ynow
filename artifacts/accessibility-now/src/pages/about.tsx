@@ -5,30 +5,30 @@ import { Link } from "wouter";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
 
 const STATS = [
-  { value: "500+", label: "Sites audited" },
-  { value: "WCAG 2.2", label: "Ready" },
-  { value: "48h", label: "Avg turnaround" },
-  { value: "100%", label: "Engineer-led" },
+  { value: "8+", label: "Years operating" },
+  { value: "140+", label: "Engagements delivered" },
+  { value: "100%", label: "Senior on every project" },
+  { value: "IAAP", label: "CPACC / WAS certified" },
 ];
 
-const TEAM = [
+const PRINCIPLES = [
   {
-    initials: "JR",
-    name: "James Reid",
-    role: "Lead Accessibility Engineer",
-    bio: "12 years React, ex-Shopify - wrote ARIA fixes for 200+ production apps.",
+    initials: "01",
+    name: "Same team, audit to deploy.",
+    role: "No hand-offs",
+    bio: "The senior engineer who scopes your audit is the same engineer who writes the remediation PRs. No subcontractors, no junior hand-off, no lost context.",
   },
   {
-    initials: "SP",
-    name: "Sarai Patel",
-    role: "Senior Frontend Engineer",
-    bio: "WCAG 2.2 specialist, ex-Atlassian - turns audit findings into merge-ready PRs.",
+    initials: "02",
+    name: "Senior on every project.",
+    role: "100%, not 'led by'",
+    bio: "Every line of code, every audit finding, every screen-reader test is done by an engineer with 8+ years in production accessibility. Not 'reviewed by senior' - written by senior.",
   },
   {
-    initials: "MC",
-    name: "Marcus Chen",
-    role: "Engineering & Strategy",
-    bio: "10 years Node.js & design systems - bridges engineering and product teams.",
+    initials: "03",
+    name: "IAAP-certified, code-fluent.",
+    role: "CPACC / WAS",
+    bio: "We hold the IAAP credentials regulators recognise (CPACC, WAS) and we ship production code in your stack. The combination is rare and it's the reason the fix actually merges.",
   },
 ];
 
@@ -122,8 +122,9 @@ export default function About() {
                   className="text-lg text-[#1A1A1A] leading-relaxed"
                   style={{ fontFamily: "var(--app-font-mono)" }}
                 >
-                  accessibility.now operates under the sometech.work brand - a senior
-                  engineering collective specialising in enterprise React and Node.js.
+                  accessibility.now operates under the sometech.work brand - senior
+                  strategists, engineers, and designers for EU SMEs and bounded
+                  enterprise projects. Same team from first call to final delivery.
                 </p>
               </div>
               <Button
@@ -161,15 +162,21 @@ export default function About() {
       <section ref={teamRef} className="py-20 px-6 bg-[#1A1A1A]">
         <div className="container mx-auto max-w-5xl">
           <h2
-            className="text-3xl font-extrabold tracking-tight text-white mb-10 reveal-body"
+            className="text-3xl font-extrabold tracking-tight text-white mb-3 reveal-body"
             style={{ fontFamily: "var(--app-font-sans)" }}
           >
-            The team.
+            How we work.
           </h2>
+          <p
+            className="text-sm text-white/50 mb-10 max-w-xl reveal-body"
+            style={{ fontFamily: "var(--app-font-mono)" }}
+          >
+            Three principles that decide who works on your engagement and how they ship.
+          </p>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 reveal-body">
-            {TEAM.map((member) => (
+            {PRINCIPLES.map((p) => (
               <div
-                key={member.name}
+                key={p.name}
                 className="flex flex-col gap-4 rounded-2xl p-6"
                 style={{ background: "#242424", border: "1px solid rgba(255,255,255,0.06)" }}
               >
@@ -177,27 +184,27 @@ export default function About() {
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-extrabold text-white flex-shrink-0"
                   style={{ background: "#FF4D1C", fontFamily: "var(--app-font-mono)" }}
                 >
-                  {member.initials}
+                  {p.initials}
                 </div>
                 <div className="flex flex-col gap-1">
                   <span
                     className="text-base font-bold text-white leading-tight"
                     style={{ fontFamily: "var(--app-font-sans)" }}
                   >
-                    {member.name}
+                    {p.name}
                   </span>
                   <span
                     className="text-xs font-bold uppercase tracking-widest"
                     style={{ color: "#FF4D1C", fontFamily: "var(--app-font-mono)" }}
                   >
-                    {member.role}
+                    {p.role}
                   </span>
                 </div>
                 <p
                   className="text-sm text-white/50 leading-relaxed"
                   style={{ fontFamily: "var(--app-font-mono)" }}
                 >
-                  {member.bio}
+                  {p.bio}
                 </p>
               </div>
             ))}
