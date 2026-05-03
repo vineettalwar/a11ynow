@@ -30,7 +30,7 @@ const journeySteps = [
 ];
 
 const COMPARE_ROWS: { label: string; vals: (string | boolean)[] }[] = [
-  { label: "Output", vals: ["Findings report", "Merged PRs", "Live dashboard"] },
+  { label: "Output", vals: ["Findings report", "Merged PRs", "Monthly report + alerts"] },
   { label: "Time to value", vals: ["1–2 weeks", "First sprint, ~2 weeks", "Day 1"] },
   { label: "Investment", vals: ["from €3,500", "from €4,800 / sprint", "from €890 / month"] },
   { label: "WCAG 2.2 AA covered", vals: [true, true, true] },

@@ -36,14 +36,16 @@ const alertSla = [
 
 const dashboardMetrics = [
   { label: "Conformance score", sample: "94 / 100", note: "Weighted by WCAG severity, journey traffic, and recency." },
-  { label: "Open violations", sample: "0 critical · 3 serious · 17 minor", note: "Live count, deduplicated across pages and components." },
-  { label: "Regression delta", sample: "+2 since last deploy", note: "Diff against the last clean baseline. Auto-attributed to PRs." },
-  { label: "Coverage", sample: "847 / 850 URLs", note: "Pages crawled this cycle. Auth-gated journeys included." },
-  { label: "Time to first fix", sample: "1.4 days median", note: "From regression alert to merged PR. Tracked over rolling 90 days." },
-  { label: "AT compatibility", sample: "NVDA · JAWS · VO · TalkBack", note: "Quarterly manual spot-checks tagged per assistive tech." },
+  { label: "Open violations", sample: "0 critical · 3 serious · 17 minor", note: "Deduplicated across pages and components." },
+  { label: "Regression delta", sample: "+2 since last scan", note: "Diff against the prior baseline, with the offending pages flagged." },
+  { label: "Coverage", sample: "URLs scanned this cycle", note: "Public pages crawled. Auth-gated journeys checked manually each quarter." },
+  { label: "Time to first fix", sample: "Tracked rolling 90 days", note: "From regression alert to merged PR (when paired with Remediation)." },
+  { label: "AT spot-checks", sample: "NVDA · JAWS · VO · TalkBack", note: "Quarterly manual passes, tagged per assistive tech." },
 ];
 
 const ciSnippet = `# .github/workflows/a11y.yml
+# Starter workflow we configure during onboarding.
+# 100% public actions - no proprietary lock-in.
 name: Accessibility checks
 on: [pull_request]
 
@@ -56,17 +58,22 @@ jobs:
         with: { node-version: 20 }
       - run: npm ci
       - run: npm run build
-      - name: Run axe on PR preview
+      - run: npx serve -l 3000 dist &
+      - run: npx wait-on http://localhost:3000
+
+      - name: Run axe-core (WCAG 2.2 AA)
         uses: dequelabs/axe-core-action@v3
         with:
-          urls: \${{ env.PREVIEW_URL }}
+          urls: http://localhost:3000
           rules: wcag22aa
           fail-on: serious
-      - name: Post results to accessibility.now
-        uses: accessibility-now/report-action@v1
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          token: \${{ secrets.ACCESSIBILITY_NOW_TOKEN }}
-          baseline: main`;
+          name: axe-results
+          path: axe-results.json`;
 
 const processSteps = [
   { number: "01", title: "Baseline", body: "We audit once to set the verified WCAG benchmark. Becomes the diff target for every future scan." },
@@ -128,7 +135,7 @@ export default function Monitoring() {
             Drop one file in <span className="heading-accent">.github/workflows.</span>
           </h2>
           <p className="text-muted-foreground text-sm max-w-2xl mb-10 reveal-body">
-            We give you the workflow. It runs axe-core on every PR preview against WCAG 2.2 AA, blocks serious regressions, and posts results back to your dashboard.
+            We configure this workflow in your repo during onboarding. It runs axe-core on every PR against WCAG 2.2 AA, blocks serious regressions, and uploads the report as a build artifact. All real, public actions - nothing proprietary.
           </p>
           <div className="rounded-2xl border border-border overflow-hidden bg-foreground">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10">
@@ -146,7 +153,7 @@ export default function Monitoring() {
             </pre>
           </div>
           <p className="text-xs text-muted-foreground mt-5 max-w-2xl" style={{ fontFamily: "var(--app-font-mono)" }}>
-            GitLab CI, Bitbucket Pipelines, and Jenkins versions ship with the retainer. We configure it for you in week one.
+            The same pattern translates to GitLab CI, Bitbucket Pipelines, or Jenkins on request.
           </p>
         </div>
       </section>
@@ -182,12 +189,12 @@ export default function Monitoring() {
 
       <section ref={dashRef} className="py-20 px-4 warm-section">
         <div className="container mx-auto max-w-5xl">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3 font-sans">Dashboard</p>
+          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3 font-sans">Monthly report</p>
           <h2 className="text-display-md font-extrabold mb-3">
-            What your team <span className="heading-accent">actually sees.</span>
+            What your team <span className="heading-accent">actually gets.</span>
           </h2>
           <p className="text-muted-foreground text-sm max-w-xl mb-10 reveal-body">
-            One link. Real metrics, refreshed nightly. Sharable with legal and procurement.
+            A signed PDF + raw data export every month. Sharable with legal and procurement, archivable for your conformance file.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {dashboardMetrics.map((m) => (
