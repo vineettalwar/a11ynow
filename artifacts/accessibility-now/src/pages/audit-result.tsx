@@ -13,6 +13,7 @@ import {
   getWhatHappensLine,
   type HumanViolationContext,
 } from "@/lib/violation-human-context";
+import { getManualFollowUpsFromViolations } from "@/lib/manual-followups";
 import { AuditResultLevel } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

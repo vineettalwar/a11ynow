@@ -22,6 +22,13 @@
       "when": 1740000000002,
       "tag": "0002_page_screenshot",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1740000000003,
+      "tag": "0003_scan_metadata",
+      "breakpoints": true
     }
   ]
 }

@@ -38,7 +38,7 @@ async function runDueScans() {
   for (const row of dueRows) {
     logger.info({ url: row.url, id: row.id }, "[scheduler] scanning");
     try {
-      const result = await runAccessibilityScan(row.url);
+      const result = await runAccessibilityScan(row.url, { collectRuntimeDiagnostics: false });
 
       const previousScans = await db
         .select()

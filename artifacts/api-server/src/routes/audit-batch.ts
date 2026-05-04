@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { db, auditsTable } from "@workspace/db";
-import { runAccessibilityScan, validateScanUrl, scoreToLevel } from "../lib/scan";
+import { launchChromiumForAudit, runAccessibilityScan, validateScanUrl, scoreToLevel } from "../lib/scan";
 import type { AuditViolation, ScanEngine } from "../lib/scan";
+import { aggregateCrossPageViolations, computeWeightedSiteScore } from "../lib/batch-report";
 
 const router: IRouter = Router();
 
@@ -39,16 +40,6 @@ interface BatchPageResult {
   scanEngine?: ScanEngine | null;
   /** Viewport JPEG data URL (Playwright); omitted on failure or static fallback. */
   pageScreenshot?: string;
-}
-
-interface CrossPageViolation {
-  id: string;
-  wcagCriteria: string;
-  description: string;
-  impact: "minor" | "moderate" | "serious" | "critical";
-  pageCount: number;
-  totalAffectedElements: number;
-  affectedUrls: string[];
 }
 
 router.post("/audit/batch", async (req, res): Promise<void> => {
@@ -88,8 +79,21 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
-  const sendEvent = (data: unknown) => {
-    if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+  let clientGone = false;
+  req.once("close", () => {
+    clientGone = true;
+  });
+
+  const sendEvent = (data: unknown): boolean => {
+    if (res.writableEnded || clientGone) return false;
+    try {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+      return true;
+    } catch (err) {
+      clientGone = true;
+      req.log.warn({ err }, "Batch SSE write failed; stopping stream updates");
+      return false;
+    }
   };
 
   try {
@@ -97,79 +101,126 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
     const pages: BatchPageResult[] = new Array(cleanUrls.length);
     let idx = 0;
 
+    const disconnectedPage = (u: string): BatchPageResult => ({
+      auditId: "",
+      url: u,
+      score: 0,
+      level: scoreToLevel(0),
+      totalViolations: 0,
+      criticalViolations: 0,
+      seriousViolations: 0,
+      violations: [],
+      passedChecks: 0,
+      totalChecks: 0,
+      scannedAt: scannedAt.toISOString(),
+      status: "error",
+      error: "Scan skipped because the client disconnected.",
+      scanEngine: null,
+    });
+
+    const emitPageEvent = (index: number) => {
+      const p = pages[index];
+      sendEvent({
+        type: "page",
+        index,
+        url: p.url,
+        status: p.status,
+        score: p.score,
+        level: p.level,
+        auditId: p.auditId,
+        error: p.error,
+      });
+    };
+
     async function worker() {
-      while (idx < cleanUrls.length) {
-        const i = idx++;
-        const url = cleanUrls[i];
+      const browser = await launchChromiumForAudit();
+      try {
+        while (idx < cleanUrls.length) {
+          const i = idx++;
+          const url = cleanUrls[i];
 
-        sendEvent({ type: "scanning", url, index: i });
+          if (clientGone || res.writableEnded) {
+            pages[i] = disconnectedPage(url);
+            emitPageEvent(i);
+            continue;
+          }
 
-        try {
-          const result = await runAccessibilityScan(url);
-          const auditId = randomUUID();
+          if (!sendEvent({ type: "scanning", url, index: i })) {
+            pages[i] = disconnectedPage(url);
+            emitPageEvent(i);
+            continue;
+          }
 
-          await db.insert(auditsTable).values({
-            auditId,
-            url,
-            scannedAt,
-            score: result.score,
-            level: result.level,
-            totalViolations: result.totalViolations,
-            criticalViolations: result.criticalViolations,
-            seriousViolations: result.seriousViolations,
-            violations: result.violations,
-            passedChecks: result.passedChecks,
-            totalChecks: result.totalChecks,
-            scanEngine: result.scanEngine,
-            pageScreenshot: result.pageScreenshot ?? null,
-          });
+          if (clientGone || res.writableEnded) {
+            pages[i] = disconnectedPage(url);
+            emitPageEvent(i);
+            continue;
+          }
 
-          pages[i] = {
-            auditId,
-            url,
-            score: result.score,
-            level: result.level,
-            totalViolations: result.totalViolations,
-            criticalViolations: result.criticalViolations,
-            seriousViolations: result.seriousViolations,
-            violations: result.violations,
-            passedChecks: result.passedChecks,
-            totalChecks: result.totalChecks,
-            scannedAt: scannedAt.toISOString(),
-            status: "success",
-            scanEngine: result.scanEngine,
-            ...(result.pageScreenshot ? { pageScreenshot: result.pageScreenshot } : {}),
-          };
-        } catch (err) {
-          req.log.warn({ err, url }, "Batch scan failed for URL — not persisting failure");
-          pages[i] = {
-            auditId: "",
-            url,
-            score: 0,
-            level: scoreToLevel(0),
-            totalViolations: 0,
-            criticalViolations: 0,
-            seriousViolations: 0,
-            violations: [],
-            passedChecks: 0,
-            totalChecks: 0,
-            scannedAt: scannedAt.toISOString(),
-            status: "error",
-            error: "Scan failed. The site may be unreachable or blocking automated scanners.",
-            scanEngine: null,
-          };
+          try {
+            const result = await runAccessibilityScan(url, {
+              browser,
+              collectRuntimeDiagnostics: false,
+            });
+            const auditId = randomUUID();
+
+            await db.insert(auditsTable).values({
+              auditId,
+              url,
+              scannedAt,
+              score: result.score,
+              level: result.level,
+              totalViolations: result.totalViolations,
+              criticalViolations: result.criticalViolations,
+              seriousViolations: result.seriousViolations,
+              violations: result.violations,
+              passedChecks: result.passedChecks,
+              totalChecks: result.totalChecks,
+              scanEngine: result.scanEngine,
+              pageScreenshot: result.pageScreenshot ?? null,
+              scanMetadata: result.scanMetadata ?? null,
+            });
+
+            pages[i] = {
+              auditId,
+              url,
+              score: result.score,
+              level: result.level,
+              totalViolations: result.totalViolations,
+              criticalViolations: result.criticalViolations,
+              seriousViolations: result.seriousViolations,
+              violations: result.violations,
+              passedChecks: result.passedChecks,
+              totalChecks: result.totalChecks,
+              scannedAt: scannedAt.toISOString(),
+              status: "success",
+              scanEngine: result.scanEngine,
+              ...(result.pageScreenshot ? { pageScreenshot: result.pageScreenshot } : {}),
+            };
+          } catch (err) {
+            req.log.warn({ err, url }, "Batch scan failed for URL — not persisting failure");
+            pages[i] = {
+              auditId: "",
+              url,
+              score: 0,
+              level: scoreToLevel(0),
+              totalViolations: 0,
+              criticalViolations: 0,
+              seriousViolations: 0,
+              violations: [],
+              passedChecks: 0,
+              totalChecks: 0,
+              scannedAt: scannedAt.toISOString(),
+              status: "error",
+              error: "Scan failed. The site may be unreachable or blocking automated scanners.",
+              scanEngine: null,
+            };
+          }
+
+          emitPageEvent(i);
         }
-
-        sendEvent({
-          type: "page",
-          index: i,
-          url: pages[i].url,
-          status: pages[i].status,
-          score: pages[i].score,
-          level: pages[i].level,
-          auditId: pages[i].auditId,
-          error: pages[i].error,
-        });
+      } finally {
+        await browser.close().catch(() => {});
       }
     }
 
@@ -177,73 +228,58 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
     await Promise.all(workers);
 
     const successPages = pages.filter((p) => p.status === "success");
-    // Weighted average: weight each page's score by its totalChecks so pages
-    // with more auditable elements contribute proportionally to the site score.
-    const totalWeight = successPages.reduce((sum, p) => sum + (p.totalChecks || 1), 0);
-    const siteScore =
-      successPages.length > 0
-        ? Math.round(
-            successPages.reduce((sum, p) => sum + p.score * (p.totalChecks || 1), 0) / totalWeight,
-          )
-        : 0;
+    const siteScore = computeWeightedSiteScore(
+      successPages.map((p) => ({ score: p.score, totalChecks: p.totalChecks })),
+    );
     const siteLevel = scoreToLevel(siteScore);
 
-    const violationMap = new Map<
-      string,
-      { violation: AuditViolation; pageUrls: string[]; totalElements: number }
-    >();
+    const crossPageViolations = aggregateCrossPageViolations(
+      pages.map((p) => ({ url: p.url, status: p.status, violations: p.violations })),
+    );
 
-    for (const page of pages) {
-      for (const v of page.violations) {
-        const existing = violationMap.get(v.id);
-        if (existing) {
-          if (!existing.pageUrls.includes(page.url)) existing.pageUrls.push(page.url);
-          existing.totalElements += v.affectedElements;
-        } else {
-          violationMap.set(v.id, {
-            violation: v,
-            pageUrls: [page.url],
-            totalElements: v.affectedElements,
-          });
-        }
-      }
+    req.log.info(
+      {
+        siteScore,
+        siteLevel,
+        urls: cleanUrls.length,
+        successCount: successPages.length,
+        crossPageViolationCount: crossPageViolations.length,
+      },
+      "Batch audit aggregation complete",
+    );
+
+    let completeDelivered = false;
+    if (!clientGone && !res.writableEnded) {
+      completeDelivered = sendEvent({
+        type: "complete",
+        siteScore,
+        siteLevel,
+        pages: pages.map((p) => ({
+          auditId: p.auditId,
+          url: p.url,
+          score: p.score,
+          level: p.level,
+          totalViolations: p.totalViolations,
+          criticalViolations: p.criticalViolations,
+          seriousViolations: p.seriousViolations,
+          passedChecks: p.passedChecks,
+          totalChecks: p.totalChecks,
+          scannedAt: p.scannedAt,
+          status: p.status,
+          error: p.error,
+          scanEngine: p.scanEngine ?? null,
+          ...(p.pageScreenshot ? { pageScreenshot: p.pageScreenshot } : {}),
+        })),
+        crossPageViolations,
+        scannedAt: scannedAt.toISOString(),
+      });
     }
-
-    const crossPageViolations: CrossPageViolation[] = Array.from(violationMap.values())
-      .map(({ violation, pageUrls, totalElements }) => ({
-        id: violation.id,
-        wcagCriteria: violation.wcagCriteria,
-        description: violation.description,
-        impact: violation.impact,
-        pageCount: pageUrls.length,
-        totalAffectedElements: totalElements,
-        affectedUrls: pageUrls,
-      }))
-      .sort((a, b) => b.pageCount - a.pageCount || b.totalAffectedElements - a.totalAffectedElements);
-
-    sendEvent({
-      type: "complete",
-      siteScore,
-      siteLevel,
-      pages: pages.map((p) => ({
-        auditId: p.auditId,
-        url: p.url,
-        score: p.score,
-        level: p.level,
-        totalViolations: p.totalViolations,
-        criticalViolations: p.criticalViolations,
-        seriousViolations: p.seriousViolations,
-        passedChecks: p.passedChecks,
-        totalChecks: p.totalChecks,
-        scannedAt: p.scannedAt,
-        status: p.status,
-        error: p.error,
-        scanEngine: p.scanEngine ?? null,
-        ...(p.pageScreenshot ? { pageScreenshot: p.pageScreenshot } : {}),
-      })),
-      crossPageViolations,
-      scannedAt: scannedAt.toISOString(),
-    });
+    if (!completeDelivered) {
+      req.log.info(
+        { siteScore, urlCount: cleanUrls.length, clientGone, writableEnded: res.writableEnded },
+        "Batch audit finished without delivering final SSE payload (client disconnected, stream ended, or write error)",
+      );
+    }
   } catch (err) {
     req.log.error({ err }, "Batch SSE stream failed");
     sendEvent({ type: "error", message: "Batch scan failed. Please try again." });

@@ -4,7 +4,7 @@
 
 **B2B digital accessibility agency website** — helping European enterprises achieve EAA compliance before the June 2025 deadline.
 
-Built on the **sometech.work** brand. Live URL audit, monitoring, and WCAG tooling in a single product.
+**accessibility.now** is the A11y agency product: live URL audit, monitoring, and WCAG tooling in one place.
 
 ---
 
@@ -161,4 +161,4 @@ pnpm --filter @workspace/db run push           # Push schema directly (dev only)
 
 ## Licence
 
-Private — sometech.work. All rights reserved.
+Private — accessibility.now. All rights reserved.

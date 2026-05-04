@@ -1,4 +1,5 @@
 import { useReducer, useEffect, useState } from "react";
+import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { ExternalLink, ClipboardCopy, RotateCcw, ChevronDown, ChevronUp, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -135,22 +136,18 @@ export default function WcagChecklist() {
   }
 
   return (
-    <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-24 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-display font-extrabold tracking-tight mb-6">
-            WCAG 2.1 AA<br />
-            <span className="heading-accent">interactive checklist.</span>
-          </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
-            Work through all 50 WCAG 2.1 AA success criteria. Mark each as Pass, Fail, or N/A - progress is saved in your browser automatically.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto max-w-5xl">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+    <ToolPageLayout
+      eyebrow="50 criteria · Local save"
+      title={
+        <>
+          WCAG 2.1 AA<br />
+          <span className="heading-accent">interactive checklist.</span>
+        </>
+      }
+      description="Work through all 50 WCAG 2.1 AA success criteria. Mark each as Pass, Fail, or N/A - progress is saved in your browser automatically."
+      contentMaxWidth="max-w-5xl"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
             {/* Sidebar */}
             <div className="space-y-5 lg:sticky lg:top-20 lg:self-start">
@@ -344,9 +341,7 @@ export default function WcagChecklist() {
                 );
               })}
             </div>
-          </div>
-        </div>
-      </section>
-    </div>
+      </div>
+    </ToolPageLayout>
   );
 }

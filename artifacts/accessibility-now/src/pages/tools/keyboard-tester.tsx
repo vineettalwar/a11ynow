@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckCircle2, Circle, ClipboardCopy, RotateCcw, Keyboard, ListChecks } from "lucide-react";
@@ -196,21 +197,18 @@ export default function KeyboardTester() {
   const passCount = CHECKLIST_STEPS.filter((s) => checks[s.id]).length;
 
   return (
-    <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-24 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-display font-extrabold tracking-tight mb-6">
-            Keyboard navigation<br />
-            <span className="heading-accent">tester.</span>
-          </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
-            Two modes: Live overlay mode tracks focused elements in real-time as you Tab through a page. Checklist mode guides you through manual testing with a persistent, exportable checklist.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto max-w-5xl space-y-8">
+    <ToolPageLayout
+      eyebrow="Live page · Checklist export"
+      title={
+        <>
+          Keyboard navigation<br />
+          <span className="heading-accent">tester.</span>
+        </>
+      }
+      description="Two modes: Live overlay mode tracks focused elements in real-time as you Tab through a page. Checklist mode guides you through manual testing with a persistent, exportable checklist."
+      contentMaxWidth="max-w-5xl"
+      innerClassName="space-y-8"
+    >
           <div className="flex flex-wrap items-center gap-4">
             <form onSubmit={handleLoadUrl} className="flex gap-2 flex-1 min-w-0 max-w-xl">
               <label htmlFor="kt-url" className="sr-only">Website URL</label>
@@ -410,8 +408,6 @@ export default function KeyboardTester() {
               </div>
             </div>
           )}
-        </div>
-      </section>
-    </div>
+    </ToolPageLayout>
   );
 }

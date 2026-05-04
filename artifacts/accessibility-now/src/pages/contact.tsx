@@ -109,7 +109,7 @@ export default function Contact() {
                   <div>
                     <h3 className="font-bold text-sm font-sans mb-1">European HQ</h3>
                     <p className="text-muted-foreground text-xs">
-                      accessibility.now by sometech.work<br />
+                      accessibility.now<br />
                       Berlin, Germany
                     </p>
                   </div>

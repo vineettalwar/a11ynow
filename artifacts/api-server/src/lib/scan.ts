@@ -1,8 +1,9 @@
-import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
 import { logger } from "./logger";
+import { launchChromiumHeadless } from "./playwright-chromium";
+import { screenshotFriendlyContextOptions, stablePlaywrightScreenshotProps } from "./playwright-screenshot";
 
 const dnsLookupAsync = promisify(dnsLookup);
 
@@ -55,6 +56,28 @@ export interface AuditViolation {
   /** Deque / axe rule documentation URL. */
   helpUrl?: string;
   instanceDetails?: AuditViolationInstance[];
+  /** When merged across viewport runs, which breakpoints reported this rule. */
+  detectedInViewports?: string[];
+}
+
+export type ScanProfile = "default" | "strict";
+
+export interface ScanViewport {
+  width: number;
+  height: number;
+  label: string;
+}
+
+export interface RuntimeDiagnostics {
+  consoleErrors: Array<{ type: string; text: string }>;
+  failedRequests?: Array<{ url: string; errorText?: string }>;
+}
+
+export interface ScanMetadata {
+  profile: ScanProfile;
+  multiViewport: boolean;
+  viewportsUsed: ScanViewport[];
+  runtimeDiagnostics?: RuntimeDiagnostics;
 }
 
 export interface ScanResult {
@@ -69,6 +92,8 @@ export interface ScanResult {
   scanEngine: ScanEngine;
   /** Viewport JPEG data URL taken after the axe run (Playwright only). */
   pageScreenshot?: string;
+  /** Present for Playwright scans when diagnostics or multi-viewport ran. */
+  scanMetadata?: ScanMetadata;
 }
 
 export function scoreToLevel(
@@ -96,7 +121,7 @@ function tagToWcagCriteria(tags: string[]): string {
 }
 
 /** Same WCAG tag set for Playwright and static fallback so scores are comparable when both paths run. */
-const AXE_WCAG_TAGS = [
+const AXE_WCAG_TAGS_DEFAULT = [
   "wcag2a",
   "wcag2aa",
   "wcag21a",
@@ -104,6 +129,104 @@ const AXE_WCAG_TAGS = [
   "wcag22aa",
   "best-practice",
 ] as const;
+
+/** Stricter automated pass (AAA-oriented tags where axe supports them). */
+const AXE_WCAG_TAGS_STRICT = [...AXE_WCAG_TAGS_DEFAULT, "wcag2aaa", "wcag21aaa"] as const;
+
+const DEFAULT_VIEWPORT_DESKTOP: ScanViewport = { width: 1280, height: 720, label: "Desktop" };
+const MULTI_VIEWPORTS: readonly ScanViewport[] = [
+  { width: 390, height: 844, label: "Mobile" },
+  DEFAULT_VIEWPORT_DESKTOP,
+];
+
+const MAX_CONSOLE_ERRORS = 28;
+const MAX_CONSOLE_TEXT_LEN = 420;
+const MAX_FAILED_REQUESTS = 16;
+const MAX_FAILED_URL_LEN = 280;
+
+function axeTagsForProfile(profile: ScanProfile): readonly string[] {
+  return profile === "strict" ? AXE_WCAG_TAGS_STRICT : AXE_WCAG_TAGS_DEFAULT;
+}
+
+function violationMergeKey(v: Pick<AuditViolation, "id" | "topSelectors">): string {
+  const sel = (v.topSelectors[0] ?? "").trim();
+  return `${v.id}::${sel}`;
+}
+
+function mergeViolationsAcrossViewports(
+  runs: Array<{ label: string; violations: AuditViolation[] }>,
+): AuditViolation[] {
+  const map = new Map<string, AuditViolation>();
+  const impactRank: Record<string, number> = { critical: 0, serious: 1, moderate: 2, minor: 3 };
+
+  for (const { label, violations } of runs) {
+    for (const v of violations) {
+      const k = violationMergeKey(v);
+      const existing = map.get(k);
+      if (!existing) {
+        map.set(k, { ...v, detectedInViewports: [label] });
+        continue;
+      }
+      const vp = new Set([...(existing.detectedInViewports ?? []), label]);
+      existing.detectedInViewports = [...vp];
+      existing.affectedElements = Math.max(existing.affectedElements, v.affectedElements);
+      if ((impactRank[v.impact] ?? 9) < (impactRank[existing.impact] ?? 9)) {
+        existing.impact = v.impact;
+      }
+      if ((v.instanceDetails?.length ?? 0) > (existing.instanceDetails?.length ?? 0)) {
+        existing.instanceDetails = v.instanceDetails;
+        existing.topSelectors = v.topSelectors;
+      }
+      if (!existing.help && v.help) existing.help = v.help;
+      if (!existing.helpUrl && v.helpUrl) existing.helpUrl = v.helpUrl;
+      if (existing.description.length < v.description.length) existing.description = v.description;
+    }
+  }
+  return [...map.values()];
+}
+
+async function attachElementScreenshotsMerged(
+  page: import("playwright").Page,
+  merged: AuditViolation[],
+  lastAxeViolations: Array<{ id?: string; nodes?: AxeNodeLike[] }>,
+): Promise<void> {
+  const byRuleId = new Map<string, AxeNodeLike[]>();
+  for (const av of lastAxeViolations) {
+    const id = typeof av.id === "string" ? av.id : "";
+    if (!id) continue;
+    const nodes = av.nodes as AxeNodeLike[] | undefined;
+    if (!nodes?.length) continue;
+    if (!byRuleId.has(id)) byRuleId.set(id, nodes);
+  }
+
+  const impactRank: Record<string, number> = { critical: 0, serious: 1, moderate: 2, minor: 3 };
+  const sorted = [...merged].sort((a, b) => {
+    const ra = impactRank[a.impact] ?? 9;
+    const rb = impactRank[b.impact] ?? 9;
+    return ra - rb;
+  });
+
+  let budget = MAX_ELEMENT_SCREENSHOTS;
+  for (const mv of sorted) {
+    if (budget <= 0) break;
+    const nodes = byRuleId.get(mv.id);
+    if (!nodes?.length || !mv.instanceDetails?.length) continue;
+    for (let j = 0; j < mv.instanceDetails.length && budget > 0; j++) {
+      const target = nodes[j]?.target ?? nodes[0]?.target;
+      const shot = await tryElementScreenshot(page, target);
+      if (shot) {
+        mv.instanceDetails[j] = { ...mv.instanceDetails[j]!, elementScreenshot: shot };
+        budget--;
+      }
+    }
+  }
+}
+
+function capDiagText(s: string, max: number): string {
+  const t = s.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max)}…`;
+}
 
 function setSyntheticFailureMetrics(violationCount: number): { passedChecks: number; totalChecks: number } {
   const n = Math.max(1, violationCount);
@@ -188,6 +311,7 @@ async function tryElementScreenshot(
     const buf = await loc.screenshot({
       type: "jpeg",
       quality: ELEMENT_SCREENSHOT_JPEG_QUALITY,
+      ...stablePlaywrightScreenshotProps,
     });
     if (!buf || buf.length < 320) return undefined;
     return `data:image/jpeg;base64,${buf.toString("base64")}`;
@@ -253,92 +377,25 @@ async function scrollDocumentForLazyContent(page: import("playwright").Page): Pr
     .catch(() => undefined);
 }
 
-async function runPlaywrightScan(
-  url: string,
-  browser: import("playwright").Browser,
-  allowPrivateTargets: boolean,
-): Promise<{
-  violations: AuditViolation[];
-  passedChecks: number;
-  totalChecks: number;
-  pageScreenshot?: string;
-}> {
-  const context = await browser.newContext({
-    userAgent: "accessibility.now/1.0 Compliance Scanner (+https://accessibility.now)",
-  });
+interface PlaywrightScanEngineOpts {
+  profile: ScanProfile;
+  viewports: ScanViewport[];
+  collectRuntimeDiagnostics: boolean;
+}
 
-  if (!allowPrivateTargets) {
-    const dnsCache = new Map<string, string>();
-    await context.route("**", async (route) => {
-      const reqUrl = route.request().url();
-      let parsedReq: URL;
-      try {
-        parsedReq = new URL(reqUrl);
-      } catch {
-        await route.abort("addressunreachable");
-        return;
-      }
-
-      const scheme = parsedReq.protocol.replace(/:$/, "").toLowerCase();
-      if (scheme === "data" || scheme === "blob" || scheme === "about") {
-        await route.continue();
-        return;
-      }
-
-      const hostname = parsedReq.hostname.replace(/^\[|\]$/g, "");
-      if (!hostname) {
-        await route.continue();
-        return;
-      }
-
-      if (PRIVATE_IP_RE.test(hostname) || PRIVATE_HOSTNAME_RE.test(hostname)) {
-        await route.abort("addressunreachable");
-        return;
-      }
-
-      const key = hostname.toLowerCase();
-      let address: string;
-      const cached = dnsCache.get(key);
-      if (cached !== undefined) {
-        address = cached;
-      } else {
-        try {
-          const { address: resolved } = await dnsLookupAsync(hostname);
-          address = resolved;
-          dnsCache.set(key, resolved);
-        } catch {
-          await route.abort("namenotresolved");
-          return;
-        }
-      }
-
-      if (PRIVATE_IP_RE.test(address)) {
-        await route.abort("addressunreachable");
-        return;
-      }
-
-      await route.continue();
-    });
-  }
-
-  const page = await context.newPage();
-  await page.goto(url, { waitUntil: "load", timeout: AUDIT_TIMEOUT_MS });
-  await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_AFTER_LOAD_MS }).catch(() => undefined);
-  await new Promise<void>((r) => setTimeout(r, HYDRATION_SETTLE_MS));
-
-  await scrollDocumentForLazyContent(page);
-  await new Promise<void>((r) => setTimeout(r, POST_SCROLL_SETTLE_MS));
-
-  const axeResults = await new AxeBuilder({ page })
-    .withTags([...AXE_WCAG_TAGS])
-    .options({
-      iframes: true,
-      resultTypes: ["violations", "passes"],
-    })
-    .analyze();
-
-  const violations: AuditViolation[] = axeResults.violations.map((v) => {
-    const nodes = v.nodes as AxeNodeLike[];
+function mapAxeToViolations(
+  axeViolations: Array<{
+    id: string;
+    tags: string[];
+    description: string;
+    impact?: string | null;
+    nodes: AxeNodeLike[];
+    help?: string;
+    helpUrl?: string;
+  }>,
+): AuditViolation[] {
+  return axeViolations.map((v) => {
+    const nodes = (v.nodes ?? []) as AxeNodeLike[];
     const instanceDetails = nodes.length > 0 ? mapInstanceDetails(nodes) : undefined;
     const help = typeof v.help === "string" ? v.help.trim() : "";
     const helpUrl = typeof v.helpUrl === "string" ? v.helpUrl.trim() : "";
@@ -356,56 +413,257 @@ async function runPlaywrightScan(
       ...(instanceDetails && instanceDetails.length > 0 ? { instanceDetails } : {}),
     };
   });
-
-  await attachElementScreenshots(page, violations, axeResults.violations);
-
-  await page.evaluate(() => window.scrollTo(0, 0)).catch(() => undefined);
-  await new Promise<void>((r) => setTimeout(r, 200));
-
-  let pageScreenshot: string | undefined;
-  try {
-    const buf = await page.screenshot({
-      type: "jpeg",
-      quality: PAGE_SCREENSHOT_JPEG_QUALITY,
-      fullPage: false,
-    });
-    pageScreenshot = `data:image/jpeg;base64,${buf.toString("base64")}`;
-  } catch {
-    pageScreenshot = undefined;
-  }
-
-  const passedChecks = axeResults.passes.length;
-  const totalChecks = axeResults.violations.length + axeResults.passes.length;
-
-  await context.close();
-  return { violations, passedChecks, totalChecks, pageScreenshot };
 }
 
-export async function runAccessibilityScan(url: string): Promise<ScanResult> {
+async function runPlaywrightScan(
+  url: string,
+  browser: import("playwright").Browser,
+  allowPrivateTargets: boolean,
+  engineOpts: PlaywrightScanEngineOpts,
+): Promise<{
+  violations: AuditViolation[];
+  passedChecks: number;
+  totalChecks: number;
+  pageScreenshot?: string;
+  runtimeDiagnostics?: RuntimeDiagnostics;
+}> {
+  const tags = [...axeTagsForProfile(engineOpts.profile)];
+  const multiVp = engineOpts.viewports.length > 1;
+  const firstVp = engineOpts.viewports[0]!;
+
+  const context = await browser.newContext({
+    ...screenshotFriendlyContextOptions({ width: firstVp.width, height: firstVp.height }),
+    userAgent: "accessibility.now/1.0 Compliance Scanner (+https://accessibility.now)",
+  });
+
+  const consoleErrors: Array<{ type: string; text: string }> = [];
+  const failedRequests: Array<{ url: string; errorText?: string }> = [];
+
+  try {
+    if (!allowPrivateTargets) {
+      const dnsCache = new Map<string, string>();
+      await context.route("**", async (route) => {
+        const reqUrl = route.request().url();
+        let parsedReq: URL;
+        try {
+          parsedReq = new URL(reqUrl);
+        } catch {
+          await route.abort("addressunreachable");
+          return;
+        }
+
+        const scheme = parsedReq.protocol.replace(/:$/, "").toLowerCase();
+        if (scheme === "data" || scheme === "blob" || scheme === "about") {
+          await route.continue();
+          return;
+        }
+
+        const hostname = parsedReq.hostname.replace(/^\[|\]$/g, "");
+        if (!hostname) {
+          await route.continue();
+          return;
+        }
+
+        if (PRIVATE_IP_RE.test(hostname) || PRIVATE_HOSTNAME_RE.test(hostname)) {
+          await route.abort("addressunreachable");
+          return;
+        }
+
+        const key = hostname.toLowerCase();
+        let address: string;
+        const cached = dnsCache.get(key);
+        if (cached !== undefined) {
+          address = cached;
+        } else {
+          try {
+            const { address: resolved } = await dnsLookupAsync(hostname);
+            address = resolved;
+            dnsCache.set(key, resolved);
+          } catch {
+            await route.abort("namenotresolved");
+            return;
+          }
+        }
+
+        if (PRIVATE_IP_RE.test(address)) {
+          await route.abort("addressunreachable");
+          return;
+        }
+
+        await route.continue();
+      });
+    }
+
+    const page = await context.newPage();
+
+    if (engineOpts.collectRuntimeDiagnostics) {
+      page.on("console", (msg) => {
+        if (msg.type() !== "error") return;
+        if (consoleErrors.length >= MAX_CONSOLE_ERRORS) return;
+        consoleErrors.push({ type: "error", text: capDiagText(msg.text() || "(no message)", MAX_CONSOLE_TEXT_LEN) });
+      });
+      page.on("requestfailed", (req) => {
+        if (failedRequests.length >= MAX_FAILED_REQUESTS) return;
+        const u = capDiagText(req.url(), MAX_FAILED_URL_LEN);
+        const f = req.failure();
+        const errText = f?.errorText ? capDiagText(f.errorText, 120) : undefined;
+        failedRequests.push({ url: u, ...(errText ? { errorText: errText } : {}) });
+      });
+    }
+
+    const perRunResults: Array<{
+      label: string;
+      violations: AuditViolation[];
+      axeViolationsRaw: Array<{ id?: string; nodes?: AxeNodeLike[] }>;
+      passes: number;
+      violationsCount: number;
+    }> = [];
+
+    for (let vi = 0; vi < engineOpts.viewports.length; vi++) {
+      const vp = engineOpts.viewports[vi]!;
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      if (vi === 0) {
+        await page.goto(url, { waitUntil: "load", timeout: AUDIT_TIMEOUT_MS });
+      } else {
+        await page.reload({ waitUntil: "load", timeout: AUDIT_TIMEOUT_MS });
+      }
+      await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_AFTER_LOAD_MS }).catch(() => undefined);
+      await new Promise<void>((r) => setTimeout(r, HYDRATION_SETTLE_MS));
+      await scrollDocumentForLazyContent(page);
+      await new Promise<void>((r) => setTimeout(r, POST_SCROLL_SETTLE_MS));
+
+      const axeResults = await new AxeBuilder({ page })
+        .withTags(tags)
+        .options({
+          iframes: true,
+          resultTypes: ["violations", "passes"],
+        })
+        .analyze();
+
+      const violations = mapAxeToViolations(axeResults.violations);
+      perRunResults.push({
+        label: vp.label,
+        violations,
+        axeViolationsRaw: axeResults.violations,
+        passes: axeResults.passes.length,
+        violationsCount: axeResults.violations.length,
+      });
+    }
+
+    const last = perRunResults[perRunResults.length - 1]!;
+    let violations: AuditViolation[];
+    if (multiVp) {
+      violations = mergeViolationsAcrossViewports(
+        perRunResults.map((r) => ({ label: r.label, violations: r.violations })),
+      );
+      await attachElementScreenshotsMerged(page, violations, last.axeViolationsRaw);
+    } else {
+      violations = last.violations;
+      await attachElementScreenshots(page, violations, last.axeViolationsRaw as Array<{ nodes?: AxeNodeLike[] }>);
+    }
+
+    await page.evaluate(() => window.scrollTo(0, 0)).catch(() => undefined);
+    await new Promise<void>((r) => setTimeout(r, 200));
+
+    let pageScreenshot: string | undefined;
+    try {
+      const buf = await page.screenshot({
+        type: "jpeg",
+        quality: PAGE_SCREENSHOT_JPEG_QUALITY,
+        fullPage: false,
+        ...stablePlaywrightScreenshotProps,
+      });
+      pageScreenshot = `data:image/jpeg;base64,${buf.toString("base64")}`;
+    } catch {
+      pageScreenshot = undefined;
+    }
+
+    const passedChecks = last.passes;
+    const totalChecks = last.violationsCount + last.passes;
+
+    const hasDiag =
+      engineOpts.collectRuntimeDiagnostics &&
+      (consoleErrors.length > 0 || failedRequests.length > 0);
+    const runtimeDiagnostics: RuntimeDiagnostics | undefined = hasDiag
+      ? {
+          consoleErrors,
+          ...(failedRequests.length > 0 ? { failedRequests } : {}),
+        }
+      : undefined;
+
+    return {
+      violations,
+      passedChecks,
+      totalChecks,
+      pageScreenshot,
+      ...(runtimeDiagnostics ? { runtimeDiagnostics } : {}),
+    };
+  } finally {
+    await context.close().catch(() => {});
+  }
+}
+
+/** Shared Chromium launch for audits (single scans and batch workers). */
+export async function launchChromiumForAudit(): Promise<import("playwright").Browser> {
+  return launchChromiumHeadless();
+}
+
+export interface RunAccessibilityScanOptions {
+  /**
+   * Reuse an existing browser (one Playwright scan at a time per instance).
+   * Caller must `close()` the browser when finished. Used by batch routes to avoid cold-starts per URL.
+   */
+  browser?: import("playwright").Browser;
+  /** Axe tag set: `strict` adds AAA-oriented rules where supported. Default: `default`. */
+  profile?: ScanProfile;
+  /** When true, runs mobile + desktop axe passes and merges violations (slower). Default: false. */
+  multiViewport?: boolean;
+  /** Collect console errors and failed requests during Playwright navigation. Default: true for single scans; batch may set false. */
+  collectRuntimeDiagnostics?: boolean;
+}
+
+export async function runAccessibilityScan(
+  url: string,
+  options?: RunAccessibilityScanOptions,
+): Promise<ScanResult> {
   const allowPrivateTargets = scanAllowsPrivateTargets();
+  const scanProfile: ScanProfile = options?.profile === "strict" ? "strict" : "default";
+  const multiViewport = Boolean(options?.multiViewport);
+  const collectRuntimeDiagnostics = options?.collectRuntimeDiagnostics !== false;
+  const viewports: ScanViewport[] = multiViewport ? [...MULTI_VIEWPORTS] : [DEFAULT_VIEWPORT_DESKTOP];
+
   let violations: AuditViolation[] = [];
   let passedChecks = 0;
   let totalChecks = 0;
   let playwrightSucceeded = false;
   let pageScreenshot: string | undefined;
+  let playwrightRuntimeDiagnostics: RuntimeDiagnostics | undefined;
 
-  let browser: import("playwright").Browser | undefined;
+  const reuseBrowser = options?.browser;
+  let browser: import("playwright").Browser | undefined = reuseBrowser;
   let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
+  const extraTimeoutMs =
+    (multiViewport ? 38_000 : 0) + (scanProfile === "strict" ? 6_000 : 0) + (collectRuntimeDiagnostics ? 0 : 0);
+
   try {
-    browser = await chromium.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-    });
+    if (!browser) {
+      browser = await launchChromiumForAudit();
+    }
 
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutHandle = setTimeout(
         () => reject(new Error(`Audit timed out after ${AUDIT_TIMEOUT_MS / 1000}s`)),
-        AUDIT_TIMEOUT_MS + 8000,
+        AUDIT_TIMEOUT_MS + 8000 + extraTimeoutMs,
       );
     });
 
     const result = await Promise.race([
-      runPlaywrightScan(url, browser, allowPrivateTargets),
+      runPlaywrightScan(url, browser, allowPrivateTargets, {
+        profile: scanProfile,
+        viewports,
+        collectRuntimeDiagnostics,
+      }),
       timeoutPromise,
     ]);
     violations = result.violations;
@@ -413,11 +671,17 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
     totalChecks = result.totalChecks;
     playwrightSucceeded = true;
     pageScreenshot = result.pageScreenshot;
+    playwrightRuntimeDiagnostics = result.runtimeDiagnostics;
   } catch (err) {
     logger.warn({ err, url }, "Playwright audit failed, falling back to fetch-based scan");
+    if (reuseBrowser && browser) {
+      await Promise.all(browser.contexts().map((c) => c.close().catch(() => {})));
+    }
   } finally {
     clearTimeout(timeoutHandle);
-    await browser?.close().catch(() => {});
+    if (!reuseBrowser) {
+      await browser?.close().catch(() => {});
+    }
   }
 
   const scanEngine: ScanEngine = playwrightSucceeded ? "playwright" : "static_fallback";
@@ -465,7 +729,7 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
           const axeResults = await axe.run(doc, {
             runOnly: {
               type: "tag",
-              values: [...AXE_WCAG_TAGS],
+              values: [...axeTagsForProfile(scanProfile)],
             },
             resultTypes: ["violations", "passes"],
           });
@@ -539,6 +803,21 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
   }
   const score = Math.max(0, Math.min(100, Math.round(100 - deductions)));
 
+  const scanMetadata: ScanMetadata | undefined = playwrightSucceeded
+    ? {
+        profile: scanProfile,
+        multiViewport,
+        viewportsUsed: viewports.map((v) => ({ ...v })),
+        ...(playwrightRuntimeDiagnostics ? { runtimeDiagnostics: playwrightRuntimeDiagnostics } : {}),
+      }
+    : scanEngine === "static_fallback"
+      ? {
+          profile: scanProfile,
+          multiViewport: false,
+          viewportsUsed: [],
+        }
+      : undefined;
+
   return {
     score,
     level: scoreToLevel(score),
@@ -550,6 +829,7 @@ export async function runAccessibilityScan(url: string): Promise<ScanResult> {
     totalChecks,
     scanEngine,
     ...(pageScreenshot && pageScreenshot.length > 0 ? { pageScreenshot } : {}),
+    ...(scanMetadata ? { scanMetadata } : {}),
   };
 }
 

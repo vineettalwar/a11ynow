@@ -9,9 +9,63 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface ScanViewportUsed {
+  width: number;
+  height: number;
+  label: string;
+}
+
+export type RuntimeDiagnosticsConsoleErrorsItem = {
+  type: string;
+  text: string;
+};
+
+export type RuntimeDiagnosticsFailedRequestsItem = {
+  url: string;
+  errorText?: string;
+};
+
+export interface RuntimeDiagnostics {
+  consoleErrors: RuntimeDiagnosticsConsoleErrorsItem[];
+  failedRequests?: RuntimeDiagnosticsFailedRequestsItem[];
+}
+
+export type ScanMetadataProfile =
+  (typeof ScanMetadataProfile)[keyof typeof ScanMetadataProfile];
+
+export const ScanMetadataProfile = {
+  default: "default",
+  strict: "strict",
+} as const;
+
+export interface ScanMetadata {
+  profile: ScanMetadataProfile;
+  multiViewport: boolean;
+  viewportsUsed: ScanViewportUsed[];
+  runtimeDiagnostics?: RuntimeDiagnostics;
+}
+
+/**
+ * `strict` includes additional AAA-oriented axe tags. Default `default` (WCAG 2.x AA-oriented set).
+
+ */
+export type CreateAuditBodyProfile =
+  (typeof CreateAuditBodyProfile)[keyof typeof CreateAuditBodyProfile];
+
+export const CreateAuditBodyProfile = {
+  default: "default",
+  strict: "strict",
+} as const;
+
 export interface CreateAuditBody {
   /** The URL to audit for accessibility compliance */
   url: string;
+  /** `strict` includes additional AAA-oriented axe tags. Default `default` (WCAG 2.x AA-oriented set).
+   */
+  profile?: CreateAuditBodyProfile;
+  /** When true, runs axe at mobile and desktop breakpoints and merges results (slower). Default false.
+   */
+  multiViewport?: boolean;
 }
 
 /**
@@ -60,6 +114,8 @@ export interface AuditViolation {
 Omitted on legacy audits. Remote scans do not include original source file line numbers; use DevTools with the selector.
  */
   instanceDetails?: AuditViolationInstance[];
+  /** Breakpoint labels when this finding was merged from a multi-viewport scan. */
+  detectedInViewports?: string[];
 }
 
 /**
@@ -117,6 +173,8 @@ export interface AuditResult {
   /** Viewport JPEG data URL of the page after the axe run (Playwright only). Omitted for static fallback, legacy rows, or when capture failed.
    */
   pageScreenshot?: string;
+  /** Scan options, viewports used, and optional runtime diagnostics (Playwright). Omitted on legacy rows. */
+  scanMetadata?: ScanMetadata;
 }
 
 export interface CreateLeadBody {
@@ -346,14 +404,14 @@ export const BatchAuditResultSiteLevel = {
 
 export interface BatchAuditResult {
   /**
-   * Weighted average score across all scanned pages
+   * Weighted average score across successful pages only; each page weighted by axe totalChecks
    * @minimum 0
    * @maximum 100
    */
   siteScore: number;
   siteLevel: BatchAuditResultSiteLevel;
   pages: BatchPageResult[];
-  /** Deduplicated violations ranked by how many pages they appear on */
+  /** Violations from successful pages only, deduplicated by axe rule id; sorted by impact severity, then page count, then total affected elements */
   crossPageViolations: CrossPageViolation[];
   scannedAt: string;
 }

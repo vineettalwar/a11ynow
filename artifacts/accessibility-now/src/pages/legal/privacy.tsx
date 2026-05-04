@@ -34,9 +34,9 @@ export default function PrivacyPolicy() {
 
             <Section title="1." accent="Who we are.">
               <p>
-                This website (<strong>accessibility.now</strong>) is operated by sometech.work, a digital
-                accessibility consultancy. References to "we", "us", or "our" in this policy refer to
-                sometech.work.
+                This website (<strong>accessibility.now</strong>) is operated by a11y, a digital
+                accessibility (A11y) agency. References to "we", "us", or "our" in this policy refer to
+                accessibility.now.
               </p>
               <p>
                 We are the data controller for the personal data collected through this website. Our contact
@@ -117,7 +117,7 @@ export default function PrivacyPolicy() {
               </ul>
               <p>
                 We may disclose personal data to competent authorities where required by law, or to protect
-                the rights, property, or safety of sometech.work, our clients, or others.
+                the rights, property, or safety of accessibility.now, our clients, or others.
               </p>
             </Section>
 

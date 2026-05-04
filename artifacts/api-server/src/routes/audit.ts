@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { CreateAuditBody, GetAuditParams } from "@workspace/api-zod";
 import { db, auditsTable } from "@workspace/db";
-import { runAccessibilityScan, validateScanUrl } from "../lib/scan";
+import { runAccessibilityScan, validateScanUrl, type ScanMetadata } from "../lib/scan";
 
 const router: IRouter = Router();
 
@@ -25,6 +25,7 @@ interface AuditViolationData {
   help?: string;
   helpUrl?: string;
   instanceDetails?: AuditViolationInstanceData[];
+  detectedInViewports?: string[];
 }
 
 interface AuditResultData {
@@ -41,6 +42,7 @@ interface AuditResultData {
   totalChecks: number;
   scanEngine: "playwright" | "static_fallback" | "unknown";
   pageScreenshot?: string | null;
+  scanMetadata?: ScanMetadata | null;
 }
 
 function dbRowToResult(row: typeof auditsTable.$inferSelect): AuditResultData {
@@ -62,6 +64,7 @@ function dbRowToResult(row: typeof auditsTable.$inferSelect): AuditResultData {
     totalChecks: row.totalChecks,
     scanEngine: row.scanEngine as AuditResultData["scanEngine"],
     ...(pageScreenshot ? { pageScreenshot } : {}),
+    ...(row.scanMetadata ? { scanMetadata: row.scanMetadata as ScanMetadata } : {}),
   };
 }
 
@@ -87,7 +90,10 @@ router.post("/audit", async (req, res): Promise<void> => {
   req.log.info({ url }, "Running accessibility audit");
 
   try {
-    const result = await runAccessibilityScan(url);
+    const result = await runAccessibilityScan(url, {
+      profile: parsed.data.profile === "strict" ? "strict" : "default",
+      multiViewport: parsed.data.multiViewport === true,
+    });
     const auditId = randomUUID();
     const scannedAt = new Date();
 
@@ -105,6 +111,7 @@ router.post("/audit", async (req, res): Promise<void> => {
       totalChecks: result.totalChecks,
       scanEngine: result.scanEngine,
       pageScreenshot: result.pageScreenshot ?? null,
+      scanMetadata: result.scanMetadata ?? null,
     });
 
     res.json({
@@ -121,6 +128,7 @@ router.post("/audit", async (req, res): Promise<void> => {
       totalChecks: result.totalChecks,
       scanEngine: result.scanEngine,
       ...(result.pageScreenshot ? { pageScreenshot: result.pageScreenshot } : {}),
+      ...(result.scanMetadata ? { scanMetadata: result.scanMetadata } : {}),
     } satisfies AuditResultData);
   } catch (err) {
     req.log.error({ err, url }, "Audit failed");

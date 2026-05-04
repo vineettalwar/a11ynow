@@ -116,13 +116,13 @@ export default function About() {
                   className="text-xs font-bold uppercase tracking-widest text-[#FF4D1C] mb-4"
                   style={{ fontFamily: "var(--app-font-mono)" }}
                 >
-                  Powered by sometech.work
+                  A11y agency
                 </p>
                 <p
                   className="text-lg text-[#1A1A1A] leading-relaxed"
                   style={{ fontFamily: "var(--app-font-mono)" }}
                 >
-                  accessibility.now is the accessibility arm of sometech.work—same senior team from first call through delivery.
+                  accessibility.now is a digital accessibility agency—same senior team from first scope call through audit, remediation, and monitoring.
                 </p>
               </div>
               <Button
@@ -130,9 +130,7 @@ export default function About() {
                 variant="outline"
                 className="btn-gsap self-start h-11 px-7 text-sm font-bold rounded-full border-[#1A1A1A]/20 hover:border-[#FF4D1C]"
               >
-                <a href="https://sometech.work" target="_blank" rel="noreferrer">
-                  sometech.work ↗
-                </a>
+                <Link href="/contact">Contact us →</Link>
               </Button>
             </div>
             <div
@@ -143,7 +141,7 @@ export default function About() {
                 className="text-3xl font-extrabold tracking-tight text-white leading-tight"
                 style={{ fontFamily: "var(--app-font-sans)" }}
               >
-                some<span style={{ color: "#FF4D1C" }}>tech</span>.work
+                accessibility<span style={{ color: "#FF4D1C" }}>.now</span>
               </p>
               <p
                 className="mt-3 text-sm text-white/40 leading-relaxed"

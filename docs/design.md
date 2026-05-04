@@ -1,6 +1,6 @@
 # Design System — accessibility.now
 
-Brand: **sometech.work** / **accessibility.now**
+Brand: **accessibility.now** (A11y agency)
 Last updated: May 2026
 
 ---

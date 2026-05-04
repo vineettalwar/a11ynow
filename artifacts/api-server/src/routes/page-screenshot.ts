@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { chromium } from "playwright";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
+import { launchChromiumHeadless } from "../lib/playwright-chromium";
 import { logger } from "../lib/logger";
+import { captureFullPagePng, screenshotFriendlyContextOptions } from "../lib/playwright-screenshot";
 
 const router: IRouter = Router();
 const dnsLookupAsync = promisify(dnsLookup);
@@ -97,12 +98,10 @@ router.get("/page-screenshot", async (req, res): Promise<void> => {
 
   let browser: import("playwright").Browser | undefined;
   try {
-    browser = await chromium.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-    });
+    browser = await launchChromiumHeadless();
 
     const context = await browser.newContext({
-      viewport: { width: 1280, height: 900 },
+      ...screenshotFriendlyContextOptions({ width: 1280, height: 900 }),
       userAgent: "accessibility.now/1.0 Screenshot (+https://accessibility.now)",
     });
 
@@ -140,7 +139,10 @@ router.get("/page-screenshot", async (req, res): Promise<void> => {
       timeout: SCREENSHOT_TIMEOUT_MS,
     });
 
-    const png = await page.screenshot({ type: "png", fullPage: true });
+    const png = await captureFullPagePng(page, {
+      screenshotTimeoutMs: SCREENSHOT_TIMEOUT_MS,
+      logLabel: "page-screenshot",
+    });
     await context.close();
 
     cacheSet(url, png);

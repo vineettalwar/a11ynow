@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { CheckCircle2, Circle, ClipboardCopy, RotateCcw, Apple, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,22 +151,17 @@ export default function MobileChecklist() {
   const passCount = visibleItems.filter((s) => checks[s.id]).length;
 
   return (
-    <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-24 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-display font-extrabold tracking-tight mb-6">
-            Mobile accessibility<br />
-            <span className="heading-accent">checklist.</span>
-          </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
-            iOS and Android accessibility checklist. Results are saved per project in your browser - no account needed.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto max-w-4xl">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+    <ToolPageLayout
+      eyebrow="iOS & Android · Per-project save"
+      title={
+        <>
+          Mobile accessibility<br />
+          <span className="heading-accent">checklist.</span>
+        </>
+      }
+      description="iOS and Android accessibility checklist. Results are saved per project in your browser - no account needed."
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="space-y-6">
               <div>
                 <label htmlFor="mc-project" className="block text-xs font-semibold font-sans uppercase tracking-widest text-muted-foreground mb-2">Project name</label>
@@ -262,9 +258,7 @@ export default function MobileChecklist() {
                 })}
               </ol>
             </div>
-          </div>
-        </div>
-      </section>
-    </div>
+      </div>
+    </ToolPageLayout>
   );
 }

@@ -57,7 +57,7 @@ export default function AccessibilityStatement() {
 
             <Section title="Our" accent="commitment.">
               <p>
-                accessibility.now (operated by sometech.work) is committed to making this website accessible
+                accessibility.now is committed to making this website accessible
                 to all users, including those using assistive technologies. We practise what we preach:
                 accessibility is a core engineering requirement at every stage of our development process,
                 not a post-launch retrofit.

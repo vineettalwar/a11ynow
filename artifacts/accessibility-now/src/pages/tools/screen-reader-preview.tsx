@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
@@ -77,21 +78,17 @@ export default function ScreenReaderPreview() {
   const filterTypes: Array<ItemType | "all"> = ["all", "landmark", "heading", "link", "button", "image", "form-label"];
 
   return (
-    <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-24 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-display font-extrabold tracking-tight mb-6">
-            Screen reader<br />
-            <span className="heading-accent">preview.</span>
-          </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
-            See the exact reading order NVDA, JAWS, and VoiceOver would announce - landmarks, headings, links, buttons, and image alt text.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto max-w-4xl space-y-8">
+    <ToolPageLayout
+      eyebrow="Reading order · Server-side fetch"
+      title={
+        <>
+          Screen reader<br />
+          <span className="heading-accent">preview.</span>
+        </>
+      }
+      description="See the exact reading order NVDA, JAWS, and VoiceOver would announce - landmarks, headings, links, buttons, and image alt text."
+      innerClassName="space-y-8"
+    >
           <form onSubmit={handleSubmit} className="flex gap-3 max-w-2xl">
             <label htmlFor="sr-url" className="sr-only">Website URL</label>
             <Input
@@ -198,8 +195,6 @@ export default function ScreenReaderPreview() {
               description="The tool fetches the page server-side and extracts the reading order: document title, landmarks, headings H1–H6, link text, button labels, image alt text, and form labels."
             />
           )}
-        </div>
-      </section>
-    </div>
+    </ToolPageLayout>
   );
 }

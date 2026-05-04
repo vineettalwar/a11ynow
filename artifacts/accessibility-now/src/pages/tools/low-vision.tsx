@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
@@ -199,21 +200,18 @@ export default function LowVision() {
   };
 
   return (
-    <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-24 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-display font-extrabold tracking-tight mb-6">
-            Low vision<br />
-            <span className="heading-accent">simulator.</span>
-          </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
-            Apply CSS simulations of moderate and severe low vision, tunnel vision, and macular degeneration to any URL.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto max-w-5xl space-y-8">
+    <ToolPageLayout
+      eyebrow="Live URL · Adjustable intensity"
+      title={
+        <>
+          Low vision<br />
+          <span className="heading-accent">simulator.</span>
+        </>
+      }
+      description="Apply CSS simulations of moderate and severe low vision, tunnel vision, and macular degeneration to any URL."
+      contentMaxWidth="max-w-5xl"
+      innerClassName="space-y-8"
+    >
           <form onSubmit={handleSubmit} className="flex gap-3 max-w-2xl">
             <label htmlFor="lv-url" className="sr-only">Website URL</label>
             <Input
@@ -399,8 +397,6 @@ export default function LowVision() {
               </Button>
             </div>
           )}
-        </div>
-      </section>
-    </div>
+    </ToolPageLayout>
   );
 }

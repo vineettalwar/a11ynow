@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
@@ -186,21 +187,18 @@ export default function ColourBlindness() {
   };
 
   return (
-    <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-24 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-display font-extrabold tracking-tight mb-6">
-            Colour blindness<br />
-            <span className="heading-accent">simulator.</span>
-          </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
-            Enter any URL and see it through four types of colour vision deficiency. Toggle between simulated-only and side-by-side comparison.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto max-w-5xl space-y-8">
+    <ToolPageLayout
+      eyebrow="Live URL · Four simulations"
+      title={
+        <>
+          Colour blindness<br />
+          <span className="heading-accent">simulator.</span>
+        </>
+      }
+      description="Enter any URL and see it through four types of colour vision deficiency. Toggle between simulated-only and side-by-side comparison."
+      contentMaxWidth="max-w-5xl"
+      innerClassName="space-y-8"
+    >
           <form onSubmit={handleSubmit} className="flex gap-3 max-w-2xl">
             <label htmlFor="cb-url" className="sr-only">Website URL</label>
             <Input
@@ -383,8 +381,6 @@ export default function ColourBlindness() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-    </div>
+    </ToolPageLayout>
   );
 }

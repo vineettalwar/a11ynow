@@ -7,7 +7,8 @@
     "dev": "export NODE_ENV=development && export LD_LIBRARY_PATH=$(ls -d /nix/store/*-mesa-libgbm-*/lib 2>/dev/null | sort -V | tail -1):$(ls -d /nix/store/*-systemd-*/lib 2>/dev/null | sort -V | tail -1):$LD_LIBRARY_PATH && pnpm run build && exec node --enable-source-maps ./dist/index.mjs",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test src/lib/batch-report.test.ts"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -28,9 +29,11 @@
     "pdfkit": "^0.18.0",
     "pino": "^9",
     "pino-http": "^10",
-    "playwright": "^1.59.1"
+    "playwright": "^1.59.1",
+    "pngjs": "^7.0.0"
   },
   "devDependencies": {
+    "tsx": "catalog:",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -38,6 +41,7 @@
     "@types/node": "catalog:",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^8.0.0",
+    "@types/pngjs": "^6.0.5",
     "esbuild": "^0.27.3",
     "esbuild-plugin-pino": "^2.3.3",
     "pino-pretty": "^13",

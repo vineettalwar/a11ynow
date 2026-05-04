@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Lightbulb, Pipette, Link as LinkIcon, Check as CheckIcon } from "lucide-react";
 
@@ -228,23 +229,24 @@ export default function ContrastChecker() {
   ];
 
   return (
-    <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-24 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-display font-extrabold tracking-tight mb-6">
-            Colour contrast<br />
-            <span className="heading-accent">checker.</span>
-          </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
-            WCAG 2.1 contrast ratio calculator. Real-time AA and AAA pass/fail with a one-click accessible colour suggestion
-            {HAS_EYEDROPPER ? " and eyedropper screen picker." : "."}
-          </p>
-        </div>
-      </section>
-
-      <section className="py-20 px-4 bg-white">
-        <div className="container mx-auto max-w-4xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+    <ToolPageLayout
+      eyebrow="WCAG contrast · Shareable link"
+      title={
+        <>
+          Colour contrast<br />
+          <span className="heading-accent">checker.</span>
+        </>
+      }
+      description={
+        <>
+          WCAG 2.1 contrast ratio calculator. Real-time AA and AAA pass/fail with a one-click accessible colour suggestion
+          {HAS_EYEDROPPER ? " and eyedropper screen picker." : "."}
+        </>
+      }
+      mainPy="comfortable"
+      contentMaxWidth="max-w-4xl"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             <div className="space-y-6">
               <ColourRow
                 id="fg-hex"
@@ -322,8 +324,6 @@ export default function ContrastChecker() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
+    </ToolPageLayout>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
@@ -47,6 +48,28 @@ const TYPE_LABELS: Record<ElementType, string> = {
   textarea: "Textarea",
   other: "Other",
 };
+
+function TypeLegendChips() {
+  return (
+    <ul
+      className="m-0 flex list-none flex-wrap justify-center gap-2.5 p-0 sm:gap-3"
+      aria-label="Marker colours by element type"
+    >
+      {(Object.keys(TYPE_MARKER_DOT) as ElementType[]).map((t) => (
+        <li key={t}>
+          <span className="inline-flex items-center gap-2 rounded-full border border-border/55 bg-linear-to-b from-white to-[hsl(40_18%_97%)] px-3.5 py-1.5 text-xs font-semibold font-sans text-foreground shadow-sm ring-1 ring-black/4">
+            <span
+              className="size-2.5 shrink-0 rounded-full shadow-sm ring-2 ring-white"
+              style={{ background: TYPE_MARKER_DOT[t] }}
+              aria-hidden
+            />
+            {TYPE_LABELS[t]}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 const SVG_MARKER_R = 12;
 const SVG_FONT_SIZE = 11;
@@ -153,70 +176,94 @@ export default function FocusOrderVisualizer() {
   const imgSrc = result ? `data:image/png;base64,${result.screenshotBase64}` : null;
 
   return (
-    <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-24 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-display font-extrabold tracking-tight mb-6">
-            Focus order<br />
-            <span className="heading-accent">visualizer.</span>
-          </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
-            Enter a URL to capture a screenshot and overlay numbered markers showing the keyboard Tab order of every interactive element - colour-coded by type.
-          </p>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto max-w-6xl space-y-10">
-          <form onSubmit={handleSubmit} className="flex gap-3 max-w-2xl">
-            <label htmlFor="fo-url" className="sr-only">Website URL</label>
-            <Input
-              id="fo-url"
-              type="url"
-              placeholder="https://your-website.com"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="h-12 flex-1"
-              disabled={loading}
-            />
-            <Button type="submit" disabled={loading} className="h-12 px-6">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Analyse →"}
-            </Button>
-          </form>
+    <ToolPageLayout
+      eyebrow="Screenshot · Tab order API"
+      title={
+        <>
+          Focus order<br />
+          <span className="heading-accent">visualizer.</span>
+        </>
+      }
+      description="Enter a URL to capture a screenshot and overlay numbered markers showing the keyboard Tab order of every interactive element - colour-coded by type."
+      contentMaxWidth="max-w-6xl"
+      innerClassName="space-y-10"
+    >
+          <div className="max-w-3xl rounded-2xl border border-[rgba(210,198,178,0.45)] bg-linear-to-b from-white/95 to-[hsl(42_22%_97%/0.9)] p-1.5 shadow-[0_1px_0_rgba(255,255,255,0.92)_inset,0_10px_40px_-18px_rgba(0,0,0,0.08)] sm:p-2">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-2">
+              <label htmlFor="fo-url" className="sr-only">Website URL</label>
+              <Input
+                id="fo-url"
+                type="url"
+                placeholder="https://your-website.com"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="h-12 flex-1 rounded-xl border-border/55 bg-background/90 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]"
+                disabled={loading}
+              />
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-12 shrink-0 rounded-xl px-7 font-semibold shadow-md shadow-primary/15"
+              >
+                {loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : "Analyse →"}
+              </Button>
+            </form>
+          </div>
 
           {loading && (
-            <div className="flex flex-col items-center gap-4 py-16 text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Capturing page and extracting focus order… this may take 15–25 seconds.</p>
+            <div className="rounded-2xl border border-border/50 bg-linear-to-b from-white/95 to-[hsl(40_20%_98%)] px-6 py-16 text-center shadow-[0_1px_0_rgba(255,255,255,0.88)_inset,0_14px_48px_-22px_rgba(0,0,0,0.07)] sm:px-10 sm:py-20">
+              <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/15">
+                <Loader2 className="size-7 animate-spin text-primary" aria-hidden />
+              </div>
+              <p className="text-sm font-semibold font-sans text-foreground">Capturing page and mapping Tab order</p>
+              <div className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground font-sans">
+                Full-page screenshot plus focus extraction—typically 15–25 seconds.
+              </div>
             </div>
           )}
 
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {error}
+            <div
+              className="flex gap-3 rounded-2xl border border-red-200/80 bg-red-50/95 px-5 py-4 text-sm text-red-800 shadow-sm"
+              role="alert"
+            >
+              <AlertTriangle className="size-5 shrink-0 text-red-600" aria-hidden />
+              <div className="min-w-0 pt-0.5 font-sans leading-relaxed">{error}</div>
             </div>
           )}
 
           {result && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="rounded-xl border p-5 bg-background">
-                  <p className="text-3xl font-extrabold font-sans">{result.elements.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Focusable elements</p>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+                <div className="rounded-2xl border border-border/55 bg-linear-to-b from-white to-[hsl(40_15%_99%)] p-5 shadow-sm">
+                  <p className="text-3xl font-extrabold font-sans tabular-nums">{result.elements.length}</p>
+                  <p className="mt-1 text-xs font-medium text-muted-foreground font-sans">Focusable elements</p>
                 </div>
-                <div className={`rounded-xl border p-5 ${issueCount > 0 ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}`}>
-                  <p className={`text-3xl font-extrabold font-sans ${issueCount > 0 ? "text-red-600" : "text-green-700"}`}>{issueCount}</p>
-                  <p className={`text-xs mt-1 ${issueCount > 0 ? "text-red-500" : "text-green-600"}`}>Issues detected</p>
+                <div
+                  className={`rounded-2xl border p-5 shadow-sm ${
+                    issueCount > 0 ? "border-red-200/90 bg-linear-to-b from-red-50 to-red-50/70" : "border-green-200/90 bg-linear-to-b from-green-50 to-emerald-50/60"
+                  }`}
+                >
+                  <p className={`text-3xl font-extrabold font-sans tabular-nums ${issueCount > 0 ? "text-red-600" : "text-green-700"}`}>
+                    {issueCount}
+                  </p>
+                  <p className={`mt-1 text-xs font-medium font-sans ${issueCount > 0 ? "text-red-600" : "text-green-700"}`}>Issues detected</p>
                 </div>
-                <div className={`rounded-xl border p-5 ${result.hasSkipLink ? "border-green-200 bg-green-50" : "border-yellow-200 bg-yellow-50"}`}>
-                  <p className={`text-sm font-bold font-sans ${result.hasSkipLink ? "text-green-700" : "text-yellow-700"}`}>
+                <div
+                  className={`rounded-2xl border p-5 shadow-sm ${
+                    result.hasSkipLink
+                      ? "border-green-200/90 bg-linear-to-b from-green-50 to-emerald-50/50"
+                      : "border-amber-200/90 bg-linear-to-b from-amber-50 to-amber-50/60"
+                  }`}
+                >
+                  <p className={`text-sm font-bold font-sans ${result.hasSkipLink ? "text-green-700" : "text-amber-800"}`}>
                     {result.hasSkipLink ? "✓ Present" : "✗ Missing"}
                   </p>
-                  <p className={`text-xs mt-1 ${result.hasSkipLink ? "text-green-600" : "text-yellow-600"}`}>Skip link</p>
+                  <p className={`mt-1 text-xs font-medium font-sans ${result.hasSkipLink ? "text-green-700" : "text-amber-800/90"}`}>Skip link</p>
                 </div>
-                <div className="rounded-xl border p-5 bg-background">
-                  <p className="text-3xl font-extrabold font-sans">{result.elements.filter((e) => e.tabIndex > 0).length}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Positive tabindex</p>
+                <div className="rounded-2xl border border-border/55 bg-linear-to-b from-white to-[hsl(40_15%_99%)] p-5 shadow-sm">
+                  <p className="text-3xl font-extrabold font-sans tabular-nums">{result.elements.filter((e) => e.tabIndex > 0).length}</p>
+                  <p className="mt-1 text-xs font-medium text-muted-foreground font-sans">Positive tabindex</p>
                 </div>
               </div>
 
@@ -234,7 +281,7 @@ export default function FocusOrderVisualizer() {
                     </Button>
                   </div>
 
-                  <div className="rounded-2xl border overflow-hidden bg-muted relative">
+                  <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-muted shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_12px_40px_-20px_rgba(0,0,0,0.1)]">
                     <div className="relative w-full overflow-auto" style={{ maxHeight: "600px" }}>
                       <div className="relative inline-block w-full">
                         <img
@@ -286,14 +333,7 @@ export default function FocusOrderVisualizer() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-3 text-xs">
-                    {(Object.keys(TYPE_MARKER_DOT) as ElementType[]).map((t) => (
-                      <span key={t} className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full inline-block" style={{ background: TYPE_MARKER_DOT[t] }} />
-                        <span className="text-muted-foreground">{TYPE_LABELS[t]}</span>
-                      </span>
-                    ))}
-                  </div>
+                  <TypeLegendChips />
                 </div>
 
                 <div className="xl:col-span-2 space-y-4">
@@ -332,12 +372,12 @@ export default function FocusOrderVisualizer() {
                           key={el.index}
                           onMouseEnter={() => setHoveredIndex(el.index)}
                           onMouseLeave={() => setHoveredIndex(null)}
-                          className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-default transition-all ${
+                          className={`flex cursor-default items-start gap-2.5 rounded-xl border p-3.5 transition-all duration-200 ${
                             hasIssues
                               ? "border-red-200 bg-red-50"
                               : hoveredIndex === el.index
-                                ? "border-primary/35 bg-primary/[0.07]"
-                                : "border-border bg-background hover:bg-muted/40"
+                                ? "border-primary/40 bg-primary/8 shadow-sm"
+                                : "border-border/70 bg-linear-to-b from-white to-[hsl(40_18%_99%)] hover:border-border hover:shadow-sm"
                           }`}
                         >
                           <span
@@ -402,20 +442,11 @@ export default function FocusOrderVisualizer() {
             <ToolEmptyState
               icon={TabletSmartphone}
               title="Enter a URL to visualise focus order"
-              description="The tool captures a full-page screenshot via a headless browser, extracts every focusable element in keyboard Tab order, and overlays numbered markers—colour-coded by element type."
+              description="We capture a full-page screenshot in a headless browser, walk every focusable control in real Tab sequence, and paint numbered badges on the image—each hue matches the element family below."
             >
-              <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground font-sans">
-                {(Object.keys(TYPE_MARKER_DOT) as ElementType[]).map((t) => (
-                  <span key={t} className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full shrink-0 ring-2 ring-background shadow-sm" style={{ background: TYPE_MARKER_DOT[t] }} />
-                    {TYPE_LABELS[t]}
-                  </span>
-                ))}
-              </div>
+              <TypeLegendChips />
             </ToolEmptyState>
           )}
-        </div>
-      </section>
-    </div>
+    </ToolPageLayout>
   );
 }

@@ -574,7 +574,7 @@ export default function Home() {
                 <Link href="/tools">Open the tools →</Link>
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {[
                 { icon: <Eye className="w-4 h-4" />, title: "Colour Blindness", desc: "Deuteranopia, Protanopia, Tritanopia, Achromatopsia" },
                 { icon: <Search className="w-4 h-4" />, title: "Screen Reader", desc: "Heading structure, landmark order, ARIA" },
@@ -584,12 +584,14 @@ export default function Home() {
                 <Link
                   key={title}
                   href="/tools"
-                  className="reveal-child tool-card rounded-xl border p-4 bg-white cursor-pointer block"
+                  className="reveal-child tool-card rounded-2xl border p-4 sm:p-5 cursor-pointer block backdrop-blur-[2px]"
                   style={{ transition: "box-shadow 0.2s ease, transform 0.2s ease" }}
                 >
-                  <div className="text-primary mb-2">{icon}</div>
-                  <p className="text-sm font-bold font-sans mb-1">{title}</p>
-                  <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>{desc}</p>
+                  <div className="w-9 h-9 rounded-xl bg-linear-to-br from-primary/12 to-amber-400/8 ring-1 ring-primary/10 flex items-center justify-center text-primary mb-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                    {icon}
+                  </div>
+                  <p className="text-sm font-bold font-sans mb-1.5 tracking-tight">{title}</p>
+                  <p className="text-[11px] leading-snug text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>{desc}</p>
                 </Link>
               ))}
             </div>

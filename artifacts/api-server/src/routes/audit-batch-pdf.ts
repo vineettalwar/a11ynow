@@ -3,6 +3,7 @@ import PDFDocument from "pdfkit";
 import { inArray } from "drizzle-orm";
 import { db, auditsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { computeWeightedSiteScore } from "../lib/batch-report";
 
 type PDFDoc = InstanceType<typeof PDFDocument>;
 
@@ -122,11 +123,9 @@ function writeCoverPage(doc: PDFDoc, rows: AuditRow[], scannedDate: string): voi
 
   y += 20;
 
-  const successRows = rows.filter((r) => r.score > 0 || r.totalViolations >= 0);
-  const avgScore =
-    successRows.length > 0
-      ? Math.round(successRows.reduce((s, r) => s + r.score, 0) / successRows.length)
-      : 0;
+  const siteScore = computeWeightedSiteScore(
+    rows.map((r) => ({ score: r.score, totalChecks: r.totalChecks })),
+  );
 
   const scoreBoxW = 110;
   const scoreBoxH = 80;
@@ -134,13 +133,13 @@ function writeCoverPage(doc: PDFDoc, rows: AuditRow[], scannedDate: string): voi
   doc
     .fontSize(36)
     .font("Helvetica-Bold")
-    .fillColor(scoreColor(avgScore))
-    .text(String(avgScore), PAGE_MARGIN, y + 12, { width: scoreBoxW, align: "center" });
+    .fillColor(scoreColor(siteScore))
+    .text(String(siteScore), PAGE_MARGIN, y + 12, { width: scoreBoxW, align: "center" });
   doc
     .fontSize(8)
     .font("Helvetica")
     .fillColor(BRAND_LIGHT)
-    .text("Avg. Score / 100", PAGE_MARGIN, y + 60, { width: scoreBoxW, align: "center" });
+    .text("Site score / 100", PAGE_MARGIN, y + 60, { width: scoreBoxW, align: "center" });
 
   const totalCritical = rows.reduce((s, r) => s + r.criticalViolations, 0);
   const totalSerious = rows.reduce((s, r) => s + r.seriousViolations, 0);

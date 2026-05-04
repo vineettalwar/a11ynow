@@ -207,11 +207,12 @@ export const useCreateAudit = <
 The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
 with a `type` field:
 - `{ type: "scanning", url, index }` — fired when a URL scan begins
-- `{ type: "page", index, url, status, score, level, auditId, error? }` — fired when a URL scan finishes
-- `{ type: "complete", siteScore, siteLevel, pages[], crossPageViolations[], scannedAt }` — final aggregated result
+- `{ type: "page", index, url, status, score, level, auditId, error? }` — fired when a URL scan finishes, or when a URL is skipped (e.g. client disconnected before Playwright started)
+- `{ type: "complete", siteScore, siteLevel, pages[], crossPageViolations[], scannedAt }` — final aggregated result (omitted if the client has already closed the stream)
 - `{ type: "error", message }` — emitted if processing fails
 Validation errors (bad URLs etc.) return a 400 JSON response before streaming begins.
-The site-wide score is a totalChecks-weighted average of all successful page scores.
+The site-wide score is a `totalChecks`-weighted average of **successful** page scores only (failed or client-skipped pages are excluded).
+`crossPageViolations` deduplicates axe rule ids across successful pages only, then sorts by impact (critical first), then page count, then total affected elements.
 
  * @summary Batch audit up to 10 URLs — streams SSE progress events
  */
@@ -303,6 +304,7 @@ export const useCreateBatchAudit = <
 multi-page PDF: a cover page with a site-wide summary followed by a per-page
 section for each successfully scanned URL. Only include auditIds for successful
 pages (failed scans have an empty auditId and are not persisted).
+The cover page site score uses the same `totalChecks`-weighted formula as the batch SSE `complete` event.
 
  * @summary Download combined multi-page accessibility report as PDF
  */

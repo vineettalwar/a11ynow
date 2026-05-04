@@ -388,7 +388,7 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       .fontSize(7)
       .font("Helvetica")
       .fillColor(BRAND_LIGHT)
-      .text("accessibility.now · sometech.work · WCAG 2.1 AA Automated Report", PAGE_MARGIN, footerY, {
+      .text("accessibility.now · WCAG 2.1 AA Automated Report", PAGE_MARGIN, footerY, {
         width: CONTENT_WIDTH,
         align: "center",
       });

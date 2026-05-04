@@ -18,6 +18,8 @@ export const auditsTable = pgTable("audits", {
   scanEngine: text("scan_engine").notNull().default("unknown"),
   /** Viewport JPEG as `data:image/jpeg;base64,...` when the Playwright engine captured it. */
   pageScreenshot: text("page_screenshot"),
+  /** Engine options, runtime diagnostics, viewport list (Playwright); null for legacy rows. */
+  scanMetadata: jsonb("scan_metadata").$type<StoredScanMetadata | null>(),
 });
 
 export interface AuditViolationInstanceStored {
@@ -38,6 +40,20 @@ export interface AuditViolationStored {
   help?: string;
   helpUrl?: string;
   instanceDetails?: AuditViolationInstanceStored[];
+  /** Labels when the same rule was merged across viewport runs. */
+  detectedInViewports?: string[];
+}
+
+export interface StoredRuntimeDiagnostics {
+  consoleErrors: Array<{ type: string; text: string }>;
+  failedRequests?: Array<{ url: string; errorText?: string }>;
+}
+
+export interface StoredScanMetadata {
+  profile: "default" | "strict";
+  multiViewport: boolean;
+  viewportsUsed: Array<{ width: number; height: number; label: string }>;
+  runtimeDiagnostics?: StoredRuntimeDiagnostics;
 }
 
 export const insertAuditSchema = createInsertSchema(auditsTable);
