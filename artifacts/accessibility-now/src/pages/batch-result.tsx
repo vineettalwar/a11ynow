@@ -22,8 +22,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import type { AuditViolation as ApiAuditViolation } from "@workspace/api-client-react";
 import { useCreateLead } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { getHumanContextForViolation } from "@/lib/violation-human-context";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -520,7 +522,9 @@ export default function BatchResult() {
                 Deduplicated by type · ranked by pages affected
               </p>
               <div className="space-y-3">
-                {result.crossPageViolations.slice(0, 20).map((v) => (
+                {result.crossPageViolations.slice(0, 20).map((v) => {
+                  const human = getHumanContextForViolation(v as unknown as ApiAuditViolation);
+                  return (
                   <Card key={v.id} className="border-l-4 border-l-destructive">
                     <CardContent className="p-5">
                       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
@@ -539,7 +543,10 @@ export default function BatchResult() {
                               </span>
                             )}
                           </div>
-                          <h4 className="text-sm font-semibold font-sans mb-1">{v.description}</h4>
+                          <h4 className="text-sm font-semibold font-sans mb-1">{human.plainLead}</h4>
+                          {!human.fallback ? (
+                            <p className="text-xs text-muted-foreground leading-snug">{v.description}</p>
+                          ) : null}
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {v.affectedUrls.map((u) => (
                               <span key={u} className="font-mono text-xs bg-muted px-2 py-0.5 rounded truncate max-w-[180px]">{u}</span>
@@ -553,7 +560,8 @@ export default function BatchResult() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

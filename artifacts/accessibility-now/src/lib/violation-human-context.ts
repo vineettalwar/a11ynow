@@ -23,7 +23,7 @@ export type HumanViolationContext = {
   didYouKnow?: string;
   /** True when no curated row matched; copy still safe to show */
   fallback: boolean;
-  /** App path for a related in-product tool (prepend router base) */
+  /** In-app route for `Link`, e.g. `/tools/contrast-checker` */
   relatedToolPath?: string;
 };
 

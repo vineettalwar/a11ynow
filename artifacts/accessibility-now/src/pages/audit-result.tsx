@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -30,12 +30,20 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
+  ScanText,
+  ScrollText,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AuditPendingScanFrame } from "@/components/audit-pending-scan-frame";
+import {
+  useAuditHeroEntrance,
+  useAuditMetricsEntrance,
+  usePrefersReducedMotion,
+  useViolationCardsEntrance,
+  useViolationNavPulse,
+} from "@/hooks/use-audit-result-gsap";
 
 /** Match audit rows to the URL the user asked to scan (same origin as API normalisation). */
 function normalizeUrlForCompare(raw: string): string {
@@ -154,18 +162,10 @@ function formatScannedAt(iso: string): string {
   return new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-function violationRowClass(impact: AuditViolation["impact"]): string {
-  const accent =
-    impact === "critical"
-      ? "border-l-destructive"
-      : impact === "serious"
-        ? "border-l-orange-500"
-        : impact === "moderate"
-          ? "border-l-amber-600"
-          : "border-l-muted-foreground/45";
+/** Matches lead-capture / report CTA cards: soft tint on all sides, no thick accent stripe. */
+function violationRowClass(_impact: AuditViolation["impact"]): string {
   return cn(
-    "rounded-md border border-border border-l-2 bg-background p-5 shadow-none",
-    accent,
+    "rounded-xl border-2 border-primary/20 bg-background p-5 shadow-none",
   );
 }
 
@@ -176,13 +176,7 @@ function primaryViolationSelector(violation: AuditViolation): string {
   return (fromTop ?? "").trim();
 }
 
-function ViolationHumanContextPanel({
-  human,
-  toolBasePath,
-}: {
-  human: HumanViolationContext;
-  toolBasePath: string;
-}) {
+function ViolationHumanContextPanel({ human }: { human: HumanViolationContext }) {
   const toolLabel =
     human.relatedToolPath === "/tools/contrast-checker"
       ? "Open contrast checker"
@@ -205,14 +199,14 @@ function ViolationHumanContextPanel({
         {human.whenYouFixIt}
       </p>
       {human.didYouKnow ? (
-        <p className="text-xs text-muted-foreground leading-relaxed border-l-2 border-primary/35 pl-3">
+        <p className="text-xs text-muted-foreground leading-relaxed rounded-lg border-2 border-primary/20 bg-background/50 px-3 py-2">
           <span className="font-semibold font-sans text-foreground/90 not-italic">Did you know? </span>
           {human.didYouKnow}
         </p>
       ) : null}
       {human.relatedToolPath ? (
         <Button asChild variant="outline" size="sm" className="h-9 text-xs font-semibold">
-          <Link href={`${toolBasePath}${human.relatedToolPath}`}>{toolLabel}</Link>
+          <Link href={human.relatedToolPath}>{toolLabel}</Link>
         </Button>
       ) : null}
       {human.fallback ? (
@@ -238,7 +232,6 @@ interface ViolationVisualModel {
   diagram: "host-iframe-shell" | "embed-interior" | "host-body";
   region: ViolationVisualRegion;
   whereLabel: string;
-  effectLine: string;
   ownershipNote: string | null;
 }
 
@@ -306,10 +299,6 @@ function violationVisualModel(violation: AuditViolation): ViolationVisualModel {
     whereParts.push("On your page’s main document, on the element described by the selector below.");
   }
 
-  const effectLine =
-    violation.description ||
-    "Assistive technology may not receive the same information a sighted user gets from layout and nearby text.";
-
   let ownershipNote: string | null = null;
   if (region === "iframe-boundary") {
     ownershipNote =
@@ -325,7 +314,6 @@ function violationVisualModel(violation: AuditViolation): ViolationVisualModel {
     diagram,
     region,
     whereLabel: whereParts.join(" "),
-    effectLine,
     ownershipNote,
   };
 }
@@ -346,13 +334,13 @@ function ViolationWhereOnPage({
     region === "video-player" ? "bg-primary/25" : region === "compact-control" ? "bg-primary/20" : "bg-muted/50";
 
   return (
-    <div className="mt-4 rounded-lg border border-border bg-muted/25 p-4 md:p-5">
+    <div className="mt-4 rounded-xl border-2 border-primary/20 bg-muted/25 p-4 md:p-5">
       <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-stretch">
         <div
           className="shrink-0 flex justify-center sm:justify-start"
           aria-hidden
         >
-          <div className="relative w-[148px] rounded-lg border border-foreground/15 bg-linear-to-b from-muted/80 to-background p-2 shadow-sm">
+          <div className="relative w-[148px] rounded-lg border-2 border-primary/20 bg-linear-to-b from-muted/80 to-background p-2 shadow-sm">
             <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground text-center mb-1.5">
               Page layout
             </p>
@@ -420,14 +408,14 @@ function ViolationWhereOnPage({
             Where on the page
           </p>
           <p className="text-xs text-foreground leading-relaxed">{model.whereLabel}</p>
-          <div className="rounded-md bg-background/80 border border-border px-3 py-2">
+          <div className="rounded-lg bg-background/80 border-2 border-primary/20 px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
               What happens for users
             </p>
             <p className="text-xs text-foreground leading-relaxed">{whatHappensLine}</p>
           </div>
           {model.ownershipNote ? (
-            <p className="text-[11px] text-muted-foreground leading-relaxed border-l-2 border-amber-500/60 pl-3">
+            <p className="text-[11px] text-muted-foreground leading-relaxed rounded-lg border-2 border-primary/20 bg-background/60 px-3 py-2">
               {model.ownershipNote}
             </p>
           ) : null}
@@ -1007,7 +995,48 @@ function AuditResultView({
   const violations = Array.isArray(result.violations) ? result.violations : [];
   const [simpleView, setSimpleView] = useState(false);
   const [activeViolationIdx, setActiveViolationIdx] = useState(0);
+  const [navPulseToken, setNavPulseToken] = useState(0);
   const violationArticleRefs = useRef<Array<HTMLElement | null>>([]);
+  const scoreRingRef = useRef<SVGCircleElement | null>(null);
+  const metricsRef = useRef<HTMLDivElement | null>(null);
+  const violationsListRef = useRef<HTMLDivElement | null>(null);
+  const violationsToolbarRef = useRef<HTMLDivElement | null>(null);
+  const screenshotRef = useRef<HTMLDivElement | null>(null);
+  const heroRef = useRef<HTMLDivElement | null>(null);
+  const scoreNumberRef = useRef<HTMLDivElement | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
+
+  const violationFingerprint = useMemo(
+    () => violations.map((v) => `${v.id}:${v.affectedElements}`).join("|"),
+    [violations],
+  );
+
+  useAuditHeroEntrance({
+    auditId: result.auditId,
+    reducedMotion,
+    heroRef,
+  });
+
+  useAuditMetricsEntrance({
+    auditId: result.auditId,
+    reducedMotion,
+    score: result.score,
+    scoreRingRef,
+    scoreNumberRef,
+    metricsRef,
+    screenshotRef,
+  });
+
+  useViolationCardsEntrance({
+    auditId: result.auditId,
+    violationFingerprint,
+    violationCount: violations.length,
+    reducedMotion,
+    violationsListRef,
+    violationsToolbarRef,
+  });
+
+  useViolationNavPulse(violationArticleRefs, activeViolationIdx, navPulseToken, reducedMotion);
 
   function focusViolationAt(index: number) {
     const el = violationArticleRefs.current[index];
@@ -1026,6 +1055,7 @@ function AuditResultView({
     if (violations.length === 0) return;
     const next = (activeViolationIdx + delta + violations.length) % violations.length;
     setActiveViolationIdx(next);
+    setNavPulseToken((t) => t + 1);
     focusViolationAt(next);
   }
 
@@ -1039,25 +1069,33 @@ function AuditResultView({
       {/* Header */}
       <section className="hero-gradient pt-16 pb-12 px-4">
         <div className="container mx-auto max-w-5xl">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
-            <div>
-              <h1 className="text-display-md font-extrabold mb-3">
+          <div
+            ref={heroRef}
+            className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6"
+          >
+            <div className="min-w-0">
+              <h1 className="text-display-md font-extrabold mb-3" data-hero-line>
                 Audit <span className="heading-accent">result.</span>
               </h1>
-              <p className="font-mono text-sm text-muted-foreground bg-muted inline-block px-3 py-1 rounded-lg mb-2">
+              <p
+                className="font-mono text-sm text-muted-foreground bg-muted inline-block px-3 py-1 rounded-lg mb-2 break-all"
+                data-hero-line
+              >
                 {result.url}
               </p>
-              <p className="text-xs text-muted-foreground font-mono">Scanned {scannedDate}</p>
-              <p className="text-xs text-muted-foreground mt-2 max-w-xl leading-relaxed">
+              <p className="text-xs text-muted-foreground font-mono" data-hero-line>
+                Scanned {scannedDate}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2 max-w-xl leading-relaxed" data-hero-line>
                 {scanEngineDescription(result.scanEngine)}
               </p>
             </div>
-            <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
+            <div className="flex flex-col items-start sm:items-end gap-1 shrink-0" data-hero-line>
               <Button
                 onClick={download}
                 disabled={pdfPending}
                 variant="outline"
-                className="h-11 px-5 text-sm font-semibold border-foreground/20 bg-white/80 hover:bg-white gap-2"
+                className="h-11 px-5 text-sm font-semibold border-foreground/20 bg-white/80 hover:bg-white gap-2 shadow-sm transition-shadow hover:shadow-md motion-reduce:transition-none"
               >
                 {pdfPending ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
@@ -1073,13 +1111,17 @@ function AuditResultView({
       <section className="py-12 px-4 bg-white">
         <div className="container mx-auto max-w-5xl">
           {/* Score + stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <Card className="col-span-1 border">
+          <div
+            ref={metricsRef}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 perspective-[1400px]"
+          >
+            <Card className="col-span-1 border" data-audit-metric-card>
               <CardContent className="p-8 text-center flex flex-col items-center justify-center h-full">
                 <div className="relative w-36 h-36 flex items-center justify-center mb-4">
                   <svg className="w-full h-full transform -rotate-90" aria-hidden="true">
                     <circle cx="72" cy="72" r="62" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-muted" />
                     <circle
+                      ref={scoreRingRef}
                       cx="72" cy="72" r="62"
                       stroke="currentColor"
                       strokeWidth="10"
@@ -1089,7 +1131,12 @@ function AuditResultView({
                       className={result.score >= 90 ? "text-emerald-500" : result.score >= 50 ? "text-yellow-500" : "text-destructive"}
                     />
                   </svg>
-                  <div className="absolute text-3xl font-extrabold font-sans">{result.score}</div>
+                  <div
+                    ref={scoreNumberRef}
+                    className="absolute text-3xl font-extrabold font-sans tabular-nums tracking-tight"
+                  >
+                    {result.score}
+                  </div>
                 </div>
                 <h2 className="text-base font-bold font-sans capitalize">{result.level}</h2>
                 <p className="text-xs text-muted-foreground font-mono">Automated Score</p>
@@ -1103,7 +1150,7 @@ function AuditResultView({
                 { value: result.totalViolations, label: "Total Violations", color: "text-foreground" },
                 { value: `${result.passedChecks}/${result.totalChecks}`, label: "Passed Checks", color: "text-emerald-600" },
               ].map(({ value, label, color }) => (
-                <Card key={label}>
+                <Card key={label} data-audit-metric-card>
                   <CardContent className="p-5">
                     <div className={`text-3xl font-extrabold font-sans mb-1 ${color}`}>{value}</div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider font-sans">{label}</p>
@@ -1114,14 +1161,17 @@ function AuditResultView({
           </div>
 
           {result.pageScreenshot ? (
-            <div className="mb-12 rounded-xl border border-border bg-muted/20 overflow-hidden shadow-sm">
+            <div
+              ref={screenshotRef}
+              className="mb-12 rounded-xl border border-border bg-muted/20 overflow-hidden shadow-sm"
+            >
               <div className="px-4 py-3 border-b border-border bg-background/80 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-bold font-sans text-foreground">Page at scan time (viewport)</h3>
                 <p className="text-[11px] text-muted-foreground font-mono">
                   JPEG after axe — same scroll position as rule documentation below.
                 </p>
               </div>
-              <div className="p-3 sm:p-4 bg-muted/30">
+              <div className="p-3 sm:p-4 bg-muted/30" data-screenshot-inner>
                 <img
                   src={result.pageScreenshot}
                   alt={`Viewport screenshot of ${result.url} when the accessibility scan completed.`}
@@ -1141,7 +1191,10 @@ function AuditResultView({
           )}
 
           {/* Violations */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between mb-4">
+          <div
+            ref={violationsToolbarRef}
+            className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between mb-4"
+          >
             <h3 className="text-lg font-bold font-sans text-foreground">Violations</h3>
             {violations.length > 0 ? (
               <div className="flex flex-wrap items-center gap-2">
@@ -1149,7 +1202,7 @@ function AuditResultView({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1 text-xs font-semibold"
+                  className="h-9 gap-1 text-xs font-semibold transition-transform active:scale-[0.97] motion-reduce:transition-none"
                   disabled={violations.length <= 1}
                   onClick={() => goToAdjacentViolation(-1)}
                   aria-label="Previous violation"
@@ -1161,7 +1214,7 @@ function AuditResultView({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1 text-xs font-semibold"
+                  className="h-9 gap-1 text-xs font-semibold transition-transform active:scale-[0.97] motion-reduce:transition-none"
                   disabled={violations.length <= 1}
                   onClick={() => goToAdjacentViolation(1)}
                   aria-label="Next violation"
@@ -1173,18 +1226,18 @@ function AuditResultView({
                   type="button"
                   variant={simpleView ? "default" : "outline"}
                   size="sm"
-                  className="h-9 gap-1.5 text-xs font-semibold"
+                  className="h-9 gap-1.5 text-xs font-semibold transition-transform active:scale-[0.98] motion-reduce:transition-none"
                   onClick={() => setSimpleView((v) => !v)}
                   aria-pressed={simpleView}
                   aria-label={simpleView ? "Show technical details for each issue" : "Simple view: hide rule ids and tuck details away"}
                 >
-                  <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                  <ScanText className="w-3.5 h-3.5 shrink-0" aria-hidden />
                   {simpleView ? "Simple view on" : "Simple view"}
                 </Button>
               </div>
             ) : null}
           </div>
-          <div className="space-y-2 mb-12">
+          <div ref={violationsListRef} className="space-y-2 mb-12 perspective-[1600px]">
             {violations.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No violations in this result.
@@ -1199,6 +1252,7 @@ function AuditResultView({
                 <article
                   key={`${violation.id}-${i}`}
                   id={`audit-violation-${i}`}
+                  data-violation-card
                   ref={(el) => {
                     violationArticleRefs.current[i] = el;
                   }}
@@ -1206,7 +1260,7 @@ function AuditResultView({
                   aria-current={activeViolationIdx === i ? "true" : undefined}
                   className={cn(
                     violationRowClass(violation.impact),
-                    "scroll-mt-24 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2",
+                    "scroll-mt-24 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 transition-shadow duration-300 motion-reduce:transition-none transform-gpu hover:shadow-lg hover:border-primary/30",
                   )}
                   onFocus={() => setActiveViolationIdx(i)}
                 >
@@ -1241,22 +1295,52 @@ function AuditResultView({
                     </div>
                   </div>
 
-                  <details open className="group mt-4 rounded-lg border border-primary/20 bg-primary/[0.04] px-4 py-2">
-                    <summary className="cursor-pointer list-none text-sm font-bold font-sans text-foreground flex items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
-                      <span className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-primary shrink-0" aria-hidden />
-                        Why this matters
-                      </span>
-                      <span className="text-[10px] font-normal font-mono text-muted-foreground uppercase tracking-wide">
-                        open by default
-                      </span>
+                  <details open className="group mt-4 rounded-xl border-2 border-primary/20 bg-primary/4 px-4 py-2 transition-[box-shadow,border-color] duration-300 open:shadow-md open:border-primary/35">
+                    <summary className="cursor-pointer list-none text-sm font-bold font-sans text-foreground flex items-center gap-2 [&::-webkit-details-marker]:hidden">
+                      <ScrollText
+                        className="w-4 h-4 text-primary shrink-0 transition-transform duration-500 ease-out group-open:rotate-6 motion-reduce:transition-none"
+                        aria-hidden
+                      />
+                      Why this matters
                     </summary>
-                    <ViolationHumanContextPanel human={human} toolBasePath={BASE} />
+                    <ViolationHumanContextPanel human={human} />
                   </details>
 
                   <ViolationWhereOnPage violation={violation} whatHappensLine={whatHappensLine} />
 
-                  <details className="mt-4 rounded-lg border border-border bg-muted/20 px-4 py-2">
+                  {violation.help ? (
+                    <div className="mt-4 rounded-xl border-2 border-primary/20 bg-primary/5 px-3 py-3">
+                      <p className="text-xs text-foreground/90 leading-relaxed">
+                        <span className="font-semibold font-sans">How to fix: </span>
+                        {violation.help}
+                      </p>
+                      {violation.helpUrl ? (
+                        <a
+                          href={violation.helpUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline underline-offset-2"
+                        >
+                          Open rule documentation
+                          <ExternalLink className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : violation.helpUrl ? (
+                    <div className="mt-4">
+                      <a
+                        href={violation.helpUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline underline-offset-2"
+                      >
+                        Open rule documentation
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                      </a>
+                    </div>
+                  ) : null}
+
+                  <details className="mt-4 rounded-xl border-2 border-primary/20 bg-muted/20 px-4 py-2">
                     <summary className="cursor-pointer list-none text-sm font-bold font-sans text-foreground [&::-webkit-details-marker]:hidden">
                       Technical details
                       {instanceCount > 0 ? (
@@ -1268,23 +1352,6 @@ function AuditResultView({
                     <div className="space-y-3 pt-3 border-t border-border/60 mt-2">
                       {simpleView ? (
                         <p className="text-sm text-foreground leading-snug">{violation.description}</p>
-                      ) : null}
-                      {violation.help ? (
-                        <p className="text-xs text-foreground/90 leading-relaxed border-l-2 border-primary/40 pl-3">
-                          <span className="font-semibold font-sans">How to fix: </span>
-                          {violation.help}
-                        </p>
-                      ) : null}
-                      {violation.helpUrl ? (
-                        <a
-                          href={violation.helpUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline underline-offset-2"
-                        >
-                          Open rule documentation
-                          <ExternalLink className="w-3.5 h-3.5 shrink-0" aria-hidden />
-                        </a>
                       ) : null}
                       <ViolationElementExamples violation={violation} />
                     </div>

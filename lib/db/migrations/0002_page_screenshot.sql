@@ -1,1 +1,1 @@
-ALTER TABLE "audits" ADD COLUMN "page_screenshot" text;
+ALTER TABLE "audits" ADD COLUMN IF NOT EXISTS "page_screenshot" text;

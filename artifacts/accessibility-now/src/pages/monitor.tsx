@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertOctagon, TrendingUp, Calendar, Globe } from "lucide-react";
 import { Link } from "wouter";
+import type { AuditViolation } from "@workspace/api-client-react";
+import { getHumanContextForViolation } from "@/lib/violation-human-context";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -334,7 +336,9 @@ export default function MonitorPage() {
                     Latest violations - {formatDate(latest.scannedAt)}
                   </h2>
                   <div className="space-y-3">
-                    {latest.violations.map((v, i) => (
+                    {latest.violations.map((v, i) => {
+                      const human = getHumanContextForViolation(v as AuditViolation);
+                      return (
                       <Card key={i} className="border-l-4 border-l-destructive">
                         <CardContent className="p-5 flex flex-col md:flex-row gap-5 items-start md:items-center">
                           <div className="flex-1">
@@ -349,7 +353,10 @@ export default function MonitorPage() {
                                 {v.wcagCriteria}
                               </span>
                             </div>
-                            <h4 className="text-sm font-semibold font-sans">{v.description}</h4>
+                            <h4 className="text-sm font-semibold font-sans">{human.plainLead}</h4>
+                            {!human.fallback ? (
+                              <p className="text-xs text-muted-foreground mt-1 leading-snug">{v.description}</p>
+                            ) : null}
                           </div>
                           <div className="text-right shrink-0">
                             <div className="text-2xl font-extrabold font-sans">{v.affectedElements}</div>
@@ -357,7 +364,8 @@ export default function MonitorPage() {
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
