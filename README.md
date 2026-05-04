@@ -52,6 +52,9 @@ cd accessibility-now
 ```
 
 ### 2. Install dependencies
+
+One command from the repo root installs every workspace package (see `pnpm-workspace.yaml`).
+
 ```bash
 pnpm install
 ```
@@ -119,6 +122,7 @@ See `.env.example` for the full list with comments.
 │   ├── api-zod/              # Generated Zod request/response schemas
 │   └── db/                   # Drizzle schema, migrations, db client
 ├── docs/                     # Developer and ops documentation
+│   ├── development.md        # Day-to-day dev workflows, API/DB/scan notes
 │   ├── design.md             # Brand tokens, component conventions, GSAP patterns
 │   ├── roadmap.md            # Feature status and backlog
 │   ├── memory.md             # Architecture decisions and gotchas
@@ -134,6 +138,7 @@ See `.env.example` for the full list with comments.
 ## Key commands
 
 ```bash
+pnpm install                                    # All workspace packages (run at repo root)
 pnpm run typecheck                              # Full typecheck across all packages
 pnpm run build                                 # Typecheck + build all
 pnpm --filter @workspace/api-spec run codegen  # Regenerate API hooks + Zod schemas
@@ -155,6 +160,7 @@ pnpm --filter @workspace/db run push           # Push schema directly (dev only)
 
 ## Documentation
 
+- [Developer guide](docs/development.md): monorepo workflows, API contract changes, DB migrations, scan stack, tests
 - [Design system](docs/design.md): colours, typography, GSAP patterns
 - [Roadmap](docs/roadmap.md): launched features, backlog, Q2/Q3 priorities
 - [Architecture decisions](docs/memory.md): why decisions were made, gotchas
