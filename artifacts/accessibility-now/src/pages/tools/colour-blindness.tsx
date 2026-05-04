@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Columns2, MonitorPlay, Download } from "lucide-react";
+import { ToolEmptyState } from "@/components/tools/tool-empty-state";
+import { Loader2, Columns2, MonitorPlay, Download, Eye } from "lucide-react";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -269,14 +270,13 @@ export default function ColourBlindness() {
 
           <div className={`rounded-2xl border overflow-hidden bg-muted relative ${viewMode === "side-by-side" ? "min-h-[400px]" : "min-h-[520px]"}`}>
             {!loadedUrl && (
-              <div className="flex flex-col items-center justify-center h-[520px] text-center px-6">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                  <span className="text-2xl">👁</span>
-                </div>
-                <p className="text-sm font-semibold font-sans mb-1">Enter a URL above to begin</p>
-                <p className="text-xs text-muted-foreground max-w-sm">
-                  A screenshot of the page is captured server-side and displayed here with the selected vision simulation applied via CSS filters.
-                </p>
+              <div className="flex flex-col items-center justify-center min-h-[520px] px-4 py-10">
+                <ToolEmptyState
+                  className="max-w-lg w-full"
+                  icon={Eye}
+                  title="Enter a URL above to begin"
+                  description="A screenshot of the page is captured server-side and displayed here with the selected vision simulation applied via CSS filters."
+                />
               </div>
             )}
 

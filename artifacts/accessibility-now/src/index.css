@@ -267,6 +267,28 @@
   font-family: var(--app-font-serif);
 }
 
+/* Single-audit loading HUD: horizontal laser line inside scan viewport */
+.audit-frame-beam {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 15%,
+    #ffffff 50%,
+    rgba(255, 255, 255, 0.15) 85%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 16px 3px rgba(255, 255, 255, 0.55),
+    0 0 36px 10px hsl(13 100% 55% / 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .audit-frame-beam {
+    box-shadow: none;
+  }
+}
+
 /* Nav scrolled state - backdrop blur + subtle background */
 header.scrolled {
   background: rgba(245, 242, 236, 0.88) !important;

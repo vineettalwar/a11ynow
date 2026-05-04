@@ -374,7 +374,10 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (url) setLocation(`/audit-result?url=${encodeURIComponent(url)}`);
+    if (url) {
+      const rescan = Date.now();
+      setLocation(`/audit-result?url=${encodeURIComponent(url)}&rescan=${rescan}`);
+    }
   };
 
   return (

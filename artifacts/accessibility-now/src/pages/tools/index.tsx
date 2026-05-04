@@ -72,16 +72,20 @@ export default function ToolsIndex() {
         <div className="container mx-auto max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tools.map(({ href, icon: Icon, title, description }) => (
-              <Link key={href} href={href} className="block group">
-                <Card className="border shadow-none group-hover:shadow-sm transition-shadow h-full">
-                  <CardContent className="p-8">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                      <Icon className="w-5 h-5 text-primary" />
+              <Link
+                key={href}
+                href={href}
+                className="block group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <Card className="border border-border/80 shadow-none group-hover:shadow-md group-hover:border-primary/20 transition-[box-shadow,border-color] duration-200 h-full rounded-xl">
+                  <CardContent className="p-8 flex flex-col h-full">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 ring-1 ring-primary/10 flex items-center justify-center mb-5 group-hover:bg-primary/[0.14] transition-colors">
+                      <Icon className="w-5 h-5 text-primary" aria-hidden />
                     </div>
-                    <h2 className="text-base font-bold font-sans mb-3">{title}</h2>
-                    <p className="text-muted-foreground text-xs mb-6">{description}</p>
-                    <span className="text-primary text-sm font-medium font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
-                      Open tool <ArrowRight className="w-4 h-4" />
+                    <h2 className="text-lg font-bold font-sans tracking-tight mb-2">{title}</h2>
+                    <p className="text-muted-foreground text-sm leading-relaxed mb-8 flex-1">{description}</p>
+                    <span className="text-primary text-sm font-semibold font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
+                      Open tool <ArrowRight className="w-4 h-4 shrink-0" aria-hidden />
                     </span>
                   </CardContent>
                 </Card>

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ToolEmptyState } from "@/components/tools/tool-empty-state";
 import { Loader2, Download, AlertTriangle, CheckCircle2, TabletSmartphone } from "lucide-react";
 
 type ElementType = "link" | "button" | "input" | "select" | "textarea" | "other";
@@ -25,14 +26,18 @@ interface FocusOrderResult {
   hasSkipLink: boolean;
 }
 
-const TYPE_COLORS: Record<ElementType, { bg: string; border: string; badge: string; dot: string }> = {
-  link:    { bg: "bg-sky-100",    border: "border-sky-300",    badge: "bg-sky-100 text-sky-700",    dot: "#0ea5e9" },
-  button:  { bg: "bg-orange-100", border: "border-orange-300", badge: "bg-orange-100 text-orange-700", dot: "#f97316" },
-  input:   { bg: "bg-green-100",  border: "border-green-300",  badge: "bg-green-100 text-green-700",  dot: "#22c55e" },
-  select:  { bg: "bg-purple-100", border: "border-purple-300", badge: "bg-purple-100 text-purple-700", dot: "#a855f7" },
-  textarea:{ bg: "bg-teal-100",   border: "border-teal-300",   badge: "bg-teal-100 text-teal-700",   dot: "#14b8a6" },
-  other:   { bg: "bg-yellow-100", border: "border-yellow-300", badge: "bg-yellow-100 text-yellow-700", dot: "#eab308" },
+/** Marker colour on screenshot overlay (must stay distinct per type). */
+const TYPE_MARKER_DOT: Record<ElementType, string> = {
+  link: "#0ea5e9",
+  button: "#f97316",
+  input: "#22c55e",
+  select: "#a855f7",
+  textarea: "#14b8a6",
+  other: "#ca8a04",
 };
+
+const TYPE_BADGE_CLASS =
+  "bg-muted/80 text-foreground border border-border/90 px-1.5 py-0.5 rounded text-xs font-semibold font-sans shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]";
 
 const TYPE_LABELS: Record<ElementType, string> = {
   link: "Link",
@@ -64,7 +69,7 @@ function buildAnnotatedCanvas(
   const scaleY = img.naturalHeight / pageHeight;
 
   elements.forEach((el) => {
-    const color = TYPE_COLORS[el.type]?.dot ?? "#888";
+    const color = TYPE_MARKER_DOT[el.type] ?? "#888";
     const cx = (el.rect.x + el.rect.width / 2) * scaleX;
     const cy = el.rect.y * scaleY + SVG_MARKER_R + 2;
 
@@ -139,7 +144,7 @@ export default function FocusOrderVisualizer() {
 
   const issueCount = result ? result.elements.filter((el) => el.issues.length > 0).length : 0;
   const typeCounts = result
-    ? (Object.keys(TYPE_COLORS) as ElementType[]).reduce<Record<ElementType, number>>(
+    ? (Object.keys(TYPE_MARKER_DOT) as ElementType[]).reduce<Record<ElementType, number>>(
         (acc, t) => ({ ...acc, [t]: result.elements.filter((el) => el.type === t).length }),
         {} as Record<ElementType, number>,
       )
@@ -246,7 +251,7 @@ export default function FocusOrderVisualizer() {
                           aria-hidden="true"
                         >
                           {result.elements.map((el) => {
-                            const color = TYPE_COLORS[el.type]?.dot ?? "#888";
+                            const color = TYPE_MARKER_DOT[el.type] ?? "#888";
                             const cx = el.rect.x + el.rect.width / 2;
                             const cy = el.rect.y + SVG_MARKER_R + 2;
                             const isHovered = hoveredIndex === el.index;
@@ -282,9 +287,9 @@ export default function FocusOrderVisualizer() {
                   </div>
 
                   <div className="flex flex-wrap gap-3 text-xs">
-                    {(Object.keys(TYPE_COLORS) as ElementType[]).map((t) => (
+                    {(Object.keys(TYPE_MARKER_DOT) as ElementType[]).map((t) => (
                       <span key={t} className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full inline-block" style={{ background: TYPE_COLORS[t].dot }} />
+                        <span className="w-3 h-3 rounded-full inline-block" style={{ background: TYPE_MARKER_DOT[t] }} />
                         <span className="text-muted-foreground">{TYPE_LABELS[t]}</span>
                       </span>
                     ))}
@@ -302,7 +307,7 @@ export default function FocusOrderVisualizer() {
                       >
                         All ({result.elements.length})
                       </button>
-                      {(Object.keys(TYPE_COLORS) as ElementType[]).filter((t) => typeCounts![t] > 0).map((t) => (
+                      {(Object.keys(TYPE_MARKER_DOT) as ElementType[]).filter((t) => typeCounts![t] > 0).map((t) => (
                         <button
                           key={t}
                           onClick={() => setFilter(t)}
@@ -320,7 +325,7 @@ export default function FocusOrderVisualizer() {
                     aria-label="Focus order elements list"
                   >
                     {displayed.map((el) => {
-                      const colors = TYPE_COLORS[el.type];
+                      const dot = TYPE_MARKER_DOT[el.type] ?? "#888";
                       const hasIssues = el.issues.length > 0;
                       return (
                         <li
@@ -331,20 +336,20 @@ export default function FocusOrderVisualizer() {
                             hasIssues
                               ? "border-red-200 bg-red-50"
                               : hoveredIndex === el.index
-                                ? `${colors.bg} ${colors.border}`
+                                ? "border-primary/35 bg-primary/[0.07]"
                                 : "border-border bg-background hover:bg-muted/40"
                           }`}
                         >
                           <span
                             className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold font-sans mt-0.5"
-                            style={{ background: colors.dot }}
+                            style={{ background: dot }}
                             aria-label={`Tab stop ${el.index}`}
                           >
                             {el.index}
                           </span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                              <span className={`px-1.5 py-0.5 rounded text-xs font-bold font-sans ${colors.badge}`}>
+                              <span className={TYPE_BADGE_CLASS}>
                                 {TYPE_LABELS[el.type]}
                               </span>
                               <span className="text-xs text-muted-foreground font-mono">&lt;{el.tag}&gt;</span>
@@ -352,13 +357,13 @@ export default function FocusOrderVisualizer() {
                                 <span className="text-xs text-muted-foreground">role={el.role}</span>
                               )}
                               {el.tabIndex > 0 && (
-                                <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-sans">
+                                <span className="text-xs bg-primary/12 text-primary border border-primary/25 px-1.5 py-0.5 rounded font-sans">
                                   tabindex={el.tabIndex}
                                 </span>
                               )}
                             </div>
                             {el.name ? (
-                              <p className="text-xs font-mono text-foreground truncate" title={el.name}>{el.name}</p>
+                              <p className="text-xs font-sans text-foreground truncate" title={el.name}>{el.name}</p>
                             ) : (
                               <p className="text-xs text-muted-foreground italic">(no accessible name)</p>
                             )}
@@ -394,23 +399,20 @@ export default function FocusOrderVisualizer() {
           )}
 
           {!result && !loading && !error && (
-            <div className="rounded-2xl border bg-background p-12 text-center">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 mx-auto">
-                <TabletSmartphone className="w-6 h-6 text-primary" />
-              </div>
-              <p className="text-sm font-semibold font-sans mb-2">Enter a URL to visualise focus order</p>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                The tool captures a full-page screenshot via a headless browser, extracts every focusable element in keyboard Tab order, and overlays numbered markers - colour-coded by element type.
-              </p>
-              <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
-                {(Object.keys(TYPE_COLORS) as ElementType[]).map((t) => (
+            <ToolEmptyState
+              icon={TabletSmartphone}
+              title="Enter a URL to visualise focus order"
+              description="The tool captures a full-page screenshot via a headless browser, extracts every focusable element in keyboard Tab order, and overlays numbered markers—colour-coded by element type."
+            >
+              <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground font-sans">
+                {(Object.keys(TYPE_MARKER_DOT) as ElementType[]).map((t) => (
                   <span key={t} className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full" style={{ background: TYPE_COLORS[t].dot }} />
+                    <span className="w-3 h-3 rounded-full shrink-0 ring-2 ring-background shadow-sm" style={{ background: TYPE_MARKER_DOT[t] }} />
                     {TYPE_LABELS[t]}
                   </span>
                 ))}
               </div>
-            </div>
+            </ToolEmptyState>
           )}
         </div>
       </section>

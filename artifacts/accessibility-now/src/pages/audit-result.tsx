@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useSearch } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useCreateAudit,
   useCreateLead,
@@ -22,10 +22,12 @@ import {
   Activity,
   ExternalLink,
   ImageIcon,
+  MapPin,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { AuditPendingScanFrame } from "@/components/audit-pending-scan-frame";
 
 /** Match audit rows to the URL the user asked to scan (same origin as API normalisation). */
 function normalizeUrlForCompare(raw: string): string {
@@ -40,14 +42,69 @@ function normalizeUrlForCompare(raw: string): string {
   }
 }
 
-/** Prefer GET result; while it loads, reuse POST response if it matches the URL auditId (avoids empty UI). */
+function stripWwwHost(host: string): string {
+  const h = host.toLowerCase();
+  return h.startsWith("www.") ? h.slice(4) : h;
+}
+
+/**
+ * Whether two URL strings are the same audit target for this page. The API returns the
+ * final URL after redirects (often different path or scheme than the query string); we
+ * only require the same site (hostname, www-insensitive).
+ */
+function urlsMatchForAudit(a: string, b: string): boolean {
+  const ta = a.trim();
+  const tb = b.trim();
+  if (!ta || !tb) return false;
+  try {
+    const ua = new URL(/^https?:\/\//i.test(ta) ? ta : `https://${ta}`);
+    const ub = new URL(/^https?:\/\//i.test(tb) ? tb : `https://${tb}`);
+    return stripWwwHost(ua.hostname) === stripWwwHost(ub.hostname);
+  } catch {
+    return normalizeUrlForCompare(a) === normalizeUrlForCompare(b);
+  }
+}
+
+/**
+ * True when the API row looks like a real scan (not an empty shell from a race, parse glitch, or bad cache).
+ */
+function auditRowLooksUsable(row: AuditResult | null | undefined): boolean {
+  if (!row || typeof row.auditId !== "string" || !row.auditId) return false;
+  if (typeof row.url !== "string" || !row.url.trim()) return false;
+  if (typeof row.scannedAt !== "string") return false;
+  const scannedMs = Date.parse(row.scannedAt);
+  if (Number.isNaN(scannedMs) || scannedMs <= 0) return false;
+
+  const totalChecks = typeof row.totalChecks === "number" ? row.totalChecks : 0;
+  const passed = typeof row.passedChecks === "number" ? row.passedChecks : 0;
+  const violationCount = Array.isArray(row.violations) ? row.violations.length : 0;
+  const totalV = typeof row.totalViolations === "number" ? row.totalViolations : 0;
+
+  return totalChecks > 0 || passed > 0 || violationCount > 0 || totalV > 0;
+}
+
+/**
+ * Prefer a complete GET row when available; never let an empty/partial GET override the mutation response
+ * for the same auditId (fixes all-zero / epoch UI after a successful scan).
+ */
 function mergeAuditRow(
   auditId: string,
   fromGet: AuditResult | undefined,
   fromPost: AuditResult | undefined,
 ): AuditResult | undefined {
   if (!auditId) return fromPost;
-  return fromGet ?? (fromPost?.auditId === auditId ? fromPost : undefined);
+
+  const getIdMatch = fromGet?.auditId === auditId;
+  const postIdMatch = fromPost?.auditId === auditId;
+
+  const getUsable = Boolean(getIdMatch && auditRowLooksUsable(fromGet));
+  const postUsable = Boolean(postIdMatch && auditRowLooksUsable(fromPost));
+
+  if (getUsable) return fromGet;
+  if (postUsable) return fromPost;
+  if (postIdMatch) return fromPost;
+  if (getIdMatch) return fromGet;
+  return undefined;
 }
 
 /** API / cache should always send full rows; this prevents broken layout if anything is missing. */
@@ -101,6 +158,224 @@ function violationRowClass(impact: AuditViolation["impact"]): string {
   return cn(
     "rounded-md border border-border border-l-2 bg-background p-5 shadow-none",
     accent,
+  );
+}
+
+function primaryViolationSelector(violation: AuditViolation): string {
+  const fromInst = violation.instanceDetails?.find((i) => i.selector?.trim())?.selector;
+  if (fromInst?.trim()) return fromInst.trim();
+  const fromTop = (violation.topSelectors ?? []).find((s) => Boolean(s?.trim()));
+  return (fromTop ?? "").trim();
+}
+
+type ViolationVisualRegion =
+  | "iframe-boundary"
+  | "video-player"
+  | "compact-control"
+  | "heading-outline"
+  | "iframe-generic"
+  | "page-generic";
+
+interface ViolationVisualModel {
+  scope: "host" | "iframe";
+  diagram: "host-iframe-shell" | "embed-interior" | "host-body";
+  region: ViolationVisualRegion;
+  whereLabel: string;
+  effectLine: string;
+  ownershipNote: string | null;
+}
+
+/** Selector chain enters an iframe’s document (e.g. `iframe > #x`). */
+function selectorIsInsideIframeDocument(sel: string): boolean {
+  const t = sel.trim();
+  if (!t) return false;
+  return /\biframe\s*>/i.test(t);
+}
+
+function violationVisualModel(violation: AuditViolation): ViolationVisualModel {
+  const sel = primaryViolationSelector(violation);
+  const lower = sel.toLowerCase();
+  const insideEmbedDoc = selectorIsInsideIframeDocument(sel);
+  const rule = violation.id;
+
+  const youtubeLike =
+    /movie_player|ytm|ytp-|youtube|yt-embed|yt-iframe|html5-video|video-player/.test(lower);
+
+  let region: ViolationVisualRegion = insideEmbedDoc ? "iframe-generic" : "page-generic";
+  if (rule === "frame-title") {
+    region = "iframe-boundary";
+  } else if (
+    /#movie_player|\.html5-video|html5-video-player|ytp-player|ytp-video/.test(lower) ||
+    (insideEmbedDoc && rule === "aria-prohibited-attr" && /player|video|movie/.test(lower))
+  ) {
+    region = "video-player";
+  } else if (
+    /avatar|channel|subscribe|ytm|\.ytp-/.test(lower) ||
+    (insideEmbedDoc && rule === "button-name")
+  ) {
+    region = "compact-control";
+  } else if (rule === "heading-order" || /^h[1-6]\b/.test(lower) || /heading/.test(lower)) {
+    region = "heading-outline";
+  }
+
+  const scope: ViolationVisualModel["scope"] = insideEmbedDoc ? "iframe" : "host";
+  const diagram: ViolationVisualModel["diagram"] =
+    region === "iframe-boundary" ? "host-iframe-shell" : insideEmbedDoc ? "embed-interior" : "host-body";
+
+  const whereParts: string[] = [];
+  if (region === "iframe-boundary") {
+    whereParts.push(
+      "The `<iframe>` on your page — the embedded “window” between your document and third-party markup.",
+    );
+  } else if (region === "video-player") {
+    whereParts.push(
+      insideEmbedDoc
+        ? "Inside that embed: the main video / player surface (the large interactive media area)."
+        : "The main video or media player region on the page.",
+    );
+  } else if (region === "compact-control") {
+    whereParts.push(
+      insideEmbedDoc
+        ? "Inside the embed: a small control near the video (often an icon, avatar, or chrome button)."
+        : "A compact control on your page (often an icon-only button or avatar).",
+    );
+  } else if (region === "heading-outline") {
+    whereParts.push(
+      "In the page heading structure — the sequence of section titles screen readers use for navigation.",
+    );
+  } else if (insideEmbedDoc) {
+    whereParts.push("Inside embedded content (an iframe), on the element described by the selector below.");
+  } else {
+    whereParts.push("On your page’s main document, on the element described by the selector below.");
+  }
+
+  const effectLine =
+    violation.description ||
+    "Assistive technology may not receive the same information a sighted user gets from layout and nearby text.";
+
+  let ownershipNote: string | null = null;
+  if (region === "iframe-boundary") {
+    ownershipNote =
+      "You control this element in your own template: add a concise `title` (or another accessible name) so users know what the embed is before they enter it.";
+  } else if (insideEmbedDoc) {
+    ownershipNote = youtubeLike
+      ? "This selector matches markup inside a video embed (often YouTube). Inner player issues are usually owned by the vendor; you can still fix the outer iframe name, swap embeds, or document limitations."
+      : "This selector points inside an embedded document. Your app may only control the outer iframe — not the widget’s inner HTML.";
+  }
+
+  return {
+    scope,
+    diagram,
+    region,
+    whereLabel: whereParts.join(" "),
+    effectLine,
+    ownershipNote,
+  };
+}
+
+function ViolationWhereOnPage({ violation }: { violation: AuditViolation }) {
+  const model = violationVisualModel(violation);
+  const sel = primaryViolationSelector(violation);
+  const { diagram, region } = model;
+
+  const innerPulse =
+    region === "video-player" ? "bg-primary/25" : region === "compact-control" ? "bg-primary/20" : "bg-muted/50";
+
+  return (
+    <div className="mt-4 rounded-lg border border-border bg-muted/25 p-4 md:p-5">
+      <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-stretch">
+        <div
+          className="shrink-0 flex justify-center sm:justify-start"
+          aria-hidden
+        >
+          <div className="relative w-[148px] rounded-lg border border-foreground/15 bg-linear-to-b from-muted/80 to-background p-2 shadow-sm">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground text-center mb-1.5">
+              Page layout
+            </p>
+            <div className="h-1.5 w-[85%] mx-auto rounded-full bg-foreground/12 mb-2" title="Site header / chrome" />
+            {region === "heading-outline" ? (
+              <div className="space-y-1 mb-2 px-1">
+                <div className="h-1 w-3/4 rounded bg-foreground/15" />
+                <div className="h-1 w-1/2 rounded bg-primary/50" />
+                <div className="h-1 w-2/3 rounded bg-foreground/10" />
+              </div>
+            ) : (
+              <div className="h-1 w-[55%] rounded bg-foreground/8 mb-2 ml-1" />
+            )}
+
+            {diagram === "host-body" ? (
+              <div className="relative mx-auto rounded-md border border-foreground/20 bg-muted/40 min-h-[88px] w-[92%] p-2">
+                {region === "compact-control" && (
+                  <div className="absolute top-3 right-3 h-7 w-7 rounded-full border-2 border-primary bg-primary/15 shadow-sm" />
+                )}
+                {region === "page-generic" && (
+                  <div className="absolute inset-2 rounded-sm bg-foreground/6" />
+                )}
+              </div>
+            ) : diagram === "host-iframe-shell" ? (
+              <div className="relative mx-auto rounded-md border border-foreground/20 bg-muted/40 min-h-[88px] w-[92%] p-2 flex items-center justify-center">
+                <div
+                  className={cn(
+                    "w-[78%] h-[72px] rounded-md border-2 border-dashed bg-background/90 flex items-center justify-center text-[8px] font-mono text-muted-foreground",
+                    region === "iframe-boundary"
+                      ? "border-primary ring-2 ring-primary/30"
+                      : "border-foreground/25",
+                  )}
+                >
+                  iframe
+                </div>
+              </div>
+            ) : (
+              <div
+                className={cn(
+                  "relative mx-auto rounded-md border border-dashed border-primary/35 bg-background/90 p-1.5 min-h-[88px] w-[92%]",
+                )}
+              >
+                <span className="absolute -top-0.5 left-1 text-[8px] font-mono text-muted-foreground">embed</span>
+                <div className="absolute inset-1 rounded border border-foreground/10" />
+                {region === "video-player" && (
+                  <div className="absolute inset-2 rounded-sm bg-primary/20 border border-primary/30" />
+                )}
+                {region === "compact-control" && (
+                  <div className="absolute top-2 left-2 h-6 w-6 rounded-full border-2 border-primary bg-primary/15 shadow-sm" />
+                )}
+                {region === "iframe-generic" && (
+                  <div className={cn("absolute inset-3 rounded-sm border border-foreground/15", innerPulse)} />
+                )}
+              </div>
+            )}
+            <p className="text-[8px] text-center text-muted-foreground mt-1.5 leading-tight px-1">
+              Schematic — not your screenshot
+            </p>
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0 space-y-2">
+          <p className="text-xs font-bold font-sans text-foreground flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" aria-hidden />
+            Where on the page
+          </p>
+          <p className="text-xs text-foreground leading-relaxed">{model.whereLabel}</p>
+          <div className="rounded-md bg-background/80 border border-border px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+              What happens for users
+            </p>
+            <p className="text-xs text-foreground leading-relaxed">{model.effectLine}</p>
+          </div>
+          {model.ownershipNote ? (
+            <p className="text-[11px] text-muted-foreground leading-relaxed border-l-2 border-amber-500/60 pl-3">
+              {model.ownershipNote}
+            </p>
+          ) : null}
+          {sel ? (
+            <p className="text-[10px] font-mono text-muted-foreground break-all pt-1">
+              <span className="text-muted-foreground/80">Primary selector: </span>
+              {sel}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -241,12 +516,18 @@ function useDownloadPdf(auditId: string) {
 
 export default function AuditResult() {
   const [, navigate] = useLocation();
-  const searchParams = new URLSearchParams(window.location.search);
+  const searchString = useSearch();
+  const searchParams = new URLSearchParams(searchString);
   const urlParam = searchParams.get("url") || "";
   const auditIdParam = searchParams.get("auditId") || "";
+  /** Each home submit sends a new nonce so we clear the mutation and POST again instead of reusing the last scan. */
+  const rescanParam = searchParams.get("rescan") || "";
 
+  const queryClient = useQueryClient();
   const createAudit = useCreateAudit();
   const { mutate: createAuditMutate, reset: resetCreateAudit } = createAudit;
+
+  const lastScanIntentKey = useRef<string | null>(null);
 
   const existingAudit = useQuery({
     queryKey: getGetAuditQueryKey(auditIdParam),
@@ -255,16 +536,31 @@ export default function AuditResult() {
     retry: false,
   });
 
-  useEffect(() => () => {
+  useEffect(() => {
+    const row = createAudit.data;
+    if (!row?.auditId || !auditRowLooksUsable(row)) return;
+    queryClient.setQueryData(getGetAuditQueryKey(row.auditId), row);
+  }, [createAudit.data, queryClient]);
+
+  useEffect(() => {
+    if (auditIdParam) {
+      lastScanIntentKey.current = null;
+      return;
+    }
+    if (!urlParam) return;
+    const fp = normalizeUrlForCompare(urlParam);
+    const intentKey = rescanParam ? `rescan:${rescanParam}:${fp}` : `url:${fp}`;
+    if (lastScanIntentKey.current === intentKey) return;
+    lastScanIntentKey.current = intentKey;
     resetCreateAudit();
-  }, [resetCreateAudit]);
+  }, [auditIdParam, rescanParam, resetCreateAudit, urlParam]);
 
   useEffect(() => {
     if (!urlParam || auditIdParam) return;
     if (createAudit.isPending) return;
     const post = createAudit.data;
     if (!post?.url) return;
-    if (normalizeUrlForCompare(post.url) !== normalizeUrlForCompare(urlParam)) {
+    if (!urlsMatchForAudit(post.url, urlParam)) {
       resetCreateAudit();
     }
   }, [auditIdParam, createAudit.data, createAudit.isPending, resetCreateAudit, urlParam]);
@@ -274,7 +570,7 @@ export default function AuditResult() {
     if (createAudit.isPending) return;
     const post = createAudit.data;
     if (!post?.auditId) return;
-    if (normalizeUrlForCompare(post.url) !== normalizeUrlForCompare(urlParam)) return;
+    if (!urlsMatchForAudit(post.url, urlParam)) return;
     const params = new URLSearchParams({ auditId: post.auditId, url: post.url });
     navigate(`/audit-result?${params.toString()}`, { replace: true });
   }, [
@@ -310,13 +606,7 @@ export default function AuditResult() {
     );
   }
 
-  const postMatchesUrlParam =
-    !!urlParam &&
-    !!createAudit.data?.url &&
-    normalizeUrlForCompare(createAudit.data.url) === normalizeUrlForCompare(urlParam);
-  const safePostForMerge =
-    !auditIdParam && urlParam && createAudit.data && !postMatchesUrlParam ? undefined : createAudit.data;
-  const mergedRaw = mergeAuditRow(auditIdParam, existingAudit.data, safePostForMerge);
+  const mergedRaw = mergeAuditRow(auditIdParam, existingAudit.data, createAudit.data);
   const waitingForSavedAudit =
     !!auditIdParam &&
     mergedRaw === undefined &&
@@ -331,33 +621,34 @@ export default function AuditResult() {
 
   if (isPending) {
     return (
-      <div className="hero-gradient min-h-[80vh] flex items-center justify-center px-4 py-16">
-        <div className="text-center max-w-xl w-full space-y-8">
-          <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto" />
-          <div>
-            <h1 className="text-display-md font-extrabold mb-4">
-              Scanning<br />
-              <span className="heading-accent">your site.</span>
-            </h1>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Running automated WCAG 2.1 AA checks against{" "}
-              <span className="font-mono text-foreground">{displayUrl}</span>. Chromium scrolls the full page so
-              lazy-loaded content is included, then axe analyzes — typically 15–40 seconds.
-            </p>
-          </div>
-          <div className="rounded-xl border border-border bg-background/80 backdrop-blur-sm p-6 text-left shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center border border-border">
-                <ImageIcon className="w-6 h-6 text-muted-foreground" aria-hidden />
-              </div>
-              <div className="space-y-2 min-w-0">
-                <p className="text-sm font-semibold font-sans text-foreground">Visual evidence after the scan</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  When the headless browser run succeeds, your report will include a viewport capture of the page and
-                  JPEG clips for representative failing elements, alongside selectors, HTML snippets, and axe check
-                  messages for each issue.
-                </p>
-              </div>
+      <div className="hero-gradient min-h-[80vh] flex flex-col items-center justify-center gap-8 px-4 py-12 sm:py-16">
+        <div className="sr-only" role="status" aria-live="polite">
+          Scanning {displayUrl}. Automated WCAG checks in progress.
+        </div>
+        <Loader2 className="w-9 h-9 text-primary animate-spin shrink-0" aria-hidden />
+        <div className="text-center max-w-xl w-full space-y-3">
+          <h1 className="text-display-md font-extrabold">
+            Scanning<br />
+            <span className="heading-accent">your site.</span>
+          </h1>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            Chromium scrolls the full page, then axe analyzes — typically 15–40 seconds.
+          </p>
+        </div>
+
+        <AuditPendingScanFrame displayUrl={displayUrl} />
+
+        <div className="rounded-xl border border-border bg-background/80 backdrop-blur-sm p-5 text-left shadow-sm max-w-xl w-full">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 w-11 h-11 rounded-lg bg-muted flex items-center justify-center border border-border">
+              <ImageIcon className="w-5 h-5 text-muted-foreground" aria-hidden />
+            </div>
+            <div className="space-y-1.5 min-w-0">
+              <p className="text-sm font-semibold font-sans text-foreground">Visual evidence after the scan</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Viewport capture, JPEG clips of failing elements, selectors, HTML snippets, and axe messages when the
+                browser run succeeds.
+              </p>
             </div>
           </div>
         </div>
@@ -403,7 +694,22 @@ export default function AuditResult() {
         </div>
       );
     }
-    return null;
+    return (
+      <div className="hero-gradient min-h-[80vh] flex items-center justify-center px-4">
+        <div className="text-center max-w-lg">
+          <AlertOctagon className="w-10 h-10 text-muted-foreground mx-auto mb-6" aria-hidden />
+          <h1 className="text-display-md font-extrabold mb-4">Couldn’t show this result.</h1>
+          <p className="text-muted-foreground text-sm mb-8">
+            Something interrupted loading the audit for{" "}
+            <span className="font-mono text-foreground">{displayUrl || urlParam || "this URL"}</span>.
+            Start a fresh scan from the home page.
+          </p>
+          <Button asChild>
+            <Link href="/">Start a new audit</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const result = normalizeAuditResult(mergedRaw);
@@ -791,6 +1097,7 @@ function AuditResultView({
                       <p className="text-xs text-muted-foreground font-mono">nodes</p>
                     </div>
                   </div>
+                  <ViolationWhereOnPage violation={violation} />
                   <ViolationElementExamples violation={violation} />
                 </article>
               ))

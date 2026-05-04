@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { ToolEmptyState } from "@/components/tools/tool-empty-state";
+import { CheckCircle2, XCircle, Loader2, Mic } from "lucide-react";
 
 type ItemType = "title" | "landmark" | "heading" | "link" | "button" | "image" | "form-label";
 
@@ -29,15 +30,8 @@ const TYPE_LABELS: Record<ItemType, string> = {
   "form-label": "Form",
 };
 
-const TYPE_COLORS: Record<ItemType, string> = {
-  title: "bg-purple-100 text-purple-700",
-  landmark: "bg-blue-100 text-blue-700",
-  heading: "bg-foreground text-background",
-  link: "bg-sky-100 text-sky-700",
-  button: "bg-orange-100 text-orange-700",
-  image: "bg-pink-100 text-pink-700",
-  "form-label": "bg-yellow-100 text-yellow-700",
-};
+const TYPE_BADGE_CLASS =
+  "bg-muted/80 text-foreground border border-border/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -178,7 +172,7 @@ export default function ScreenReaderPreview() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold font-sans ${TYPE_COLORS[item.type]}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold font-sans ${TYPE_BADGE_CLASS}`}>
                           {item.type === "heading" && item.level ? `H${item.level}` : TYPE_LABELS[item.type]}
                           {item.role ? ` - ${item.role}` : ""}
                         </span>
@@ -186,7 +180,7 @@ export default function ScreenReaderPreview() {
                           <span className="text-xs text-red-600 font-medium">{item.issue}</span>
                         )}
                       </div>
-                      <p className="text-sm font-mono text-foreground break-words">{item.text || <em className="text-muted-foreground">(empty)</em>}</p>
+                      <p className="text-sm font-sans text-foreground break-words leading-relaxed">{item.text || <em className="text-muted-foreground">(empty)</em>}</p>
                     </div>
                   </li>
                 ))}
@@ -198,15 +192,11 @@ export default function ScreenReaderPreview() {
           )}
 
           {!result && !loading && !error && (
-            <div className="rounded-2xl border bg-background p-12 text-center">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 mx-auto">
-                <span className="text-2xl">🎤</span>
-              </div>
-              <p className="text-sm font-semibold font-sans mb-2">Enter a URL to see the screen reader view</p>
-              <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                The tool fetches the page server-side and extracts the reading order: document title, landmarks, headings H1–H6, link text, button labels, image alt text, and form labels.
-              </p>
-            </div>
+            <ToolEmptyState
+              icon={Mic}
+              title="Enter a URL to see the screen reader view"
+              description="The tool fetches the page server-side and extracts the reading order: document title, landmarks, headings H1–H6, link text, button labels, image alt text, and form labels."
+            />
           )}
         </div>
       </section>

@@ -261,7 +261,7 @@ export default function ContrastChecker() {
 
               <div className="rounded-2xl border p-6 text-center" style={{ backgroundColor: bg }}>
                 <p className="text-2xl font-extrabold font-sans mb-1" style={{ color: fg }}>Large heading text</p>
-                <p className="text-sm" style={{ color: fg, fontFamily: "var(--app-font-mono)" }}>This is how body text looks with these colours. Readability matters.</p>
+                <p className="text-sm font-sans leading-relaxed" style={{ color: fg }}>This is how body text looks with these colours. Readability matters.</p>
               </div>
 
               <div className="flex items-center justify-between rounded-2xl bg-foreground text-background p-6">

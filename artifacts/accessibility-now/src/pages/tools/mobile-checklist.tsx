@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, ClipboardCopy, RotateCcw } from "lucide-react";
+import { CheckCircle2, Circle, ClipboardCopy, RotateCcw, Apple, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -184,13 +184,24 @@ export default function MobileChecklist() {
                   {(["ios", "android"] as Platform[]).map((p) => (
                     <button
                       key={p}
+                      type="button"
                       onClick={() => setPlatform(p)}
-                      className={`flex-1 py-2.5 text-sm font-semibold font-sans transition-colors ${
+                      className={`flex-1 py-2.5 text-sm font-semibold font-sans transition-colors inline-flex items-center justify-center gap-2 ${
                         platform === p ? "bg-foreground text-background" : "bg-background text-muted-foreground hover:text-foreground"
                       }`}
                       aria-pressed={platform === p}
                     >
-                      {p === "ios" ? "🍎 iOS" : "🤖 Android"}
+                      {p === "ios" ? (
+                        <>
+                          <Apple className="w-4 h-4 shrink-0 opacity-90" aria-hidden />
+                          <span>iOS</span>
+                        </>
+                      ) : (
+                        <>
+                          <Smartphone className="w-4 h-4 shrink-0 opacity-90" aria-hidden />
+                          <span>Android</span>
+                        </>
+                      )}
                     </button>
                   ))}
                 </div>
