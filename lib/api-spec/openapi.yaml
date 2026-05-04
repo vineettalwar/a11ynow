@@ -319,6 +319,32 @@ components:
       required:
         - url
 
+    AuditViolationInstance:
+      type: object
+      description: One DOM node axe flagged for this rule (up to 3 per violation on new audits)
+      properties:
+        selector:
+          type: string
+          description: CSS selector chain from axe (joined target segments)
+        htmlSnippet:
+          type: string
+          description: Truncated outer HTML of the element in the scanned page
+        failureSummary:
+          type: string
+          description: Axe human-readable reason this node failed the check
+        elementScreenshot:
+          type: string
+          description: |
+            JPEG data URL of the node's rendered bounds (Playwright engine only; omitted when capture fails).
+        checkDetails:
+          type: array
+          items:
+            type: string
+          description: Messages from axe check results attached to this node (`any` / `all` / `none`).
+      required:
+        - selector
+        - htmlSnippet
+
     AuditViolation:
       type: object
       properties:
@@ -341,6 +367,19 @@ components:
           items:
             type: string
           description: Up to 3 representative CSS selectors for affected elements
+        help:
+          type: string
+          description: Short remediation guidance from axe-core for this rule.
+        helpUrl:
+          type: string
+          description: Link to axe rule documentation (Deque University).
+        instanceDetails:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditViolationInstance"
+          description: |
+            Up to 3 affected nodes with selector, HTML, failure text, optional element screenshot, and axe check messages.
+            Omitted on legacy audits. Remote scans do not include original source file line numbers; use DevTools with the selector.
       required:
         - id
         - wcagCriteria
@@ -382,6 +421,17 @@ components:
           type: integer
         totalChecks:
           type: integer
+        scanEngine:
+          type: string
+          enum: [playwright, static_fallback, unknown]
+          description: |
+            Engine used for this audit: `playwright` is headless Chromium with axe (full JS/DOM).
+            `static_fallback` is HTML fetched into JSDOM when the browser engine fails (no client-side JS).
+            `unknown` is stored for legacy rows before this field existed.
+        pageScreenshot:
+          type: string
+          description: |
+            Viewport JPEG data URL of the page after the axe run (Playwright only). Omitted for static fallback, legacy rows, or when capture failed.
       required:
         - auditId
         - url
@@ -394,6 +444,7 @@ components:
         - violations
         - passedChecks
         - totalChecks
+        - scanEngine
 
     CreateLeadBody:
       type: object
@@ -632,6 +683,11 @@ components:
         error:
           type: string
           nullable: true
+        scanEngine:
+          type: string
+          enum: [playwright, static_fallback, unknown]
+          nullable: true
+          description: Present when status is success — which engine produced the page result
       required:
         - auditId
         - url

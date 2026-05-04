@@ -16,19 +16,19 @@ const PRINCIPLES = [
     initials: "01",
     name: "Same team, audit to deploy.",
     role: "No hand-offs",
-    bio: "The senior engineer who scopes your audit is the same engineer who writes the remediation PRs. No subcontractors, no junior hand-off, no lost context.",
+    bio: "Whoever scopes your audit writes the remediation PRs. No subcontractor relay, no context lost between phases.",
   },
   {
     initials: "02",
     name: "Senior on every project.",
     role: "100%, not 'led by'",
-    bio: "Every line of code, every audit finding, every screen-reader test is done by an engineer with 8+ years in production accessibility. Not 'reviewed by senior' - written by senior.",
+    bio: "Findings and fixes come from engineers with 8+ years in production accessibility—not a junior draft with a senior skim.",
   },
   {
     initials: "03",
     name: "IAAP-certified, code-fluent.",
     role: "CPACC / WAS",
-    bio: "We hold the IAAP credentials regulators recognise (CPACC, WAS) and we ship production code in your stack. The combination is rare and it's the reason the fix actually merges.",
+    bio: "CPACC and WAS on the team, plus day-to-day work in your repo. Credentials meet shipping code.",
   },
 ];
 
@@ -122,9 +122,7 @@ export default function About() {
                   className="text-lg text-[#1A1A1A] leading-relaxed"
                   style={{ fontFamily: "var(--app-font-mono)" }}
                 >
-                  accessibility.now operates under the sometech.work brand - senior
-                  strategists, engineers, and designers for EU SMEs and bounded
-                  enterprise projects. Same team from first call to final delivery.
+                  accessibility.now is the accessibility arm of sometech.work—same senior team from first call through delivery.
                 </p>
               </div>
               <Button
@@ -151,8 +149,8 @@ export default function About() {
                 className="mt-3 text-sm text-white/40 leading-relaxed"
                 style={{ fontFamily: "var(--app-font-mono)" }}
               >
-                Engineering excellence.<br />
-                Applied to accessibility.
+                Senior engineers.<br />
+                Shipping accessible products.
               </p>
             </div>
           </div>
@@ -171,7 +169,7 @@ export default function About() {
             className="text-sm text-white/50 mb-10 max-w-xl reveal-body"
             style={{ fontFamily: "var(--app-font-mono)" }}
           >
-            Three principles that decide who works on your engagement and how they ship.
+            Who works on your project and how we ship.
           </p>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 reveal-body">
             {PRINCIPLES.map((p) => (
@@ -218,7 +216,7 @@ export default function About() {
             className="text-2xl font-extrabold mb-8 reveal-body"
             style={{ fontFamily: "var(--app-font-sans)" }}
           >
-            Ready to make your product accessible?
+            Need an audit or a second pair of eyes?
           </p>
           <Button asChild className="btn-gsap h-12 px-8 text-sm font-bold">
             <Link href="/contact">Get an audit →</Link>

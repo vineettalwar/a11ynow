@@ -11,17 +11,33 @@ export const auditsTable = pgTable("audits", {
   totalViolations: integer("total_violations").notNull(),
   criticalViolations: integer("critical_violations").notNull(),
   seriousViolations: integer("serious_violations").notNull(),
-  violations: jsonb("violations").notNull().$type<AuditViolation[]>(),
+  violations: jsonb("violations").notNull().$type<AuditViolationStored[]>(),
   passedChecks: integer("passed_checks").notNull(),
   totalChecks: integer("total_checks").notNull(),
+  /** playwright | static_fallback | unknown (legacy rows) */
+  scanEngine: text("scan_engine").notNull().default("unknown"),
+  /** Viewport JPEG as `data:image/jpeg;base64,...` when the Playwright engine captured it. */
+  pageScreenshot: text("page_screenshot"),
 });
 
-export interface AuditViolation {
+export interface AuditViolationInstanceStored {
+  selector: string;
+  htmlSnippet: string;
+  failureSummary?: string;
+  elementScreenshot?: string;
+  checkDetails?: string[];
+}
+
+export interface AuditViolationStored {
   id: string;
   wcagCriteria: string;
   description: string;
   impact: "minor" | "moderate" | "serious" | "critical";
   affectedElements: number;
+  topSelectors: string[];
+  help?: string;
+  helpUrl?: string;
+  instanceDetails?: AuditViolationInstanceStored[];
 }
 
 export const insertAuditSchema = createInsertSchema(auditsTable);

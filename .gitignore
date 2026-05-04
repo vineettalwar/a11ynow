@@ -27,6 +27,11 @@ node_modules
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Local Docker DB backups (keep directory)
+.docker/backups/*.sql
+.docker/backups/*.sql.gz
+!.docker/backups/.gitkeep
+
 # misc
 /.sass-cache
 /connect.lock

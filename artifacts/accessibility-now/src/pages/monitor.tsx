@@ -43,6 +43,7 @@ interface MonitorLatest {
     impact: "minor" | "moderate" | "serious" | "critical";
     affectedElements: number;
     topSelectors: string[];
+    instanceDetails?: Array<{ selector: string; htmlSnippet: string; failureSummary?: string }>;
   }>;
   passedChecks: number;
   totalChecks: number;

@@ -14,6 +14,10 @@ if (Number.isNaN(port) || port <= 0) {
 
 const basePath = process.env.BASE_PATH ?? "/";
 
+/** During `vite` / `vite preview`, forward `/api/*` to the Express API (default http://127.0.0.1:8080). */
+const devApiProxyTarget =
+  process.env.VITE_DEV_API_PROXY ?? "http://127.0.0.1:8080";
+
 export default defineConfig({
   base: basePath,
   plugins: [
@@ -48,16 +52,28 @@ export default defineConfig({
   },
   server: {
     port,
-    strictPort: true,
+    strictPort: false,
     host: "0.0.0.0",
     allowedHosts: true,
     fs: {
       strict: true,
+    },
+    proxy: {
+      "/api": {
+        target: devApiProxyTarget,
+        changeOrigin: true,
+      },
     },
   },
   preview: {
     port,
     host: "0.0.0.0",
     allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: devApiProxyTarget,
+        changeOrigin: true,
+      },
+    },
   },
 });

@@ -55,10 +55,70 @@ export const CreateAuditResponse = zod.object({
       topSelectors: zod
         .array(zod.string())
         .describe("Up to 3 representative CSS selectors for affected elements"),
+      help: zod
+        .string()
+        .optional()
+        .describe("Short remediation guidance from axe-core for this rule."),
+      helpUrl: zod
+        .string()
+        .optional()
+        .describe("Link to axe rule documentation (Deque University)."),
+      instanceDetails: zod
+        .array(
+          zod
+            .object({
+              selector: zod
+                .string()
+                .describe(
+                  "CSS selector chain from axe (joined target segments)",
+                ),
+              htmlSnippet: zod
+                .string()
+                .describe(
+                  "Truncated outer HTML of the element in the scanned page",
+                ),
+              failureSummary: zod
+                .string()
+                .optional()
+                .describe(
+                  "Axe human-readable reason this node failed the check",
+                ),
+              elementScreenshot: zod
+                .string()
+                .optional()
+                .describe(
+                  "JPEG data URL of the node's rendered bounds (Playwright engine only; omitted when capture fails).\n",
+                ),
+              checkDetails: zod
+                .array(zod.string())
+                .optional()
+                .describe(
+                  "Messages from axe check results attached to this node (`any` \/ `all` \/ `none`).",
+                ),
+            })
+            .describe(
+              "One DOM node axe flagged for this rule (up to 3 per violation on new audits)",
+            ),
+        )
+        .optional()
+        .describe(
+          "Up to 3 affected nodes with selector, HTML, failure text, optional element screenshot, and axe check messages.\nOmitted on legacy audits. Remote scans do not include original source file line numbers; use DevTools with the selector.\n",
+        ),
     }),
   ),
   passedChecks: zod.number(),
   totalChecks: zod.number(),
+  scanEngine: zod
+    .enum(["playwright", "static_fallback", "unknown"])
+    .describe(
+      "Engine used for this audit: `playwright` is headless Chromium with axe (full JS\/DOM).\n`static_fallback` is HTML fetched into JSDOM when the browser engine fails (no client-side JS).\n`unknown` is stored for legacy rows before this field existed.\n",
+    ),
+  pageScreenshot: zod
+    .string()
+    .optional()
+    .describe(
+      "Viewport JPEG data URL of the page after the axe run (Playwright only). Omitted for static fallback, legacy rows, or when capture failed.\n",
+    ),
 });
 
 /**
@@ -142,10 +202,70 @@ export const GetAuditResponse = zod.object({
       topSelectors: zod
         .array(zod.string())
         .describe("Up to 3 representative CSS selectors for affected elements"),
+      help: zod
+        .string()
+        .optional()
+        .describe("Short remediation guidance from axe-core for this rule."),
+      helpUrl: zod
+        .string()
+        .optional()
+        .describe("Link to axe rule documentation (Deque University)."),
+      instanceDetails: zod
+        .array(
+          zod
+            .object({
+              selector: zod
+                .string()
+                .describe(
+                  "CSS selector chain from axe (joined target segments)",
+                ),
+              htmlSnippet: zod
+                .string()
+                .describe(
+                  "Truncated outer HTML of the element in the scanned page",
+                ),
+              failureSummary: zod
+                .string()
+                .optional()
+                .describe(
+                  "Axe human-readable reason this node failed the check",
+                ),
+              elementScreenshot: zod
+                .string()
+                .optional()
+                .describe(
+                  "JPEG data URL of the node's rendered bounds (Playwright engine only; omitted when capture fails).\n",
+                ),
+              checkDetails: zod
+                .array(zod.string())
+                .optional()
+                .describe(
+                  "Messages from axe check results attached to this node (`any` \/ `all` \/ `none`).",
+                ),
+            })
+            .describe(
+              "One DOM node axe flagged for this rule (up to 3 per violation on new audits)",
+            ),
+        )
+        .optional()
+        .describe(
+          "Up to 3 affected nodes with selector, HTML, failure text, optional element screenshot, and axe check messages.\nOmitted on legacy audits. Remote scans do not include original source file line numbers; use DevTools with the selector.\n",
+        ),
     }),
   ),
   passedChecks: zod.number(),
   totalChecks: zod.number(),
+  scanEngine: zod
+    .enum(["playwright", "static_fallback", "unknown"])
+    .describe(
+      "Engine used for this audit: `playwright` is headless Chromium with axe (full JS\/DOM).\n`static_fallback` is HTML fetched into JSDOM when the browser engine fails (no client-side JS).\n`unknown` is stored for legacy rows before this field existed.\n",
+    ),
+  pageScreenshot: zod
+    .string()
+    .optional()
+    .describe(
+      "Viewport JPEG data URL of the page after the axe run (Playwright only). Omitted for static fallback, legacy rows, or when capture failed.\n",
+    ),
 });
 
 /**
@@ -245,6 +365,57 @@ export const GetMonitorResponse = zod.object({
             .array(zod.string())
             .describe(
               "Up to 3 representative CSS selectors for affected elements",
+            ),
+          help: zod
+            .string()
+            .optional()
+            .describe(
+              "Short remediation guidance from axe-core for this rule.",
+            ),
+          helpUrl: zod
+            .string()
+            .optional()
+            .describe("Link to axe rule documentation (Deque University)."),
+          instanceDetails: zod
+            .array(
+              zod
+                .object({
+                  selector: zod
+                    .string()
+                    .describe(
+                      "CSS selector chain from axe (joined target segments)",
+                    ),
+                  htmlSnippet: zod
+                    .string()
+                    .describe(
+                      "Truncated outer HTML of the element in the scanned page",
+                    ),
+                  failureSummary: zod
+                    .string()
+                    .optional()
+                    .describe(
+                      "Axe human-readable reason this node failed the check",
+                    ),
+                  elementScreenshot: zod
+                    .string()
+                    .optional()
+                    .describe(
+                      "JPEG data URL of the node's rendered bounds (Playwright engine only; omitted when capture fails).\n",
+                    ),
+                  checkDetails: zod
+                    .array(zod.string())
+                    .optional()
+                    .describe(
+                      "Messages from axe check results attached to this node (`any` \/ `all` \/ `none`).",
+                    ),
+                })
+                .describe(
+                  "One DOM node axe flagged for this rule (up to 3 per violation on new audits)",
+                ),
+            )
+            .optional()
+            .describe(
+              "Up to 3 affected nodes with selector, HTML, failure text, optional element screenshot, and axe check messages.\nOmitted on legacy audits. Remote scans do not include original source file line numbers; use DevTools with the selector.\n",
             ),
         }),
       ),

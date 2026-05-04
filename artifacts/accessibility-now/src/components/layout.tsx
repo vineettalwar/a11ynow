@@ -548,7 +548,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="md:col-span-2">
             <h3 className="font-extrabold text-base mb-3 font-sans">accessibility.now</h3>
             <p className="text-xs text-muted-foreground mb-3 leading-relaxed max-w-xs">
-              A digital accessibility agency for European enterprises. WCAG audits, remediation, and monitoring.
+              WCAG audits, remediation, and monitoring—focused on teams shipping in the EU.
             </p>
             <p className="text-xs text-muted-foreground">
               Powered by{" "}

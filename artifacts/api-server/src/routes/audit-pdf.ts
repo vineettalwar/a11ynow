@@ -39,6 +39,13 @@ function levelLabel(level: string): string {
   return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
+interface AuditViolationInstanceData {
+  selector: string;
+  htmlSnippet: string;
+  failureSummary?: string;
+  checkDetails?: string[];
+}
+
 interface AuditViolationData {
   id: string;
   wcagCriteria: string;
@@ -46,6 +53,7 @@ interface AuditViolationData {
   impact: ImpactLevel;
   affectedElements: number;
   topSelectors?: string[];
+  instanceDetails?: AuditViolationInstanceData[];
 }
 
 interface AuditRow {
@@ -254,9 +262,19 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       y += 40;
     } else {
       for (let i = 0; i < top10.length; i++) {
-        const v = top10[i];
+        const v = top10[i] as AuditViolationData;
         const selectors = (v.topSelectors ?? []).filter(Boolean);
-        const selText = selectors.join("\n");
+        const instanceLines: string[] = [];
+        for (const inst of v.instanceDetails ?? []) {
+          const bits = [
+            inst.failureSummary,
+            ...(Array.isArray(inst.checkDetails) ? inst.checkDetails : []),
+            inst.selector,
+            inst.htmlSnippet,
+          ].filter(Boolean);
+          if (bits.length) instanceLines.push(bits.join("\n"));
+        }
+        const selText = [selectors.join("\n"), instanceLines.slice(0, 2).join("\n\n—\n")].filter(Boolean).join("\n\n");
 
         const descH = doc.heightOfString(v.description, { width: descWidth });
         const selH = selText ? doc.heightOfString(selText, { width: descWidth }) + 4 : 0;

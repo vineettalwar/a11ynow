@@ -8,6 +8,20 @@
       "when": 1777794212770,
       "tag": "0000_purple_black_bird",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1740000000000,
+      "tag": "0001_audit_scan_engine",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1740000001000,
+      "tag": "0002_page_screenshot",
+      "breakpoints": true
     }
   ]
 }

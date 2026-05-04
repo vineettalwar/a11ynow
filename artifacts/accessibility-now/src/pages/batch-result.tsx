@@ -13,7 +13,15 @@ import {
   FileDown,
   Loader2,
   ExternalLink,
+  ImageIcon,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useCreateLead } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,6 +34,7 @@ interface AuditViolation {
   impact: "minor" | "moderate" | "serious" | "critical";
   affectedElements: number;
   topSelectors: string[];
+  instanceDetails?: Array<{ selector: string; htmlSnippet: string; failureSummary?: string }>;
 }
 
 interface BatchPageResult {
@@ -41,6 +50,7 @@ interface BatchPageResult {
   scannedAt: string;
   status: "success" | "error";
   error?: string;
+  pageScreenshot?: string;
 }
 
 interface CrossPageViolation {
@@ -84,6 +94,58 @@ function impactBadgeVariant(impact: string): "destructive" | "default" | "second
   if (impact === "critical") return "destructive";
   if (impact === "serious") return "default";
   return "secondary";
+}
+
+function pagePreviewLabel(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+function BatchPagePreviewThumb({ url, dataUrl }: { url: string; dataUrl: string }) {
+  const label = pagePreviewLabel(url);
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="group relative block w-[72px] shrink-0 overflow-hidden rounded-md border border-border bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label={`Open larger page preview for ${label}`}
+        >
+          <img
+            src={dataUrl}
+            alt=""
+            width={72}
+            height={48}
+            className="h-12 w-[72px] object-cover object-top transition-opacity group-hover:opacity-90"
+            loading="lazy"
+            decoding="async"
+          />
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-w-[min(96vw,56rem)] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-xs font-normal text-muted-foreground truncate pr-8">
+            {url}
+          </DialogTitle>
+        </DialogHeader>
+        <figure className="space-y-2">
+          <img
+            src={dataUrl}
+            alt={`Scanned viewport: ${label}`}
+            className="w-full rounded-md border border-border"
+            loading="eager"
+            decoding="async"
+          />
+          <figcaption className="text-xs text-muted-foreground">
+            Viewport captured during the automated scan (Playwright). Right-click or long-press the image to save a copy.
+          </figcaption>
+        </figure>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function LeadCaptureCard({ pages }: { pages: BatchPageResult[] }) {
@@ -373,6 +435,12 @@ export default function BatchResult() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 border-b">
                   <tr>
+                    <th className="text-left px-3 py-3 font-semibold font-sans text-xs uppercase tracking-wide w-[88px] hidden sm:table-cell">
+                      <span className="inline-flex items-center gap-1">
+                        <ImageIcon className="w-3.5 h-3.5 opacity-70" aria-hidden />
+                        Preview
+                      </span>
+                    </th>
                     <th className="text-left px-5 py-3 font-semibold font-sans text-xs uppercase tracking-wide">URL</th>
                     <th className="text-center px-4 py-3 font-semibold font-sans text-xs uppercase tracking-wide">Score</th>
                     <th className="text-center px-4 py-3 font-semibold font-sans text-xs uppercase tracking-wide hidden sm:table-cell">Critical</th>
@@ -385,6 +453,16 @@ export default function BatchResult() {
                 <tbody className="divide-y">
                   {result.pages.map((page) => (
                     <tr key={page.url} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-3 py-3 align-middle hidden sm:table-cell w-[88px]">
+                        {page.status === "success" && page.pageScreenshot ? (
+                          <BatchPagePreviewThumb url={page.url} dataUrl={page.pageScreenshot} />
+                        ) : (
+                          <span className="flex h-12 w-[72px] items-center justify-center rounded-md border border-dashed border-border text-muted-foreground" title="No preview (scan failed or static engine)">
+                            <ImageIcon className="w-4 h-4 opacity-40" aria-hidden />
+                            <span className="sr-only">No page preview available</span>
+                          </span>
+                        )}
+                      </td>
                       <td className="px-5 py-3.5">
                         <p className="font-mono text-xs text-foreground truncate max-w-[200px] md:max-w-[300px]">{page.url}</p>
                       </td>

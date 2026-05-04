@@ -7,6 +7,14 @@ import { runAccessibilityScan, validateScanUrl } from "../lib/scan";
 
 const router: IRouter = Router();
 
+interface AuditViolationInstanceData {
+  selector: string;
+  htmlSnippet: string;
+  failureSummary?: string;
+  elementScreenshot?: string;
+  checkDetails?: string[];
+}
+
 interface AuditViolationData {
   id: string;
   wcagCriteria: string;
@@ -14,6 +22,9 @@ interface AuditViolationData {
   impact: "minor" | "moderate" | "serious" | "critical";
   affectedElements: number;
   topSelectors: string[];
+  help?: string;
+  helpUrl?: string;
+  instanceDetails?: AuditViolationInstanceData[];
 }
 
 interface AuditResultData {
@@ -28,9 +39,15 @@ interface AuditResultData {
   violations: AuditViolationData[];
   passedChecks: number;
   totalChecks: number;
+  scanEngine: "playwright" | "static_fallback" | "unknown";
+  pageScreenshot?: string | null;
 }
 
 function dbRowToResult(row: typeof auditsTable.$inferSelect): AuditResultData {
+  const pageScreenshot =
+    typeof row.pageScreenshot === "string" && row.pageScreenshot.length > 0
+      ? row.pageScreenshot
+      : undefined;
   return {
     auditId: row.auditId,
     url: row.url,
@@ -43,6 +60,8 @@ function dbRowToResult(row: typeof auditsTable.$inferSelect): AuditResultData {
     violations: row.violations as AuditViolationData[],
     passedChecks: row.passedChecks,
     totalChecks: row.totalChecks,
+    scanEngine: row.scanEngine as AuditResultData["scanEngine"],
+    ...(pageScreenshot ? { pageScreenshot } : {}),
   };
 }
 
@@ -84,6 +103,8 @@ router.post("/audit", async (req, res): Promise<void> => {
       violations: result.violations,
       passedChecks: result.passedChecks,
       totalChecks: result.totalChecks,
+      scanEngine: result.scanEngine,
+      pageScreenshot: result.pageScreenshot ?? null,
     });
 
     res.json({
@@ -98,6 +119,8 @@ router.post("/audit", async (req, res): Promise<void> => {
       violations: result.violations,
       passedChecks: result.passedChecks,
       totalChecks: result.totalChecks,
+      scanEngine: result.scanEngine,
+      ...(result.pageScreenshot ? { pageScreenshot: result.pageScreenshot } : {}),
     } satisfies AuditResultData);
   } catch (err) {
     req.log.error({ err, url }, "Audit failed");

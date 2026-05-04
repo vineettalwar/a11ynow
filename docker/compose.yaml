@@ -1,0 +1,27 @@
+# Local PostgreSQL for accessibility.now — persistent data in a named volume.
+# Usage: pnpm db:up | pnpm db:down (down creates a compressed backup under .docker/backups/)
+
+name: a11ynow
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: a11ynow-db
+    restart: unless-stopped
+    ports:
+      - "${A11YNOW_DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${A11YNOW_DB_USER:-a11ynow}
+      POSTGRES_PASSWORD: ${A11YNOW_DB_PASSWORD:-a11ynow_local_dev_only}
+      POSTGRES_DB: ${A11YNOW_DB_NAME:-a11ynow}
+    volumes:
+      - a11ynow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${A11YNOW_DB_USER:-a11ynow} -d ${A11YNOW_DB_NAME:-a11ynow}"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+volumes:
+  a11ynow_pgdata:

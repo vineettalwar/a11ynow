@@ -45,7 +45,7 @@ const differentiators = [
   {
     icon: Cpu,
     title: "Engineering-led, not overlay-led",
-    body: "We don't sell a JS overlay that hides issues. We test like real users, then patch the source. DOJ guidance and EU enforcement reviews have repeatedly flagged overlays as insufficient for WCAG conformance.",
+    body: "No overlay products—we test like users and patch source. Regulators and plaintiffs treat overlays as insufficient for real WCAG conformance.",
   },
   {
     icon: FileCode,
@@ -55,7 +55,7 @@ const differentiators = [
   {
     icon: BadgeCheck,
     title: "WCAG-certified engineers",
-    body: "Senior testers hold IAAP CPACC / WAS certification and have shipped against EAA, ADA, AODA, and Section 508 in production.",
+    body: "IAAP CPACC / WAS testers who have shipped for EAA, ADA, AODA, and Section 508 in production.",
   },
 ];
 

@@ -62,7 +62,7 @@ export default function Contact() {
       setIsSubmitting(false);
       toast({
         title: "Request received",
-        description: "We'll be in touch within 1 business day to schedule your scope call.",
+        description: "We will reply within one business day.",
       });
       form.reset();
     }, 1000);
@@ -77,8 +77,7 @@ export default function Contact() {
             <span className="heading-accent">your problem.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
-            Fill out the form to request a scope call. We'll discuss your technical architecture,
-            current risk profile, and roadmap to EAA compliance.
+            Send the form for a scope call. We will cover your stack, exposure, and what EAA-ready work looks like.
           </p>
         </div>
       </section>

@@ -14,6 +14,23 @@ export interface CreateAuditBody {
   url: string;
 }
 
+/**
+ * One DOM node axe flagged for this rule (up to 3 per violation on new audits)
+ */
+export interface AuditViolationInstance {
+  /** CSS selector chain from axe (joined target segments) */
+  selector: string;
+  /** Truncated outer HTML of the element in the scanned page */
+  htmlSnippet: string;
+  /** Axe human-readable reason this node failed the check */
+  failureSummary?: string;
+  /** JPEG data URL of the node's rendered bounds (Playwright engine only; omitted when capture fails).
+   */
+  elementScreenshot?: string;
+  /** Messages from axe check results attached to this node (`any` / `all` / `none`). */
+  checkDetails?: string[];
+}
+
 export type AuditViolationImpact =
   (typeof AuditViolationImpact)[keyof typeof AuditViolationImpact];
 
@@ -35,6 +52,14 @@ export interface AuditViolation {
   affectedElements: number;
   /** Up to 3 representative CSS selectors for affected elements */
   topSelectors: string[];
+  /** Short remediation guidance from axe-core for this rule. */
+  help?: string;
+  /** Link to axe rule documentation (Deque University). */
+  helpUrl?: string;
+  /** Up to 3 affected nodes with selector, HTML, failure text, optional element screenshot, and axe check messages.
+Omitted on legacy audits. Remote scans do not include original source file line numbers; use DevTools with the selector.
+ */
+  instanceDetails?: AuditViolationInstance[];
 }
 
 /**
@@ -49,6 +74,21 @@ export const AuditResultLevel = {
   moderate: "moderate",
   good: "good",
   excellent: "excellent",
+} as const;
+
+/**
+ * Engine used for this audit: `playwright` is headless Chromium with axe (full JS/DOM).
+`static_fallback` is HTML fetched into JSDOM when the browser engine fails (no client-side JS).
+`unknown` is stored for legacy rows before this field existed.
+
+ */
+export type AuditResultScanEngine =
+  (typeof AuditResultScanEngine)[keyof typeof AuditResultScanEngine];
+
+export const AuditResultScanEngine = {
+  playwright: "playwright",
+  static_fallback: "static_fallback",
+  unknown: "unknown",
 } as const;
 
 export interface AuditResult {
@@ -69,6 +109,14 @@ export interface AuditResult {
   violations: AuditViolation[];
   passedChecks: number;
   totalChecks: number;
+  /** Engine used for this audit: `playwright` is headless Chromium with axe (full JS/DOM).
+`static_fallback` is HTML fetched into JSDOM when the browser engine fails (no client-side JS).
+`unknown` is stored for legacy rows before this field existed.
+ */
+  scanEngine: AuditResultScanEngine;
+  /** Viewport JPEG data URL of the page after the axe run (Playwright only). Omitted for static fallback, legacy rows, or when capture failed.
+   */
+  pageScreenshot?: string;
 }
 
 export interface CreateLeadBody {
@@ -229,6 +277,19 @@ export const BatchPageResultStatus = {
   error: "error",
 } as const;
 
+/**
+ * Present when status is success — which engine produced the page result
+ */
+export type BatchPageResultScanEngine =
+  | (typeof BatchPageResultScanEngine)[keyof typeof BatchPageResultScanEngine]
+  | null;
+
+export const BatchPageResultScanEngine = {
+  playwright: "playwright",
+  static_fallback: "static_fallback",
+  unknown: "unknown",
+} as const;
+
 export interface BatchPageResult {
   auditId: string;
   url: string;
@@ -246,6 +307,8 @@ export interface BatchPageResult {
   scannedAt: string;
   status: BatchPageResultStatus;
   error?: string | null;
+  /** Present when status is success — which engine produced the page result */
+  scanEngine?: BatchPageResultScanEngine;
 }
 
 export type CrossPageViolationImpact =

@@ -68,6 +68,8 @@ interface BatchAuditResponse {
     scannedAt: string;
     status: "success" | "error";
     error?: string;
+    /** Viewport capture from scan (session only; not a repo file). */
+    pageScreenshot?: string;
   }>;
   crossPageViolations: Array<{
     id: string;
@@ -201,7 +203,21 @@ function MultiUrlForm() {
       // Brief pause so users can see the final per-URL statuses before navigating
       await new Promise((r) => setTimeout(r, 700));
 
-      sessionStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(batchResult));
+      const payload = JSON.stringify(batchResult);
+      try {
+        sessionStorage.setItem(BATCH_STORAGE_KEY, payload);
+      } catch {
+        // Large JPEG data URLs can exceed sessionStorage quota; keep scores, drop previews only.
+        const slim: BatchAuditResponse = {
+          ...batchResult,
+          pages: batchResult.pages.map((p) => {
+            const copy = { ...p };
+            delete copy.pageScreenshot;
+            return copy;
+          }),
+        };
+        sessionStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(slim));
+      }
       setLocation("/batch-result");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Batch scan failed. Please try again.");
@@ -392,12 +408,12 @@ export default function Home() {
           </h1>
 
           <p className="hero-subtitle text-base text-muted-foreground mb-8 max-w-xl mx-auto" style={{ fontFamily: "var(--app-font-mono)" }}>
-            Run a free WCAG 2.2 scan in 30 seconds - no account, no forms, just results.<br />
-            Then talk to us when you need the manual audit that actually holds up in court.
+            Free WCAG 2.2 scan in about half a minute, no signup.<br />
+            When you need a manual audit you can stand behind, we do that too.
           </p>
 
           {/* Mode toggle */}
-          <div className="hero-form flex justify-center mb-5">
+          <div className="hero-mode-toggle flex justify-center mb-5">
             <div className="inline-flex rounded-xl border border-border bg-white/60 p-1 gap-1">
               <button
                 type="button"
@@ -444,7 +460,7 @@ export default function Home() {
                 </Button>
               </form>
               <p className="hero-disclaimer mt-4 text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
-                Powered by axe-core · WCAG 2.1 AA + 2.2 AA · No sign-up required
+                Powered by axe-core · WCAG 2.1 AA + 2.2 AA · scrolls the page before analysis · No sign-up required
               </p>
             </>
           ) : (
@@ -464,7 +480,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="reveal-child">
               <p className="text-3xl font-extrabold font-sans text-foreground mb-1">1 in 6</p>
-              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>Europeans lives with a disability</p>
+              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>Europeans live with a disability</p>
             </div>
             <div className="reveal-child">
               <p className="text-3xl font-extrabold font-sans text-foreground mb-1">94.8%</p>
@@ -491,8 +507,7 @@ export default function Home() {
               <span className="heading-accent">An engineering team.</span>
             </h2>
             <p className="text-muted-foreground max-w-2xl reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
-              Automated tools catch ~30% of WCAG issues. We find the rest - through NVDA, VoiceOver, keyboard-only
-              navigation, and eight years of screen reader quirks your CI pipeline will never see.
+              Automated checks cover part of WCAG. We cover the rest with NVDA, VoiceOver, keyboard-only runs, and the edge cases CI does not catch.
             </p>
           </div>
 
@@ -501,21 +516,21 @@ export default function Home() {
               {
                 icon: <Search className="w-5 h-5 text-primary" />,
                 title: "Accessibility Audits",
-                body: "Full WCAG 2.1/2.2 AA manual testing across desktop, mobile, and assistive technology. We document every failure with a reproducible test case and severity rating.",
+                body: "WCAG 2.1/2.2 AA manual testing on desktop, mobile, and assistive tech. Findings come with repro steps and severity.",
                 href: "/services/audits",
                 cta: "Audit details",
               },
               {
                 icon: <Code className="w-5 h-5 text-primary" />,
                 title: "Code Remediation",
-                body: "We don't hand you a spreadsheet and disappear. We submit PRs, write Jira tickets with exact diffs, and pair with your developers until the fixes are merged.",
+                body: "PRs and tickets with diffs, not a spreadsheet and silence. We pair with your team until fixes merge.",
                 href: "/services/remediation",
                 cta: "How we fix",
               },
               {
                 icon: <ShieldCheck className="w-5 h-5 text-primary" />,
                 title: "Continuous Monitoring",
-                body: "Weekly re-scans and regression alerts mean regressions get caught before your release, not by a regulator six months later.",
+                body: "Scheduled re-scans and regression alerts so issues surface in QA, not in a complaint months later.",
                 href: "/services/monitoring",
                 cta: "Monitoring plans",
               },
@@ -550,9 +565,7 @@ export default function Home() {
                 <span className="heading-accent">how your users do.</span>
               </h2>
               <p className="text-muted-foreground mb-8 reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
-                Eight browser-based tools. No install. Simulate colour blindness, tunnel vision,
-                a screen reader's reading order, keyboard tab flow - or visualise focus order with
-                numbered markers on a live screenshot.
+                Eight tools in the browser—colour vision, low vision, reading order, keyboard flow, focus order on a live capture. Nothing to install.
               </p>
               <Button asChild className="btn-gsap h-12 px-7 font-semibold">
                 <Link href="/tools">Open the tools →</Link>
@@ -620,7 +633,7 @@ export default function Home() {
             <span className="heading-accent">Let's get you compliant.</span>
           </h2>
           <p className="text-muted-foreground mb-10 max-w-xl mx-auto reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
-            A 30-minute scope call with one of our engineers costs nothing. We'll tell you exactly what you're exposed to and what it takes to fix it.
+            Book a free 30-minute scope call. We will map risk and effort in plain language.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild className="btn-gsap h-14 px-10 text-sm font-bold">

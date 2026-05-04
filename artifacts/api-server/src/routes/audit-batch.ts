@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { db, auditsTable } from "@workspace/db";
 import { runAccessibilityScan, validateScanUrl, scoreToLevel } from "../lib/scan";
-import type { AuditViolation } from "../lib/scan";
+import type { AuditViolation, ScanEngine } from "../lib/scan";
 
 const router: IRouter = Router();
 
@@ -36,6 +36,9 @@ interface BatchPageResult {
   scannedAt: string;
   status: "success" | "error";
   error?: string;
+  scanEngine?: ScanEngine | null;
+  /** Viewport JPEG data URL (Playwright); omitted on failure or static fallback. */
+  pageScreenshot?: string;
 }
 
 interface CrossPageViolation {
@@ -117,6 +120,8 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
             violations: result.violations,
             passedChecks: result.passedChecks,
             totalChecks: result.totalChecks,
+            scanEngine: result.scanEngine,
+            pageScreenshot: result.pageScreenshot ?? null,
           });
 
           pages[i] = {
@@ -132,6 +137,8 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
             totalChecks: result.totalChecks,
             scannedAt: scannedAt.toISOString(),
             status: "success",
+            scanEngine: result.scanEngine,
+            ...(result.pageScreenshot ? { pageScreenshot: result.pageScreenshot } : {}),
           };
         } catch (err) {
           req.log.warn({ err, url }, "Batch scan failed for URL — not persisting failure");
@@ -149,6 +156,7 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
             scannedAt: scannedAt.toISOString(),
             status: "error",
             error: "Scan failed. The site may be unreachable or blocking automated scanners.",
+            scanEngine: null,
           };
         }
 
@@ -230,6 +238,8 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
         scannedAt: p.scannedAt,
         status: p.status,
         error: p.error,
+        scanEngine: p.scanEngine ?? null,
+        ...(p.pageScreenshot ? { pageScreenshot: p.pageScreenshot } : {}),
       })),
       crossPageViolations,
       scannedAt: scannedAt.toISOString(),
