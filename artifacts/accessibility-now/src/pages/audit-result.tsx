@@ -164,11 +164,9 @@ function formatScannedAt(iso: string): string {
   return new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-/** Matches lead-capture / report CTA cards: soft tint on all sides, no thick accent stripe. */
+/** Single neutral card; sections inside use spacing and light fills only. */
 function violationRowClass(_impact: AuditViolation["impact"]): string {
-  return cn(
-    "rounded-xl border-2 border-primary/20 bg-background p-5 shadow-none",
-  );
+  return cn("rounded-xl border border-border bg-background");
 }
 
 function primaryViolationSelector(violation: AuditViolation): string {
@@ -178,6 +176,26 @@ function primaryViolationSelector(violation: AuditViolation): string {
   return (fromTop ?? "").trim();
 }
 
+/** Data URL from the same representative instance as `primaryViolationSelector` when possible. */
+function primaryInstanceElementScreenshot(violation: AuditViolation): string | undefined {
+  const details = violation.instanceDetails;
+  if (!details?.length) return undefined;
+  const primaryInst = details.find((i) => i.selector?.trim()) ?? details[0];
+  const raw =
+    primaryInst?.elementScreenshot?.trim() ??
+    details.find((i) => i.elementScreenshot?.trim())?.elementScreenshot?.trim();
+  if (!raw?.startsWith("data:image/")) return undefined;
+  return raw;
+}
+
+/** Index of the primary instance in `instanceDetails` (matches `primaryViolationSelector` / preview crop). */
+function primaryInstanceIndex(violation: AuditViolation): number {
+  const details = violation.instanceDetails;
+  if (!details?.length) return 0;
+  const i = details.findIndex((inst) => inst.selector?.trim());
+  return i >= 0 ? i : 0;
+}
+
 function ViolationHumanContextPanel({ human }: { human: HumanViolationContext }) {
   const toolLabel =
     human.relatedToolPath === "/tools/contrast-checker"
@@ -185,24 +203,24 @@ function ViolationHumanContextPanel({ human }: { human: HumanViolationContext })
       : "Open related tool";
 
   return (
-    <div className="space-y-3 pt-1">
-      <div className="flex flex-wrap gap-1.5">
+    <div className="space-y-4 pt-4">
+      <div className="flex flex-wrap gap-2">
         {human.whoIsAffected.map((tag) => (
           <span
             key={tag}
-            className="text-[11px] font-medium font-sans rounded-full border border-border bg-background px-2.5 py-0.5 text-foreground/90"
+            className="text-xs font-medium font-sans rounded-full bg-muted px-3 py-1.5 text-foreground"
           >
             {tag}
           </span>
         ))}
       </div>
-      <p className="text-xs text-foreground leading-relaxed">
+      <p className="text-sm text-foreground leading-relaxed">
         <span className="font-semibold font-sans">When you fix it: </span>
         {human.whenYouFixIt}
       </p>
       {human.didYouKnow ? (
-        <p className="text-xs text-muted-foreground leading-relaxed rounded-lg border-2 border-primary/20 bg-background/50 px-3 py-2">
-          <span className="font-semibold font-sans text-foreground/90 not-italic">Did you know? </span>
+        <p className="text-sm text-muted-foreground leading-relaxed rounded-lg bg-muted/50 p-4">
+          <span className="font-semibold font-sans text-foreground not-italic">Did you know? </span>
           {human.didYouKnow}
         </p>
       ) : null}
@@ -331,104 +349,125 @@ function ViolationWhereOnPage({
   const model = violationVisualModel(violation);
   const sel = primaryViolationSelector(violation);
   const { diagram, region } = model;
+  const elementPreviewSrc = primaryInstanceElementScreenshot(violation);
+  const previewAlt = sel
+    ? `Chromium viewport crop around the element matching this selector: ${sel}`
+    : "Chromium viewport crop around the element flagged for this issue.";
 
   const innerPulse =
     region === "video-player" ? "bg-primary/25" : region === "compact-control" ? "bg-primary/20" : "bg-muted/50";
 
-  return (
-    <div className="mt-4 rounded-xl border-2 border-primary/20 bg-muted/25 p-4 md:p-5">
-      <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-stretch">
+  const layoutDiagram =
+    diagram === "host-body" ? (
+      <div className="relative mx-auto rounded-md border border-border/60 bg-muted/40 min-h-[88px] w-[92%] p-2">
+        {region === "compact-control" && (
+          <div className="absolute top-3 right-3 h-7 w-7 rounded-full bg-primary/20 border border-primary/40" />
+        )}
+        {region === "page-generic" && <div className="absolute inset-2 rounded-sm bg-foreground/6" />}
+      </div>
+    ) : diagram === "host-iframe-shell" ? (
+      <div className="relative mx-auto rounded-md border border-border/60 bg-muted/40 min-h-[88px] w-[92%] p-2 flex items-center justify-center">
         <div
-          className="shrink-0 flex justify-center sm:justify-start"
-          aria-hidden
+          className={cn(
+            "w-[78%] h-[72px] rounded-md border border-dashed bg-background flex items-center justify-center text-[8px] font-mono text-muted-foreground",
+            region === "iframe-boundary" ? "border-primary/60" : "border-border",
+          )}
         >
-          <div className="relative w-[148px] rounded-lg border-2 border-primary/20 bg-linear-to-b from-muted/80 to-background p-2 shadow-sm">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground text-center mb-1.5">
-              Page layout
-            </p>
-            <div className="h-1.5 w-[85%] mx-auto rounded-full bg-foreground/12 mb-2" title="Site header / chrome" />
-            {region === "heading-outline" ? (
-              <div className="space-y-1 mb-2 px-1">
-                <div className="h-1 w-3/4 rounded bg-foreground/15" />
-                <div className="h-1 w-1/2 rounded bg-primary/50" />
-                <div className="h-1 w-2/3 rounded bg-foreground/10" />
-              </div>
-            ) : (
-              <div className="h-1 w-[55%] rounded bg-foreground/8 mb-2 ml-1" />
-            )}
-
-            {diagram === "host-body" ? (
-              <div className="relative mx-auto rounded-md border border-foreground/20 bg-muted/40 min-h-[88px] w-[92%] p-2">
-                {region === "compact-control" && (
-                  <div className="absolute top-3 right-3 h-7 w-7 rounded-full border-2 border-primary bg-primary/15 shadow-sm" />
-                )}
-                {region === "page-generic" && (
-                  <div className="absolute inset-2 rounded-sm bg-foreground/6" />
-                )}
-              </div>
-            ) : diagram === "host-iframe-shell" ? (
-              <div className="relative mx-auto rounded-md border border-foreground/20 bg-muted/40 min-h-[88px] w-[92%] p-2 flex items-center justify-center">
-                <div
-                  className={cn(
-                    "w-[78%] h-[72px] rounded-md border-2 border-dashed bg-background/90 flex items-center justify-center text-[8px] font-mono text-muted-foreground",
-                    region === "iframe-boundary"
-                      ? "border-primary ring-2 ring-primary/30"
-                      : "border-foreground/25",
-                  )}
-                >
-                  iframe
-                </div>
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  "relative mx-auto rounded-md border border-dashed border-primary/35 bg-background/90 p-1.5 min-h-[88px] w-[92%]",
-                )}
-              >
-                <span className="absolute -top-0.5 left-1 text-[8px] font-mono text-muted-foreground">embed</span>
-                <div className="absolute inset-1 rounded border border-foreground/10" />
-                {region === "video-player" && (
-                  <div className="absolute inset-2 rounded-sm bg-primary/20 border border-primary/30" />
-                )}
-                {region === "compact-control" && (
-                  <div className="absolute top-2 left-2 h-6 w-6 rounded-full border-2 border-primary bg-primary/15 shadow-sm" />
-                )}
-                {region === "iframe-generic" && (
-                  <div className={cn("absolute inset-3 rounded-sm border border-foreground/15", innerPulse)} />
-                )}
-              </div>
-            )}
-            <p className="text-[8px] text-center text-muted-foreground mt-1.5 leading-tight px-1">
-              Schematic (not your screenshot)
-            </p>
-          </div>
-        </div>
-
-        <div className="flex-1 min-w-0 space-y-2">
-          <p className="text-xs font-bold font-sans text-foreground flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" aria-hidden />
-            Where on the page
-          </p>
-          <p className="text-xs text-foreground leading-relaxed">{model.whereLabel}</p>
-          <div className="rounded-lg bg-background/80 border-2 border-primary/20 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-              What happens for users
-            </p>
-            <p className="text-xs text-foreground leading-relaxed">{whatHappensLine}</p>
-          </div>
-          {model.ownershipNote ? (
-            <p className="text-[11px] text-muted-foreground leading-relaxed rounded-lg border-2 border-primary/20 bg-background/60 px-3 py-2">
-              {model.ownershipNote}
-            </p>
-          ) : null}
-          {sel ? (
-            <p className="text-[10px] font-mono text-muted-foreground break-all pt-1">
-              <span className="text-muted-foreground/80">Primary selector: </span>
-              {sel}
-            </p>
-          ) : null}
+          iframe
         </div>
       </div>
+    ) : (
+      <div
+        className={cn(
+          "relative mx-auto rounded-md border border-dashed border-border bg-muted/20 p-1.5 min-h-[88px] w-[92%]",
+        )}
+      >
+        <span className="absolute -top-0.5 left-1 text-[8px] font-mono text-muted-foreground">embed</span>
+        <div className="absolute inset-1 rounded-sm border border-border/40" />
+        {region === "video-player" && (
+          <div className="absolute inset-2 rounded-sm bg-primary/15 border border-primary/20" />
+        )}
+        {region === "compact-control" && (
+          <div className="absolute top-2 left-2 h-6 w-6 rounded-full bg-primary/20 border border-primary/40" />
+        )}
+        {region === "iframe-generic" && (
+          <div className={cn("absolute inset-3 rounded-sm border border-border/50", innerPulse)} />
+        )}
+      </div>
+    );
+
+  return (
+    <div className="flex flex-col sm:flex-row gap-8 sm:items-start">
+        <div
+          className="shrink-0 flex justify-center sm:justify-start"
+          aria-hidden={elementPreviewSrc ? undefined : true}
+        >
+          {elementPreviewSrc ? (
+            <figure className="relative w-full max-w-[200px] sm:max-w-[220px] rounded-lg border border-border bg-muted/20 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground text-center mb-2">
+                Element at scan
+              </p>
+              <div className="overflow-hidden rounded-md border border-border/60 bg-muted/40 flex items-center justify-center min-h-[96px] max-h-[132px]">
+                <img
+                  src={elementPreviewSrc}
+                  alt={previewAlt}
+                  className="max-h-[132px] w-full object-contain object-center"
+                  loading="lazy"
+                />
+              </div>
+              <figcaption className="text-[8px] text-center text-muted-foreground mt-1.5 leading-tight px-1">
+                JPEG crop from the scan. Tiny controls can look soft here because the clip is only a few pixels tall on
+                the real page.
+              </figcaption>
+            </figure>
+          ) : (
+            <div className="relative w-[148px] rounded-lg border border-border bg-muted/20 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground text-center mb-2">
+                Page layout
+              </p>
+              <div className="h-1.5 w-[85%] mx-auto rounded-full bg-foreground/12 mb-2" title="Site header / chrome" />
+              {region === "heading-outline" ? (
+                <div className="space-y-1 mb-2 px-1">
+                  <div className="h-1 w-3/4 rounded bg-foreground/15" />
+                  <div className="h-1 w-1/2 rounded bg-primary/50" />
+                  <div className="h-1 w-2/3 rounded bg-foreground/10" />
+                </div>
+              ) : (
+                <div className="h-1 w-[55%] rounded bg-foreground/8 mb-2 ml-1" />
+              )}
+
+              {layoutDiagram}
+              <p className="text-[8px] text-center text-muted-foreground mt-1.5 leading-tight px-1">
+                Schematic (no element capture for this node)
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 space-y-5">
+          <div>
+            <p className="text-sm font-semibold font-sans text-foreground flex items-center gap-2 mb-2">
+              <MapPin className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
+              Where on the page
+            </p>
+            <p className="text-sm text-foreground leading-relaxed">{model.whereLabel}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">What happens for users</p>
+            <p className="text-sm text-foreground leading-relaxed">{whatHappensLine}</p>
+          </div>
+          {model.ownershipNote ? (
+            <p className="text-sm text-muted-foreground leading-relaxed">{model.ownershipNote}</p>
+          ) : null}
+          {sel ? (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Primary selector</p>
+              <pre className="text-xs font-mono text-foreground leading-relaxed whitespace-pre-wrap wrap-break-word rounded-lg border border-border bg-muted/30 p-4 max-h-40 overflow-y-auto">
+                {sel}
+              </pre>
+            </div>
+          ) : null}
+        </div>
     </div>
   );
 }
@@ -788,22 +827,34 @@ export default function AuditResult() {
 function ViolationElementExamples({ violation }: { violation: AuditViolation }) {
   const instances = violation.instanceDetails;
   const selectors = (violation.topSelectors ?? []).filter(Boolean);
+  const primaryShot = primaryInstanceElementScreenshot(violation);
+  const primaryIdx = primaryInstanceIndex(violation);
 
   if (instances && instances.length > 0) {
     return (
-      <div className="mt-4 border-t border-border pt-4 w-full text-left space-y-6">
+      <div className="w-full text-left space-y-6">
         <p className="text-xs text-muted-foreground font-mono leading-relaxed">
           Representative nodes (up to three): selector, failure summary, axe check messages, markup, and element
-          screenshot when capture succeeded.
+          screenshot when capture succeeded. The primary instance uses the same crop as{" "}
+          <span className="font-sans font-semibold text-foreground">Where on the page</span> above, so it is not shown
+          again here.
         </p>
-        {instances.map((inst, idx) => (
+        {instances.map((inst, idx) => {
+          const instShot = inst.elementScreenshot?.trim();
+          const omitDuplicateScreenshot =
+            Boolean(primaryShot) &&
+            idx === primaryIdx &&
+            instShot === primaryShot;
+          const gridCols = omitDuplicateScreenshot ? "grid-cols-1" : "lg:grid-cols-2";
+
+          return (
           <div
             key={`${violation.id}-${idx}-${inst.selector}`}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 rounded-lg border border-border bg-muted/30 p-4"
+            className={cn("grid grid-cols-1 gap-4 lg:gap-6 rounded-lg border border-border bg-muted/20 p-5", gridCols)}
           >
             <div className="space-y-2 min-w-0 order-2 lg:order-1">
               <p className="text-xs font-mono text-muted-foreground font-semibold">Instance {idx + 1}</p>
-              <code className="block text-xs font-mono break-all bg-background text-foreground px-2.5 py-2 rounded-md border border-border">
+              <code className="block text-xs font-mono break-all bg-background text-foreground px-3 py-2.5 rounded-md border border-border">
                 {inst.selector || ", "}
               </code>
               {inst.failureSummary ? (
@@ -830,25 +881,33 @@ function ViolationElementExamples({ violation }: { violation: AuditViolation }) 
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                   HTML snippet
                 </p>
-                <pre className="text-xs font-mono bg-background text-foreground border border-border rounded-md p-3 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap">
+                <pre className="text-xs font-mono bg-background text-foreground rounded-md border border-border p-3 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap">
                   {inst.htmlSnippet || ""}
                 </pre>
               </div>
+              {omitDuplicateScreenshot ? (
+                <p className="text-xs text-muted-foreground leading-relaxed rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+                  {" "}
+                  <span className="font-semibold text-foreground"></span>
+                </p>
+              ) : null}
             </div>
+            {omitDuplicateScreenshot ? null : (
             <div className="order-1 lg:order-2 space-y-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Element screenshot
               </p>
               {inst.elementScreenshot ? (
-                <figure className="rounded-md border border-border bg-background overflow-hidden shadow-sm">
+                <figure className="rounded-lg border border-border bg-background overflow-hidden">
                   <img
                     src={inst.elementScreenshot}
                     alt={`Rendered bounds of the element matching: ${inst.selector || violation.id}`}
                     className="w-full h-auto object-contain max-h-64 bg-muted/50"
                     loading="lazy"
                   />
-                  <figcaption className="text-[10px] text-muted-foreground px-2 py-1.5 font-mono border-t border-border bg-muted/40">
-                    JPEG capture from headless Chromium (cropped to node box).
+                  <figcaption className="text-[10px] text-muted-foreground px-2 py-1.5 font-mono border-t border-border/60 bg-muted/30">
+                    JPEG from headless Chromium, cropped to the node box. Small targets often look blurry enlarged—that
+                    reflects the clip size, not how sharp the control is on your live page.
                   </figcaption>
                 </figure>
               ) : (
@@ -860,8 +919,10 @@ function ViolationElementExamples({ violation }: { violation: AuditViolation }) 
                 </div>
               )}
             </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   }
@@ -869,7 +930,7 @@ function ViolationElementExamples({ violation }: { violation: AuditViolation }) 
   if (selectors.length === 0) return null;
 
   return (
-    <div className="mt-4 border-t border-border pt-4 w-full text-left">
+    <div className="w-full text-left space-y-3 pt-2">
       <p className="text-xs text-muted-foreground font-mono mb-2">
         Selectors only (older audit). New scan from home includes markup snippets.
       </p>
@@ -1376,7 +1437,7 @@ function AuditResultView({
               </div>
             ) : null}
           </div>
-          <div ref={violationsListRef} className="space-y-2 mb-12 perspective-[1600px]">
+          <div ref={violationsListRef} className="space-y-6 mb-12">
             {violations.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No violations in this result.
@@ -1399,12 +1460,12 @@ function AuditResultView({
                   aria-current={activeViolationIdx === i ? "true" : undefined}
                   className={cn(
                     violationRowClass(violation.impact),
-                    "scroll-mt-24 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 transition-shadow duration-300 motion-reduce:transition-none transform-gpu hover:shadow-lg hover:border-primary/30",
+                    "scroll-mt-24 outline-none flex flex-col gap-8 p-6 md:p-8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none",
                   )}
                   onFocus={() => setActiveViolationIdx(i)}
                 >
-                  <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-start">
-                    <div className="flex-1 min-w-0 space-y-2">
+                  <div className="flex flex-col md:flex-row gap-5 md:gap-8 items-start md:items-start pb-6 border-b border-border">
+                    <div className="flex-1 min-w-0 space-y-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge
                           variant={violation.impact === "critical" ? "destructive" : "outline"}
@@ -1416,7 +1477,7 @@ function AuditResultView({
                           ? violation.detectedInViewports.map((vp) => (
                               <span
                                 key={vp}
-                                className="text-[10px] font-bold uppercase tracking-wide rounded-full border border-primary/25 bg-primary/8 px-2 py-0.5 text-primary"
+                                className="text-[10px] font-bold uppercase tracking-wide rounded-full bg-primary/10 px-2.5 py-0.5 text-primary"
                               >
                                 {vp}
                               </span>
@@ -1431,21 +1492,23 @@ function AuditResultView({
                           <span className="text-xs text-muted-foreground font-sans">{violation.wcagCriteria}</span>
                         )}
                       </div>
-                      <h4 className="text-base font-semibold font-sans text-foreground leading-snug">
+                      <h4 className="text-lg font-semibold font-sans text-foreground leading-snug">
                         {human.plainLead}
                       </h4>
                       {!simpleView ? (
-                        <p className="text-sm text-muted-foreground leading-snug">{violation.description}</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{violation.description}</p>
                       ) : null}
                     </div>
-                    <div className="shrink-0 md:text-right md:min-w-20">
-                      <p className="text-lg font-bold font-sans tabular-nums">{violation.affectedElements}</p>
-                      <p className="text-xs text-muted-foreground font-mono">nodes</p>
+                    <div className="shrink-0 md:text-right md:min-w-22 md:pl-2">
+                      <p className="text-2xl font-bold font-sans tabular-nums text-foreground tracking-tight">
+                        {violation.affectedElements}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground font-sans font-medium">nodes</p>
                     </div>
                   </div>
 
-                  <details open className="group mt-4 rounded-xl border-2 border-primary/20 bg-primary/4 px-4 py-2 transition-[box-shadow,border-color] duration-300 open:shadow-md open:border-primary/35">
-                    <summary className="cursor-pointer list-none text-sm font-bold font-sans text-foreground flex items-center gap-2 [&::-webkit-details-marker]:hidden">
+                  <details open className="group rounded-lg border border-border bg-muted/20 p-5">
+                    <summary className="cursor-pointer list-none text-sm font-semibold font-sans text-foreground flex items-center gap-2 pb-4 mb-0 border-b border-border/60 [&::-webkit-details-marker]:hidden">
                       <ScrollText
                         className="w-4 h-4 text-primary shrink-0 transition-transform duration-500 ease-out group-open:rotate-6 motion-reduce:transition-none"
                         aria-hidden
@@ -1458,8 +1521,8 @@ function AuditResultView({
                   <ViolationWhereOnPage violation={violation} whatHappensLine={whatHappensLine} />
 
                   {violation.help ? (
-                    <div className="mt-4 rounded-xl border-2 border-primary/20 bg-primary/5 px-3 py-3">
-                      <p className="text-xs text-foreground/90 leading-relaxed">
+                    <div className="rounded-lg border border-border bg-muted/25 p-5">
+                      <p className="text-sm text-foreground leading-relaxed">
                         <span className="font-semibold font-sans">How to fix: </span>
                         {violation.help}
                       </p>
@@ -1476,7 +1539,7 @@ function AuditResultView({
                       ) : null}
                     </div>
                   ) : violation.helpUrl ? (
-                    <div className="mt-4">
+                    <div>
                       <a
                         href={violation.helpUrl}
                         target="_blank"
@@ -1489,8 +1552,8 @@ function AuditResultView({
                     </div>
                   ) : null}
 
-                  <details className="mt-4 rounded-xl border-2 border-primary/20 bg-muted/20 px-4 py-2">
-                    <summary className="cursor-pointer list-none text-sm font-bold font-sans text-foreground [&::-webkit-details-marker]:hidden">
+                  <details className="rounded-lg border border-border bg-muted/15 p-5">
+                    <summary className="cursor-pointer list-none text-sm font-semibold font-sans text-foreground pb-4 mb-0 border-b border-border/60 [&::-webkit-details-marker]:hidden">
                       Technical details
                       {instanceCount > 0 ? (
                         <span className="text-muted-foreground font-normal font-mono text-xs ml-2">
@@ -1498,7 +1561,7 @@ function AuditResultView({
                         </span>
                       ) : null}
                     </summary>
-                    <div className="space-y-3 pt-3 border-t border-border/60 mt-2">
+                    <div className="space-y-4 pt-4">
                       {simpleView ? (
                         <p className="text-sm text-foreground leading-snug">{violation.description}</p>
                       ) : null}
