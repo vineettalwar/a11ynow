@@ -49,11 +49,11 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
-# Replit
+# Local / editor caches
 .cache/
 .local/
 
-# attached_assets/ is a Replit system upload folder used during AI-assisted development.
+# attached_assets/ — optional working-reference files (screenshots, branding notes).
 # It contains working reference files (screenshots, branding uploads) shared with the agent.
 # These files are NOT served by the application — production assets live in
 # artifacts/accessibility-now/public/ instead. We commit attached_assets/ so the files

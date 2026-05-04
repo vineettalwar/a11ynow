@@ -42,7 +42,7 @@ Built on the **sometech.work** brand. Live URL audit, monitoring, and WCAG tooli
 ### Prerequisites
 - Node.js 20+
 - pnpm 9+
-- PostgreSQL (or use the Replit-provisioned database)
+- PostgreSQL (local install, Docker, or a managed host)
 
 ### 1. Clone
 ```bash
@@ -76,7 +76,7 @@ pnpm --filter @workspace/api-server exec playwright install chromium
 # In terminal 1 — API server (port 8080)
 pnpm --filter @workspace/api-server run dev
 
-# In terminal 2 — Frontend (port set by $PORT, default 5173)
+# In terminal 2 — Frontend (optional $PORT, default 5173)
 pnpm --filter @workspace/accessibility-now run dev
 ```
 
@@ -123,8 +123,7 @@ See `.env.example` for the full list with comments.
 │   └── admin.md              # Ops runbook: DB queries, migrations, secrets
 ├── scripts/
 │   └── post-merge.sh         # Post-merge: install, migrate, GitHub sync
-├── .env.example              # Environment variable template
-└── replit.md                 # Replit-specific workspace documentation
+└── .env.example              # Environment variable template
 ```
 
 ---

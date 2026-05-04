@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "export NODE_ENV=development && export LD_LIBRARY_PATH=$(ls -d /nix/store/*-mesa-libgbm-*/lib 2>/dev/null | sort -V | tail -1):$(ls -d /nix/store/*-systemd-*/lib 2>/dev/null | sort -V | tail -1):$LD_LIBRARY_PATH && pnpm run build && pnpm run start",
+    "dev": "export NODE_ENV=development && export LD_LIBRARY_PATH=$(ls -d /nix/store/*-mesa-libgbm-*/lib 2>/dev/null | sort -V | tail -1):$(ls -d /nix/store/*-systemd-*/lib 2>/dev/null | sort -V | tail -1):$LD_LIBRARY_PATH && pnpm run build && exec node --enable-source-maps ./dist/index.mjs",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"

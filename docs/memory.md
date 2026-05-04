@@ -50,14 +50,14 @@ Tokens are 48-character lowercase hex strings (24 random bytes via `crypto.rando
 The `GET /api/monitor/:token` endpoint validates format with the regex `/^[0-9a-f]{48}$/` before hitting the DB, returning 400 for malformed tokens. This prevents SQL injection and invalid DB lookups.
 
 ### Email no-op fallback
-`lib/email.ts` checks for all five SMTP env vars (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL`) at call time. If any are absent, it logs `[email no-op]` and returns without throwing. This means the app is fully functional in development (and on Replit's free tier) without SMTP configuration. Real delivery requires all five vars.
+`lib/email.ts` checks for all five SMTP env vars (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL`) at call time. If any are absent, it logs `[email no-op]` and returns without throwing. This means the app is fully functional in development without SMTP configuration. Real delivery requires all five vars.
 
 ### Playwright scan stack
 The audit engine in `artifacts/api-server/src/lib/scan.ts` uses two strategies:
 1. **Playwright + Chromium** (primary): full browser render, catches JS-rendered content, most accurate
 2. **JSDOM + axe-core** (fallback): fires if Playwright fails (e.g., browser binary absent, timeout). Less accurate — misses visibility and focus issues.
 
-Playwright binaries are installed in `post-merge.sh` via `playwright install chromium`. The binary path is within the pnpm store and survives restarts on Replit.
+Playwright binaries are installed in `post-merge.sh` via `playwright install chromium`. The binary path is within the pnpm store and survives normal process restarts.
 
 ### pnpm monorepo package boundary rationale
 - `lib/*` packages have no dev-server or build artefact — they are TypeScript source imported by other packages via `exports` fields
@@ -75,7 +75,7 @@ Uses Recharts `LineChart` on `/monitor/:token`. The chart is conditionally rende
 `"eaa-checklist-v2"` — the `v2` suffix was added when the checklist was rewritten with 5 sections (the old key used a different data shape). If the checklist is restructured again, increment to `v3` to avoid stale data bugs.
 
 ### Media and audio asset policy
-Static assets served at runtime belong in `artifacts/accessibility-now/public/`. The `attached_assets/` directory is a Replit system folder for working reference files (screenshots, branding uploads) and is **not** served by the app.
+Static assets served at runtime belong in `artifacts/accessibility-now/public/`. The `attached_assets/` directory is for optional local working references (screenshots, branding notes) and is **not** served by the app.
 
 For audio or video files: any file over **1 MB** must be hosted on a remote CDN (e.g. Cloudflare R2, AWS S3, Cloudinary) and referenced via an HTTPS URL — do not commit binary media files over 1 MB to the repo. Files under 1 MB may be committed to `public/` if genuinely needed at runtime.
 
@@ -90,4 +90,4 @@ The site uses Tailwind v4 (CSS-first config). Custom brand colours are NOT in a 
 - **drizzle.config.ts uses `__dirname`** which requires CJS-style path resolution. The db package uses `"type": "module"` but drizzle-kit handles this correctly when run via the `push`/`generate`/`migrate` scripts.
 - **`zod/v4` import** — the project uses Zod v4 (`import { z } from "zod/v4"`) not `"zod"`. Using the wrong import path causes type mismatches with `drizzle-zod`.
 - **Orval-generated files must not be hand-edited.** Run `pnpm --filter @workspace/api-spec run codegen` after any change to `lib/api-spec/openapi.yaml`. Edits to generated files are wiped on the next codegen run.
-- **Port collisions**: the API server reads `process.env.PORT` (defaults 8080). The Vite dev server also reads `PORT`. Replit assigns a unique port per workflow. Hardcoding `3000` or `8080` in vite config will break the preview.
+- **Port collisions**: the API server reads `process.env.PORT` (defaults 8080). The Vite dev server also reads `PORT` (defaults 5173). If both workflows share one `PORT` env var, set distinct values per terminal (e.g. API `8080`, frontend `5173`).

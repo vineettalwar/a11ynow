@@ -1,16 +1,16 @@
 # attached_assets/
 
-This directory is managed by **Replit** and used as a system upload folder when files are pasted or attached during an AI-assisted development session (e.g. screenshots, reference images, branding files shared with the agent).
+Optional **working-reference** files for local development (for example screenshots, branding notes, or design references). Nothing in this folder is required to run the app.
 
 ## Purpose
 
-Files here are **working references only** — they are not served by the application and are not imported by any source code. They exist so the Replit agent can inspect them during development.
+Files here are **working references only** — they are not served by the application and are not imported by any source code.
 
 ## What lives here vs. `artifacts/accessibility-now/public/`
 
 | Location | Purpose |
 |---|---|
-| `attached_assets/` | Replit system uploads — working references, not served |
+| `attached_assets/` | Local working references, not served |
 | `artifacts/accessibility-now/public/` | Application assets — served at runtime (favicon.svg, opengraph.jpg, robots.txt, sitemap.xml) |
 
 The production images (`favicon.svg`, `opengraph.jpg`) were derived from reference files in this directory and committed into `artifacts/accessibility-now/public/` where they are correctly served by the Vite dev server and production build.

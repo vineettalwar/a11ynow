@@ -6,14 +6,18 @@ This document is for developers and operators managing the live application.
 
 ## Connecting to the database
 
-### On Replit (development)
+### Development
+
+`DATABASE_URL` comes from your local `.env` (see `.env.example`). Connect with:
+
 ```bash
-# DATABASE_URL is pre-set by Replit as an environment secret
 psql "$DATABASE_URL"
 ```
 
-### On production
-The production database URL is set in the Replit deployment secrets panel (Secrets tab under the deployed app). Connect via:
+### Production
+
+Set `DATABASE_URL` in your host’s secret manager or process environment (never commit it). Connect with:
+
 ```bash
 psql "$DATABASE_URL"
 ```
@@ -80,7 +84,7 @@ The scheduler runs hourly via `node-cron` inside the API server process. To forc
 
 ```bash
 # Hit the monitoring endpoint to see current state
-curl "https://your-domain.replit.app/api/monitor/<token>"
+curl "https://your-api-host.example/api/monitor/<token>"
 
 # To force re-scan: temporarily set next_scan_at to the past
 psql "$DATABASE_URL" -c "
@@ -95,10 +99,12 @@ psql "$DATABASE_URL" -c "
 
 ## Running database migrations
 
-### Development (Replit)
+### Development and production
+
 ```bash
 pnpm --filter @workspace/db run migrate
 ```
+
 This runs `drizzle-kit migrate` against the `DATABASE_URL` in your environment.
 
 ### Adding a new migration
@@ -110,7 +116,7 @@ This runs `drizzle-kit migrate` against the `DATABASE_URL` in your environment.
 
 ### Rolling back a bad migration
 Drizzle does not have a built-in rollback command. Options:
-1. **Restore from backup** — Replit's PostgreSQL snapshots (if configured)
+1. **Restore from backup** — use snapshots or PITR from your database provider
 2. **Manual SQL** — write a reverse migration SQL file in `lib/db/migrations/` prefixed with the next sequence number
 3. **Point-in-time restore** — via your database provider's console
 
@@ -123,24 +129,24 @@ Drizzle does not have a built-in rollback command. Options:
 By default the app runs in no-op mode (emails logged, not sent). To enable real delivery:
 
 1. Obtain SMTP credentials from your email provider (e.g. AWS SES, Postmark, SendGrid)
-2. Set the five environment secrets in Replit's Secrets panel:
+2. Set these in `.env` locally or in your production secret store, then restart the API process:
    - `SMTP_HOST` — e.g. `email-smtp.eu-west-1.amazonaws.com`
    - `SMTP_PORT` — typically `587` (STARTTLS) or `465` (SSL)
    - `SMTP_USER` — SMTP username / access key
    - `SMTP_PASS` — SMTP password / secret key
    - `FROM_EMAIL` — e.g. `noreply@accessibility.now`
-3. Restart the API server workflow
-4. Trigger a monitoring scan; check the API server logs for `[email sent]` vs `[email no-op]`
+3. Trigger a monitoring scan; check the API server logs for `[email sent]` vs `[email no-op]`
 
 ---
 
 ## Deploying to production
 
-1. Open the Replit project
-2. Click **Deploy** (top-right) → **Autoscale** deployment
-3. Replit builds and deploys both workflows (`accessibility-now: web` and `api-server: API Server`)
-4. Environment secrets configured in the Replit Secrets panel are automatically available in production
-5. `post-merge.sh` runs automatically after each task merge (installs deps, runs migrations, syncs to GitHub)
+Deployment is host-specific. In general:
+
+1. Build the frontend (`pnpm --filter @workspace/accessibility-now run build`) and API (`pnpm --filter @workspace/api-server run build` if applicable).
+2. Run `pnpm --filter @workspace/db run migrate` against production `DATABASE_URL` before or as part of the release.
+3. Ensure all required environment variables from `.env.example` are set in production.
+4. Optionally run `scripts/post-merge.sh` after merges for install, migrate, and GitHub sync (see script for behavior).
 
 ---
 
@@ -149,14 +155,14 @@ By default the app runs in no-op mode (emails logged, not sent). To enable real 
 ### GitHub token (`GITHUB_TOKEN`)
 1. Go to GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
 2. Create a new token with `Contents: Read and write` permission on the target repo
-3. Update the `GITHUB_TOKEN` secret in Replit's Secrets panel
+3. Update `GITHUB_TOKEN` in `.env` or your production secrets
 4. The next `post-merge.sh` run will use the new token automatically
 
 ### SMTP credentials
 1. Revoke old credentials in your email provider console
 2. Issue new credentials
-3. Update `SMTP_USER` and `SMTP_PASS` in Replit's Secrets panel
-4. Restart the API server workflow
+3. Update `SMTP_USER` and `SMTP_PASS` in `.env` or your production secrets
+4. Restart the API server process
 
 ---
 
