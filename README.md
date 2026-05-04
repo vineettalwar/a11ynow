@@ -10,7 +10,8 @@
 
 ## Features
 
-- **Live accessibility audit** — paste any URL, get a WCAG 2.1 AA score, violation list, and PDF report in seconds (Playwright + axe-core)
+- **Live accessibility audit** — paste any URL, get a WCAG 2.1 AA score, violation list, and PDF report in seconds (Playwright + axe-core). `POST /api/audit` accepts optional `profile: strict` (adds AAA-oriented axe tags) and `multiViewport: true` (mobile + desktop merge); responses can include `scanMetadata` (viewports used, optional console / failed-request hints).
+- **Website scanner (tools)** — `/tools/website-scanner` runs the same engine with those options; audit result links into focus order, screen reader preview, colour blindness, and low-vision tools with `?url=…`.
 - **Continuous monitoring** — register a URL for weekly/monthly re-scans; receive email summaries when scores change
 - **Contrast Checker** — real-time WCAG AA/AAA pass/fail with live text preview
 - **Focus Order Visualiser** — tab-order overlay on any URL, rendered in-browser
@@ -65,6 +66,7 @@ cp .env.example .env
 ```bash
 pnpm --filter @workspace/db run migrate
 ```
+Requires `DATABASE_URL` in `.env`. For the bundled Docker dev database, `pnpm db:up` starts Postgres and applies migrations (including `scan_metadata` / `0003_scan_metadata` when present).
 
 ### 5. Install Playwright browser
 ```bash
@@ -120,7 +122,8 @@ See `.env.example` for the full list with comments.
 │   ├── design.md             # Brand tokens, component conventions, GSAP patterns
 │   ├── roadmap.md            # Feature status and backlog
 │   ├── memory.md             # Architecture decisions and gotchas
-│   └── admin.md              # Ops runbook: DB queries, migrations, secrets
+│   ├── admin.md              # Ops runbook: DB queries, migrations, secrets
+│   └── screenshot-capture.md # Playwright full-page / strip capture + Cursor Browser MCP
 ├── scripts/
 │   └── post-merge.sh         # Post-merge: install, migrate, GitHub sync
 └── .env.example              # Environment variable template
@@ -156,6 +159,7 @@ pnpm --filter @workspace/db run push           # Push schema directly (dev only)
 - [Roadmap](docs/roadmap.md) — launched features, backlog, Q2/Q3 priorities
 - [Architecture decisions](docs/memory.md) — why decisions were made, gotchas
 - [Ops runbook](docs/admin.md) — DB queries, migrations, SMTP setup, deployment
+- [Screenshot capture](docs/screenshot-capture.md) — Playwright strip fallback, layout stability, Cursor Browser MCP limits
 
 ---
 

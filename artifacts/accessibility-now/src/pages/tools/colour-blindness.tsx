@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearch } from "wouter";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,6 +150,7 @@ function SimImage({ src, filter, label, onLoad, onError }: SimImageProps) {
 }
 
 export default function ColourBlindness() {
+  const search = useSearch();
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
   const [screenshotSrcUrl, setScreenshotSrcUrl] = useState("");
@@ -156,6 +158,12 @@ export default function ColourBlindness() {
   const [viewMode, setViewMode] = useState<ViewMode>("single");
   const [imgState, setImgState] = useState<ImgState>("idle");
   const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    const q = new URLSearchParams(search);
+    const u = q.get("url");
+    if (u?.trim()) setUrl(decodeURIComponent(u.trim()));
+  }, [search]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

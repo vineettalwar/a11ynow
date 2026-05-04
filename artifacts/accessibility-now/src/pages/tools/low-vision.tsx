@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearch } from "wouter";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -137,6 +138,7 @@ async function downloadLowVision(
 }
 
 export default function LowVision() {
+  const search = useSearch();
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
   const [screenshotSrcUrl, setScreenshotSrcUrl] = useState("");
@@ -145,6 +147,12 @@ export default function LowVision() {
   const [vignetteOverride, setVignetteOverride] = useState<number | null>(null);
   const [imgState, setImgState] = useState<ImgState>("idle");
   const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    const q = new URLSearchParams(search);
+    const u = q.get("url");
+    if (u?.trim()) setUrl(decodeURIComponent(u.trim()));
+  }, [search]);
 
   const mode = MODES.find((m) => m.id === activeMode)!;
   const blur = blurOverride ?? mode.blur;

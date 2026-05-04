@@ -154,6 +154,7 @@ function normalizeAuditResult(r: AuditResult): AuditResult {
     scannedAt: scannedOk ? r.scannedAt : new Date(0).toISOString(),
     scanEngine: r.scanEngine ?? "unknown",
     ...(pageScreenshot ? { pageScreenshot } : {}),
+    ...(r.scanMetadata ? { scanMetadata: r.scanMetadata } : {}),
   };
 }
 
@@ -575,6 +576,9 @@ export default function AuditResult() {
   const auditIdParam = searchParams.get("auditId") || "";
   /** Each home submit sends a new nonce so we clear the mutation and POST again instead of reusing the last scan. */
   const rescanParam = searchParams.get("rescan") || "";
+  const profileParam = searchParams.get("profile") === "strict" ? "strict" : "default";
+  const multiViewportParam =
+    searchParams.get("multiViewport") === "1" || searchParams.get("multiViewport") === "true";
 
   const queryClient = useQueryClient();
   const createAudit = useCreateAudit();
@@ -602,11 +606,13 @@ export default function AuditResult() {
     }
     if (!urlParam) return;
     const fp = normalizeUrlForCompare(urlParam);
-    const intentKey = rescanParam ? `rescan:${rescanParam}:${fp}` : `url:${fp}`;
+    const intentKey = rescanParam
+      ? `rescan:${rescanParam}:${fp}:p${profileParam}:mv${multiViewportParam ? "1" : "0"}`
+      : `url:${fp}:p${profileParam}:mv${multiViewportParam ? "1" : "0"}`;
     if (lastScanIntentKey.current === intentKey) return;
     lastScanIntentKey.current = intentKey;
     resetCreateAudit();
-  }, [auditIdParam, rescanParam, resetCreateAudit, urlParam]);
+  }, [auditIdParam, rescanParam, resetCreateAudit, urlParam, profileParam, multiViewportParam]);
 
   useEffect(() => {
     if (!urlParam || auditIdParam) return;
@@ -637,7 +643,13 @@ export default function AuditResult() {
   useEffect(() => {
     if (!urlParam || auditIdParam) return;
     if (createAudit.isPending || createAudit.data || createAudit.isError) return;
-    createAuditMutate({ data: { url: urlParam } });
+    createAuditMutate({
+      data: {
+        url: urlParam,
+        ...(profileParam === "strict" ? { profile: "strict" as const } : {}),
+        ...(multiViewportParam ? { multiViewport: true } : {}),
+      },
+    });
   }, [
     auditIdParam,
     createAudit.data,
@@ -645,6 +657,8 @@ export default function AuditResult() {
     createAudit.isPending,
     createAuditMutate,
     urlParam,
+    profileParam,
+    multiViewportParam,
   ]);
 
   if (!urlParam && !auditIdParam) {
@@ -1012,6 +1026,9 @@ function AuditResultView({
     [violations],
   );
 
+  const manualFollowUps = useMemo(() => getManualFollowUpsFromViolations(violations), [violations]);
+  const toolTargetUrl = encodeURIComponent(result.url);
+
   useAuditHeroEntrance({
     auditId: result.auditId,
     reducedMotion,
@@ -1191,6 +1208,127 @@ function AuditResultView({
             </p>
           )}
 
+          <div className="space-y-6 mb-12">
+              {result.scanMetadata ? (
+                <Card className="border-2 border-primary/15 shadow-none">
+                  <CardContent className="p-6 space-y-3">
+                    <h3 className="text-sm font-bold font-sans">Scan details</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      <span className="font-semibold text-foreground">Axe profile: </span>
+                      {result.scanMetadata.profile === "strict" ? "Strict (includes AAA-oriented rules)" : "Default (AA-oriented)"}
+                      {result.scanMetadata.multiViewport ? (
+                        <>
+                          {" "}
+                          <span className="font-semibold text-foreground">· Viewports: </span>
+                          {result.scanMetadata.viewportsUsed.map((v) => `${v.label} (${v.width}×${v.height})`).join(" · ")}
+                        </>
+                      ) : (
+                        <>
+                          {" "}
+                          <span className="font-semibold text-foreground">· Viewport: </span>
+                          {result.scanMetadata.viewportsUsed[0]
+                            ? `${result.scanMetadata.viewportsUsed[0].label} (${result.scanMetadata.viewportsUsed[0].width}×${result.scanMetadata.viewportsUsed[0].height})`
+                            : "Desktop"}
+                        </>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Passed/total checks count reflects the final viewport run. Multi-viewport merges unique violations and tags where each rule fired.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {result.scanMetadata?.runtimeDiagnostics &&
+              (result.scanMetadata.runtimeDiagnostics.consoleErrors.length > 0 ||
+                (result.scanMetadata.runtimeDiagnostics.failedRequests?.length ?? 0) > 0) ? (
+                <Card className="border-2 border-amber-500/25 bg-amber-500/5 shadow-none">
+                  <CardContent className="p-6 space-y-3">
+                    <h3 className="text-sm font-bold font-sans flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-amber-700 shrink-0" aria-hidden />
+                      Runtime signals (not WCAG violations)
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Console errors and failed network requests during the scan can indicate hydration issues, blocked assets, or
+                      third-party scripts. Triangulate with DevTools — they are not automatic WCAG failures.
+                    </p>
+                    {result.scanMetadata.runtimeDiagnostics.consoleErrors.length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          Console ({result.scanMetadata.runtimeDiagnostics.consoleErrors.length})
+                        </p>
+                        <ul className="text-xs font-mono space-y-1.5 max-h-40 overflow-y-auto rounded-lg border border-border bg-background p-3">
+                          {result.scanMetadata.runtimeDiagnostics.consoleErrors.map((e, i) => (
+                            <li key={i} className="break-words text-foreground/90">
+                              {e.text}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {result.scanMetadata.runtimeDiagnostics.failedRequests &&
+                    result.scanMetadata.runtimeDiagnostics.failedRequests.length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          Failed requests ({result.scanMetadata.runtimeDiagnostics.failedRequests.length})
+                        </p>
+                        <ul className="text-xs font-mono space-y-1.5 max-h-32 overflow-y-auto rounded-lg border border-border bg-background p-3">
+                          {result.scanMetadata.runtimeDiagnostics.failedRequests.map((f, i) => (
+                            <li key={i} className="break-all text-foreground/90">
+                              {f.url}
+                              {f.errorText ? ` — ${f.errorText}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {manualFollowUps.length > 0 ? (
+                <Card className="border-2 border-primary/15 shadow-none">
+                  <CardContent className="p-6 space-y-4">
+                    <h3 className="text-sm font-bold font-sans">Recommended manual checks</h3>
+                    <ul className="space-y-3">
+                      {manualFollowUps.map((item) => (
+                        <li key={item.id} className="text-sm leading-relaxed">
+                          <span className="font-semibold font-sans text-foreground">{item.title}. </span>
+                          <span className="text-muted-foreground">{item.detail}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              <Card className="border shadow-none">
+                <CardContent className="p-6 space-y-3">
+                  <h3 className="text-sm font-bold font-sans">Open in toolkit</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Continue on the scanned URL with in-browser tools (each opens in a new context on our servers).
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild variant="outline" size="sm" className="h-9 text-xs font-semibold">
+                      <Link href={`/tools/focus-order?url=${toolTargetUrl}`}>Focus order</Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="h-9 text-xs font-semibold">
+                      <Link href={`/tools/screen-reader-preview?url=${toolTargetUrl}`}>Screen reader preview</Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="h-9 text-xs font-semibold">
+                      <Link href={`/tools/colour-blindness?url=${toolTargetUrl}`}>Colour blindness</Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="h-9 text-xs font-semibold">
+                      <Link href={`/tools/low-vision?url=${toolTargetUrl}`}>Low vision</Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="h-9 text-xs font-semibold">
+                      <Link href={`/tools/contrast-checker`}>Contrast checker</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+          </div>
+
           {/* Violations */}
           <div
             ref={violationsToolbarRef}
@@ -1274,6 +1412,16 @@ function AuditResultView({
                         >
                           {violation.impact}
                         </Badge>
+                        {violation.detectedInViewports && violation.detectedInViewports.length > 0
+                          ? violation.detectedInViewports.map((vp) => (
+                              <span
+                                key={vp}
+                                className="text-[10px] font-bold uppercase tracking-wide rounded-full border border-primary/25 bg-primary/8 px-2 py-0.5 text-primary"
+                              >
+                                {vp}
+                              </span>
+                            ))
+                          : null}
                         {!simpleView ? (
                           <>
                             <span className="font-mono text-xs text-muted-foreground">{violation.wcagCriteria}</span>

@@ -16,7 +16,6 @@ const ARIA_RULE_RE = /^aria-|role-|scope-|valid-attr|heading-order|landmark|regi
  * Deterministic manual checks suggested from automated rule ids (not a substitute for full QA).
  */
 export function getManualFollowUpsFromViolations(violations: AuditViolation[]): ManualFollowUpItem[] {
-  const ids = new Set(violations.map((v) => v.id));
   const out: ManualFollowUpItem[] = [];
   const seen = new Set<string>();
 
@@ -40,7 +39,7 @@ export function getManualFollowUpsFromViolations(violations: AuditViolation[]): 
     if (/autoplay|prefers-reduced-motion|animation|motion/i.test(v.id)) needsMotion = true;
   }
 
-  if (needsKeyboard || ids.has("bypass")) {
+  if (needsKeyboard || violations.some((v) => v.id === "bypass")) {
     add(
       "keyboard-pass",
       "Keyboard-only pass",

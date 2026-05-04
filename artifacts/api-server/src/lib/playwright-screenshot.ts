@@ -21,6 +21,10 @@ export function screenshotFriendlyContextOptions(viewport: { width: number; heig
 /** Widen strip viewport for wide pages; cap avoids extreme GPU allocations. */
 const MAX_STRIP_VIEWPORT_WIDTH = 4096;
 
+/** Max time to wait for scrollWidth/scrollHeight to stop changing between polls. */
+const SCROLL_SIZE_STABLE_MAX_MS = 2_400;
+const SCROLL_SIZE_POLL_MS = 120;
+
 function stitchPngBuffersVertical(buffers: Buffer[]): Buffer {
   if (buffers.length === 0) throw new Error("No PNG strips to stitch.");
   const pngs = buffers.map((b) => PNG.sync.read(b));
@@ -68,13 +72,53 @@ async function widenViewportForStrip(page: Page, scrollWidth: number): Promise<v
   }
 }
 
-/** Hides `position: fixed` chrome during strip capture so it does not repeat on every tile. */
-async function hideFixedElementsForStripCapture(page: Page): Promise<void> {
+async function settleLayoutPulse(page: Page): Promise<void> {
+  await page
+    .evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }),
+    )
+    .catch(() => undefined);
+}
+
+/**
+ * Polls document scrollWidth/scrollHeight until two consecutive reads match or `maxWaitMs`.
+ * Reduces mis-tiling when fonts, images, or resize observers change layout after load.
+ */
+async function waitForStableDocumentScrollSize(
+  page: Page,
+  maxWaitMs: number,
+): Promise<{ width: number; height: number }> {
+  const deadline = Date.now() + Math.max(200, maxWaitMs);
+  let previous: { width: number; height: number } | null = null;
+
+  while (Date.now() < deadline) {
+    const cur = await readDocumentScrollSize(page);
+    if (previous && previous.width === cur.width && previous.height === cur.height) {
+      return cur;
+    }
+    previous = cur;
+    await new Promise<void>((r) => setTimeout(r, SCROLL_SIZE_POLL_MS));
+  }
+
+  const fallback = previous ?? (await readDocumentScrollSize(page));
+  logger.warn(
+    { width: fallback.width, height: fallback.height, maxWaitMs },
+    "Document scroll size did not stabilize in time; using last measurement for strip capture",
+  );
+  return fallback;
+}
+
+/** Hides `position: fixed` and `sticky` during strip capture so they do not repeat per tile. */
+async function hideFixedAndStickyForStripCapture(page: Page): Promise<void> {
   await page.evaluate(() => {
     document.querySelectorAll<HTMLElement>("*").forEach((el) => {
-      if (getComputedStyle(el).position !== "fixed") return;
-      if (el.dataset.__a11yPwshotFixed === "1") return;
-      el.dataset.__a11yPwshotFixed = "1";
+      const pos = getComputedStyle(el).position;
+      if (pos !== "fixed" && pos !== "sticky") return;
+      if (el.dataset.__a11yPwshotHide === "1") return;
+      el.dataset.__a11yPwshotHide = "1";
       el.dataset.__a11yPwshotPrevVis = el.style.visibility;
       el.style.visibility = "hidden";
     });
@@ -93,14 +137,22 @@ async function readDocumentScrollSize(page: Page): Promise<{ width: number; heig
 }
 
 async function captureFullPagePngStrips(page: Page, timeout: number): Promise<Buffer> {
+  const stripDeadline = Date.now() + Math.min(120_000, Math.max(timeout, 30_000));
+  const stableBudget = () =>
+    Math.min(SCROLL_SIZE_STABLE_MAX_MS, Math.max(400, stripDeadline - Date.now() - 12_000));
+
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" })).catch(() => undefined);
+  await settleLayoutPulse(page);
   await new Promise<void>((r) => setTimeout(r, 50));
 
-  let { width: totalW, height: totalH } = await readDocumentScrollSize(page);
-  await widenViewportForStrip(page, totalW);
-  await hideFixedElementsForStripCapture(page);
+  let { width: totalW, height: totalH } = await waitForStableDocumentScrollSize(page, stableBudget());
 
-  ({ width: totalW, height: totalH } = await readDocumentScrollSize(page));
+  await widenViewportForStrip(page, totalW);
+  await settleLayoutPulse(page);
+  await hideFixedAndStickyForStripCapture(page);
+  await settleLayoutPulse(page);
+
+  ({ width: totalW, height: totalH } = await waitForStableDocumentScrollSize(page, stableBudget()));
 
   const vp = page.viewportSize();
   if (!vp || vp.width < 1 || vp.height < 1) {
@@ -112,7 +164,6 @@ async function captureFullPagePngStrips(page: Page, timeout: number): Promise<Bu
   const maxScrollX = Math.max(0, totalW - vpW);
   const maxScrollY = Math.max(0, totalH - vpH);
 
-  const stripDeadline = Date.now() + Math.min(120_000, Math.max(timeout, 30_000));
   const perShotMs = () => Math.min(25_000, Math.max(5_000, stripDeadline - Date.now()));
 
   const columnImages: Buffer[] = [];
@@ -192,7 +243,8 @@ async function captureFullPagePngStrips(page: Page, timeout: number): Promise<Bu
  * Full-page PNG. Uses CSS pixel scale and no animations to avoid intermittent Chromium
  * "Unable to capture screenshot" failures; falls back to tiled strips when the single
  * composite still fails (very tall / wide pages, GPU limits). Strip mode hides
- * `position: fixed` elements so headers do not repeat per tile.
+ * `position: fixed` and `sticky` elements so they do not repeat per tile; scroll
+ * dimensions are polled until stable to reduce mis-measurement on late layout.
  */
 export async function captureFullPagePng(
   page: Page,

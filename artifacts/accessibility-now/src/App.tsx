@@ -68,6 +68,7 @@ import LowVision from "@/pages/tools/low-vision";
 import MobileChecklist from "@/pages/tools/mobile-checklist";
 import WcagChecklist from "@/pages/tools/wcag-checklist";
 import FocusOrderVisualizer from "@/pages/tools/focus-order";
+import WebsiteScannerTool from "@/pages/tools/website-scanner";
 
 const queryClient = new QueryClient();
 
@@ -133,6 +134,7 @@ function Router() {
         <Route path="/tools/mobile-checklist" component={MobileChecklist} />
         <Route path="/tools/wcag-checklist" component={WcagChecklist} />
         <Route path="/tools/focus-order" component={FocusOrderVisualizer} />
+        <Route path="/tools/website-scanner" component={WebsiteScannerTool} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

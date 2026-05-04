@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearch } from "wouter";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,11 +38,18 @@ const TYPE_BADGE_CLASS =
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function ScreenReaderPreview() {
+  const search = useSearch();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PreviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<ItemType | "all">("all");
+
+  useEffect(() => {
+    const q = new URLSearchParams(search);
+    const u = q.get("url");
+    if (u?.trim()) setUrl(decodeURIComponent(u.trim()));
+  }, [search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

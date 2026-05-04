@@ -1,8 +1,15 @@
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, Mic, Keyboard, Palette, Glasses, Smartphone, ClipboardList, ArrowRight, TabletSmartphone } from "lucide-react";
+import { Eye, Mic, Keyboard, Palette, Glasses, Smartphone, ClipboardList, ArrowRight, TabletSmartphone, Radar } from "lucide-react";
 
 const tools = [
+  {
+    href: "/tools/website-scanner",
+    icon: Radar,
+    title: "Website accessibility scanner",
+    description:
+      "Full WCAG-tagged axe run in headless Chromium — optional strict profile, mobile + desktop merge, console and network hints, then jump into our other tools on the same URL.",
+  },
   {
     href: "/tools/contrast-checker",
     icon: Palette,
@@ -66,7 +73,7 @@ export default function ToolsIndex() {
             <span className="heading-accent">sees your website.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl leading-relaxed">
-            Eight interactive tools for developers and designers. All run in-browser - no account needed, no data sent.
+            Nine interactive tools for developers and designers. All run in-browser - no account needed, no data sent.
           </p>
         </div>
       </section>
@@ -83,7 +90,7 @@ export default function ToolsIndex() {
               </p>
             </div>
             <p className="text-xs text-muted-foreground shrink-0 font-sans tabular-nums tracking-wide">
-              8 tools
+              9 tools
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7 md:gap-8">

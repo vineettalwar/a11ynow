@@ -399,9 +399,10 @@ function mapAxeToViolations(
     const instanceDetails = nodes.length > 0 ? mapInstanceDetails(nodes) : undefined;
     const help = typeof v.help === "string" ? v.help.trim() : "";
     const helpUrl = typeof v.helpUrl === "string" ? v.helpUrl.trim() : "";
+    const tags = Array.isArray(v.tags) ? v.tags : [];
     return {
       id: v.id,
-      wcagCriteria: tagToWcagCriteria(v.tags),
+      wcagCriteria: tagToWcagCriteria(tags),
       description: v.description,
       impact: (v.impact as AuditViolation["impact"]) ?? "minor",
       affectedElements: v.nodes.length,

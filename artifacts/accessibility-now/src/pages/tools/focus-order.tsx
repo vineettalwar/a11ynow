@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useSearch } from "wouter";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,6 +116,7 @@ function buildAnnotatedCanvas(
 }
 
 export default function FocusOrderVisualizer() {
+  const search = useSearch();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<FocusOrderResult | null>(null);
@@ -122,6 +124,12 @@ export default function FocusOrderVisualizer() {
   const [filter, setFilter] = useState<ElementType | "all">("all");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const q = new URLSearchParams(search);
+    const u = q.get("url");
+    if (u?.trim()) setUrl(decodeURIComponent(u.trim()));
+  }, [search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
