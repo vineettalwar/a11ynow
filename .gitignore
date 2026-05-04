@@ -53,9 +53,11 @@ Thumbs.db
 .cache/
 .local/
 
-# attached_assets/ — optional working-reference files (screenshots, branding notes).
+# attached_assets/: optional working-reference files (screenshots, branding notes).
 # It contains working reference files (screenshots, branding uploads) shared with the agent.
-# These files are NOT served by the application — production assets live in
+# These files are NOT served by the application; production assets live in
 # artifacts/accessibility-now/public/ instead. We commit attached_assets/ so the files
 # are available across sessions, but large binary uploads should be avoided.
 # See attached_assets/README.md for full guidance.
+# Added by code-review-graph
+.code-review-graph/

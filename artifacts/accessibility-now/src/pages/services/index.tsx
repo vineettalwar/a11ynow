@@ -45,7 +45,7 @@ const differentiators = [
   {
     icon: Cpu,
     title: "Engineering-led, not overlay-led",
-    body: "No overlay products—we test like users and patch source. Regulators and plaintiffs treat overlays as insufficient for real WCAG conformance.",
+    body: "No overlay products, we test like users and patch source. Regulators and plaintiffs treat overlays as insufficient for real WCAG conformance.",
   },
   {
     icon: FileCode,

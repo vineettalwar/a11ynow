@@ -38,9 +38,9 @@ export async function sendMonitoringConfirmation(opts: {
     `We'll scan your site and email you a summary after each scan. You can view your score history anytime at:`,
     `${resultsUrl}`,
     ``,
-    `Keep this link safe — it's your unique results page.`,
+    `Keep this link safe: it's your unique results page.`,
     ``,
-    `— The accessibility.now team`,
+    `- The accessibility.now team`,
   ].join("\n");
 
   await sendEmail({ to: opts.to, subject, text });
@@ -76,7 +76,7 @@ export async function sendMonitoringSummary(opts: {
     .map((i) => `  • [${i.impact.toUpperCase()}] ${i.description}`)
     .join("\n");
 
-  const subject = `Accessibility scan complete — ${opts.url} scored ${opts.score}/100`;
+  const subject = `Accessibility scan complete: ${opts.url} scored ${opts.score}/100`;
   const text = [
     `Scan complete for ${opts.url}`,
     ``,
@@ -89,7 +89,7 @@ export async function sendMonitoringSummary(opts: {
     ``,
     `View your full score history: ${resultsUrl}`,
     ``,
-    `— The accessibility.now team`,
+    `- The accessibility.now team`,
   ].join("\n");
 
   await sendEmail({ to: opts.to, subject, text });
@@ -101,7 +101,7 @@ async function sendEmail(opts: { to: string; subject: string; text: string }) {
   if (!transport) {
     logger.info(
       { to: opts.to, subject: opts.subject },
-      "[email] SMTP not configured — would send email",
+      "[email] SMTP not configured: would send email",
     );
     logger.debug({ body: opts.text }, "[email] body");
     return;

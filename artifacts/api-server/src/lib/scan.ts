@@ -7,10 +7,110 @@ import { screenshotFriendlyContextOptions, stablePlaywrightScreenshotProps } fro
 
 const dnsLookupAsync = promisify(dnsLookup);
 
+/** Follow HTTP redirects with per-hop SSRF checks before Playwright / fetch scan (apex → www, trailing paths, etc.). */
+const MAX_SCAN_REDIRECT_HOPS = 15;
+const REDIRECT_RESOLVE_FETCH_TIMEOUT_MS = 20000;
+
+const SCAN_FETCH_USER_AGENT =
+  "accessibility.now/1.0 Compliance Scanner (+https://accessibility.now)" as const;
+
+async function cancelFetchBody(res: Response): Promise<void> {
+  try {
+    await res.body?.cancel();
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Resolves the URL Playwright should open: follows 3xx Location chain in-process so each hop
+ * passes {@link validateScanUrl}. Falls back to `startUrl` if resolution fails (HEAD blocked, etc.).
+ */
+async function resolveScanNavigationUrl(
+  startUrl: string,
+  allowPrivateTargets: boolean,
+): Promise<string> {
+  let current = startUrl;
+
+  for (let hop = 0; hop <= MAX_SCAN_REDIRECT_HOPS; hop++) {
+    const validated = await validateScanUrl(current, allowPrivateTargets);
+    if (!validated.ok) {
+      logger.warn(
+        { url: current, reason: validated.error, startUrl },
+        "Scan redirect resolution stopped: URL failed validation",
+      );
+      return startUrl;
+    }
+    current = validated.url;
+
+    const runFetch = async (method: "HEAD" | "GET"): Promise<Response> => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REDIRECT_RESOLVE_FETCH_TIMEOUT_MS);
+      try {
+        return await fetch(current, {
+          method,
+          redirect: "manual",
+          headers: {
+            "User-Agent": SCAN_FETCH_USER_AGENT,
+            Accept: "text/html,application/xhtml+xml,application/json;q=0.1",
+          },
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
+    let resp: Response;
+    try {
+      resp = await runFetch("HEAD");
+    } catch (err) {
+      logger.warn({ err, current, startUrl }, "Scan redirect resolution: HEAD failed, using start URL");
+      return startUrl;
+    }
+
+    if (resp.status === 403 || resp.status === 405 || resp.status === 501) {
+      await cancelFetchBody(resp);
+      try {
+        resp = await runFetch("GET");
+      } catch (err) {
+        logger.warn({ err, current, startUrl }, "Scan redirect resolution: GET failed, using start URL");
+        return startUrl;
+      }
+    }
+
+    if (resp.status >= 300 && resp.status < 400) {
+      await cancelFetchBody(resp);
+      const location = resp.headers.get("location");
+      if (!location) {
+        logger.warn({ current, status: resp.status }, "Scan redirect resolution: missing Location header");
+        return startUrl;
+      }
+      const nextRaw = new URL(location, current).href;
+      const nextVal = await validateScanUrl(nextRaw, allowPrivateTargets);
+      if (!nextVal.ok) {
+        logger.warn(
+          { nextUrl: nextRaw, reason: nextVal.error, startUrl },
+          "Scan redirect resolution: redirect target failed validation",
+        );
+        return startUrl;
+      }
+      current = nextVal.url;
+      continue;
+    }
+
+    await cancelFetchBody(resp);
+    return current;
+  }
+
+  logger.warn({ startUrl }, "Scan redirect resolution: too many redirects");
+  return startUrl;
+}
+
 export const PRIVATE_IP_RE =
   /^(127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1$|fc00:|fd[0-9a-f]{2}:|fe80:)/i;
 
-/** Hostnames that always resolve to loopback / local-only — block unless private scans are allowed. */
+/** Hostnames that always resolve to loopback / local-only: block unless private scans are allowed. */
 const PRIVATE_HOSTNAME_RE = /^(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)$/i;
 
 const AUDIT_TIMEOUT_MS = 45000;
@@ -524,9 +624,9 @@ async function runPlaywrightScan(
       const vp = engineOpts.viewports[vi]!;
       await page.setViewportSize({ width: vp.width, height: vp.height });
       if (vi === 0) {
-        await page.goto(url, { waitUntil: "load", timeout: AUDIT_TIMEOUT_MS });
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: AUDIT_TIMEOUT_MS });
       } else {
-        await page.reload({ waitUntil: "load", timeout: AUDIT_TIMEOUT_MS });
+        await page.reload({ waitUntil: "domcontentloaded", timeout: AUDIT_TIMEOUT_MS });
       }
       await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_AFTER_LOAD_MS }).catch(() => undefined);
       await new Promise<void>((r) => setTimeout(r, HYDRATION_SETTLE_MS));
@@ -633,6 +733,11 @@ export async function runAccessibilityScan(
   const collectRuntimeDiagnostics = options?.collectRuntimeDiagnostics !== false;
   const viewports: ScanViewport[] = multiViewport ? [...MULTI_VIEWPORTS] : [DEFAULT_VIEWPORT_DESKTOP];
 
+  const navigationUrl = await resolveScanNavigationUrl(url, allowPrivateTargets);
+  if (navigationUrl !== url) {
+    logger.info({ url, navigationUrl }, "Scan target resolved after HTTP redirects");
+  }
+
   let violations: AuditViolation[] = [];
   let passedChecks = 0;
   let totalChecks = 0;
@@ -660,7 +765,7 @@ export async function runAccessibilityScan(
     });
 
     const result = await Promise.race([
-      runPlaywrightScan(url, browser, allowPrivateTargets, {
+      runPlaywrightScan(navigationUrl, browser, allowPrivateTargets, {
         profile: scanProfile,
         viewports,
         collectRuntimeDiagnostics,
@@ -688,9 +793,12 @@ export async function runAccessibilityScan(
   const scanEngine: ScanEngine = playwrightSucceeded ? "playwright" : "static_fallback";
 
   if (!playwrightSucceeded) {
-    const revalidation = await validateScanUrl(url, allowPrivateTargets);
+    const revalidation = await validateScanUrl(navigationUrl, allowPrivateTargets);
     if (!revalidation.ok) {
-      logger.warn({ url, reason: revalidation.error }, "SSRF re-validation failed in fallback scan path");
+      logger.warn(
+        { url: navigationUrl, reason: revalidation.error },
+        "SSRF re-validation failed in fallback scan path",
+      );
       violations = [
         {
           id: "page-unreachable",
@@ -706,10 +814,10 @@ export async function runAccessibilityScan(
       totalChecks = m.totalChecks;
     } else {
       try {
-        const response = await fetch(url, {
+        const response = await fetch(navigationUrl, {
           redirect: "follow",
           headers: {
-            "User-Agent": "accessibility.now/1.0 Compliance Scanner (+https://accessibility.now)",
+            "User-Agent": SCAN_FETCH_USER_AGENT,
             Accept: "text/html,application/xhtml+xml",
           },
           signal: AbortSignal.timeout(20000),
@@ -721,7 +829,7 @@ export async function runAccessibilityScan(
           const axe = (await import("axe-core")).default;
           const html = await response.text();
           const dom = new JSDOM(html, {
-            url,
+            url: navigationUrl,
             runScripts: "outside-only",
             pretendToBeVisual: true,
           });
@@ -774,7 +882,7 @@ export async function runAccessibilityScan(
           totalChecks = m.totalChecks;
         }
       } catch (fetchErr) {
-        logger.warn({ fetchErr, url }, "Fallback fetch-based scan also failed");
+        logger.warn({ fetchErr, url: navigationUrl }, "Fallback fetch-based scan also failed");
         violations = [
           {
             id: "page-unreachable",

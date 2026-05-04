@@ -92,7 +92,7 @@ router.post("/monitor", async (req, res): Promise<void> => {
         if (auditUrlNorm !== monitorUrlNorm) {
           logger.warn(
             { auditId, auditUrl: audit.url, monitorUrl: url },
-            "Audit URL does not match monitored URL — skipping seed",
+            "Audit URL does not match monitored URL: skipping seed",
           );
         } else {
           await db.insert(monitoringScansTable).values({
@@ -112,7 +112,7 @@ router.post("/monitor", async (req, res): Promise<void> => {
         }
       }
     } catch (err) {
-      logger.warn({ err, auditId }, "Failed to seed monitoring scan from audit — continuing");
+      logger.warn({ err, auditId }, "Failed to seed monitoring scan from audit: continuing");
     }
   }
 

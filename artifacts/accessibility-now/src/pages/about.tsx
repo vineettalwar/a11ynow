@@ -22,7 +22,7 @@ const PRINCIPLES = [
     initials: "02",
     name: "Senior on every project.",
     role: "100%, not 'led by'",
-    bio: "Findings and fixes come from engineers with 8+ years in production accessibility—not a junior draft with a senior skim.",
+    bio: "Findings and fixes come from engineers with 8+ years in production accessibility, not a junior draft with a senior skim.",
   },
   {
     initials: "03",
@@ -122,7 +122,7 @@ export default function About() {
                   className="text-lg text-[#1A1A1A] leading-relaxed"
                   style={{ fontFamily: "var(--app-font-mono)" }}
                 >
-                  accessibility.now is a digital accessibility agency—same senior team from first scope call through audit, remediation, and monitoring.
+                  accessibility.now is a digital accessibility agency with the same senior team from first scope call through audit, remediation, and monitoring.
                 </p>
               </div>
               <Button

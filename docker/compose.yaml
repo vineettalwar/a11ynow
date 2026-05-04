@@ -1,4 +1,4 @@
-# Local PostgreSQL for accessibility.now — persistent data in a named volume.
+# Local PostgreSQL for accessibility.now: persistent data in a named volume.
 # Usage: pnpm db:up | pnpm db:down (down creates a compressed backup under .docker/backups/)
 
 name: a11ynow

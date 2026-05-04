@@ -33,7 +33,7 @@ const BY_RULE: Record<string, RuleEntry> = {
   "color-contrast": {
     plainLead: "Some text or controls may be hard to read against the background.",
     whatHappens:
-      "People with low vision—or anyone on a bright screen or cheap monitor—can miss small or low-contrast text.",
+      "People with low vision, or anyone on a bright screen or cheap monitor, can miss small or low-contrast text.",
     whoIsAffected: ["People with low vision", "Anyone in glare or sunlight", "People using colour filters"],
     whenYouFixIt: "Stronger contrast makes words and controls readable without zooming or squinting.",
     didYouKnow:
@@ -130,7 +130,7 @@ const BY_RULE: Record<string, RuleEntry> = {
     plainLead: "A link inside a paragraph may be styled so it does not look like a link.",
     whatHappens: "People who rely on colour or underline cues can miss that text is clickable.",
     whoIsAffected: ["People with low vision", "People who use high-contrast themes"],
-    whenYouFixIt: "Use more than colour alone—underline, weight, or icon—to show links.",
+    whenYouFixIt: "Use more than colour alone, underline, weight, or icon, to show links.",
   },
   "document-title": {
     plainLead: "The page title may be missing or unhelpful.",
@@ -463,7 +463,7 @@ function buildFallback(v: AuditViolation): HumanViolationContext {
       "People who need predictable names and structure",
     ],
     whenYouFixIt:
-      "Fixing it usually makes the interface clearer for everyone—not only for assistive technology.",
+      "Fixing it usually makes the interface clearer for everyone, not only for assistive technology.",
     fallback: true,
   };
 }

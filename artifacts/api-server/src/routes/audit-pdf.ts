@@ -86,7 +86,7 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       size: "A4",
       margin: PAGE_MARGIN,
       info: {
-        Title: `Accessibility Audit — ${row.url}`,
+        Title: `Accessibility Audit: ${row.url}`,
         Author: "accessibility.now",
         Subject: "WCAG 2.1 AA Compliance Report",
         Creator: "accessibility.now automated scanner",
@@ -274,7 +274,7 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
           ].filter(Boolean);
           if (bits.length) instanceLines.push(bits.join("\n"));
         }
-        const selText = [selectors.join("\n"), instanceLines.slice(0, 2).join("\n\n—\n")].filter(Boolean).join("\n\n");
+        const selText = [selectors.join("\n"), instanceLines.slice(0, 2).join("\n\n---\n")].filter(Boolean).join("\n\n");
 
         const descH = doc.heightOfString(v.description, { width: descWidth });
         const selH = selText ? doc.heightOfString(selText, { width: descWidth }) + 4 : 0;
@@ -358,7 +358,7 @@ function buildPdf(row: AuditRow): Promise<Buffer> {
       .font("Helvetica-Bold")
       .fillColor(BRAND_ORANGE)
       .text(
-        "Important — Automated scans detect ~30% of WCAG violations",
+        "Important: Automated scans detect ~30% of WCAG violations",
         PAGE_MARGIN + 12,
         y + 10,
       );

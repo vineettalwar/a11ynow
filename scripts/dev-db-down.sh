@@ -30,7 +30,7 @@ if "${COMPOSE[@]}" ps -q db 2>/dev/null | grep -q .; then
     | gzip >"${OUT}"
   echo "==> Backup complete."
 else
-  echo "==> Postgres container is not running — skipping backup."
+  echo "==> Postgres container is not running: skipping backup."
 fi
 
 echo "==> Stopping stack (volume a11ynow_pgdata keeps your data)…"

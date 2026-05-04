@@ -92,7 +92,7 @@ export default function WebsiteScannerTool() {
       </form>
 
       <p className="text-xs text-muted-foreground leading-relaxed border-t border-border/50 pt-6">
-        Console errors and failed requests are captured during the browser run when supported. They are hints only — not
+        Console errors and failed requests are captured during the browser run when supported. They are hints only: not
         WCAG pass/fail. Automated checks still miss most of what a human audit covers.
       </p>
     </ToolPageLayout>

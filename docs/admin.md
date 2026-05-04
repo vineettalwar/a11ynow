@@ -1,4 +1,4 @@
-# Admin & Ops Runbook — accessibility.now
+# Admin & Ops Runbook: accessibility.now
 
 This document is for developers and operators managing the live application.
 
@@ -110,15 +110,15 @@ This runs `drizzle-kit migrate` against the `DATABASE_URL` in your environment.
 ### Adding a new migration
 1. Edit the schema in `lib/db/src/schema/`
 2. Run `pnpm --filter @workspace/db run generate` to produce a new SQL file in `lib/db/migrations/`
-3. Review the generated SQL — check for destructive changes (DROP, RENAME)
+3. Review the generated SQL: check for destructive changes (DROP, RENAME)
 4. Run `pnpm --filter @workspace/db run migrate` to apply it
 5. Commit the new migration file alongside the schema change
 
 ### Rolling back a bad migration
 Drizzle does not have a built-in rollback command. Options:
-1. **Restore from backup** — use snapshots or PITR from your database provider
-2. **Manual SQL** — write a reverse migration SQL file in `lib/db/migrations/` prefixed with the next sequence number
-3. **Point-in-time restore** — via your database provider's console
+1. **Restore from backup**: use snapshots or PITR from your database provider
+2. **Manual SQL**: write a reverse migration SQL file in `lib/db/migrations/` prefixed with the next sequence number
+3. **Point-in-time restore**: via your database provider's console
 
 **Never delete a migration file that has already been applied to production.**
 
@@ -130,11 +130,11 @@ By default the app runs in no-op mode (emails logged, not sent). To enable real 
 
 1. Obtain SMTP credentials from your email provider (e.g. AWS SES, Postmark, SendGrid)
 2. Set these in `.env` locally or in your production secret store, then restart the API process:
-   - `SMTP_HOST` — e.g. `email-smtp.eu-west-1.amazonaws.com`
-   - `SMTP_PORT` — typically `587` (STARTTLS) or `465` (SSL)
-   - `SMTP_USER` — SMTP username / access key
-   - `SMTP_PASS` — SMTP password / secret key
-   - `FROM_EMAIL` — e.g. `noreply@accessibility.now`
+   - `SMTP_HOST`: e.g. `email-smtp.eu-west-1.amazonaws.com`
+   - `SMTP_PORT`: typically `587` (STARTTLS) or `465` (SSL)
+   - `SMTP_USER`: SMTP username / access key
+   - `SMTP_PASS`: SMTP password / secret key
+   - `FROM_EMAIL`: e.g. `noreply@accessibility.now`
 3. Trigger a monitoring scan; check the API server logs for `[email sent]` vs `[email no-op]`
 
 ---
@@ -171,11 +171,11 @@ Deployment is host-specific. In general:
 API server stdout includes structured log lines:
 
 ```
-[scheduler] tick — checking 12 monitored URLs
+[scheduler] tick: checking 12 monitored URLs
 [scheduler] scanning https://example.com (id: abc123)
-[scheduler] scan complete — score: 84, violations: 3
-[email sent] to user@example.com — scan summary for https://example.com
-[scheduler] tick complete — 2 scans run, 10 skipped
+[scheduler] scan complete: score: 84, violations: 3
+[email sent] to user@example.com: scan summary for https://example.com
+[scheduler] tick complete: 2 scans run, 10 skipped
 ```
 
 If email is not configured:
@@ -185,8 +185,8 @@ If email is not configured:
 
 If Playwright fails and the JSDOM fallback fires:
 ```
-[scan] Playwright failed: <error message> — falling back to JSDOM
-[scan] JSDOM fallback complete — score: 71
+[scan] Playwright failed: <error message>: falling back to JSDOM
+[scan] JSDOM fallback complete: score: 71
 ```
 
 JSDOM fallback scores are less accurate (misses JS-rendered content, focus issues, colour contrast). If fallback fires repeatedly, check that Playwright Chromium is installed:

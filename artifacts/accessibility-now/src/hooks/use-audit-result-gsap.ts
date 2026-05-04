@@ -45,7 +45,7 @@ type EntranceRefs = {
 };
 
 /**
- * Hero copy — quick stagger when the audit loads.
+ * Hero copy: quick stagger when the audit loads.
  */
 export function useAuditHeroEntrance(options: {
   auditId: string;
@@ -86,7 +86,7 @@ export function useAuditHeroEntrance(options: {
 }
 
 /**
- * Metrics (3D tilt stagger), score ring draw, centre score count-up, and screenshot curtain — once per auditId.
+ * Metrics (3D tilt stagger), score ring draw, centre score count-up, and screenshot curtain: once per auditId.
  */
 export function useAuditMetricsEntrance(options: {
   auditId: string;
@@ -284,7 +284,7 @@ export function useViolationCardsEntrance(options: {
           ...tweenTo,
           scrollTrigger: {
             trigger: list,
-            // Fire as soon as the list begins intersecting the viewport from below — avoids a
+            // Fire as soon as the list begins intersecting the viewport from below: avoids a
             // persistent blank strip under the Violations toolbar until the user scrolls far.
             start: "top bottom",
             once: true,
@@ -307,7 +307,7 @@ export function useViolationCardsEntrance(options: {
   ]);
 }
 
-/** Emphasis when using Previous / Next — short timeline, respects reduced motion. */
+/** Emphasis when using Previous / Next: short timeline, respects reduced motion. */
 export function useViolationNavPulse(
   articleRefs: MutableRefObject<Array<HTMLElement | null>>,
   index: number,

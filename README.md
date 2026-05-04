@@ -1,8 +1,8 @@
 # accessibility.now
 
-<img src="./artifacts/accessibility-now/public/opengraph.jpg" alt="accessibility.now — EAA compliance platform" width="100%" />
+<img src="./artifacts/accessibility-now/public/opengraph.jpg" alt="accessibility.now: EAA compliance platform" width="100%" />
 
-**B2B digital accessibility agency website** — helping European enterprises achieve EAA compliance before the June 2025 deadline.
+**B2B digital accessibility agency website**: helping European enterprises achieve EAA compliance before the June 2025 deadline.
 
 **accessibility.now** is the A11y agency product: live URL audit, monitoring, and WCAG tooling in one place.
 
@@ -10,16 +10,16 @@
 
 ## Features
 
-- **Live accessibility audit** — paste any URL, get a WCAG 2.1 AA score, violation list, and PDF report in seconds (Playwright + axe-core). `POST /api/audit` accepts optional `profile: strict` (adds AAA-oriented axe tags) and `multiViewport: true` (mobile + desktop merge); responses can include `scanMetadata` (viewports used, optional console / failed-request hints).
-- **Website scanner (tools)** — `/tools/website-scanner` runs the same engine with those options; audit result links into focus order, screen reader preview, colour blindness, and low-vision tools with `?url=…`.
-- **Continuous monitoring** — register a URL for weekly/monthly re-scans; receive email summaries when scores change
-- **Contrast Checker** — real-time WCAG AA/AAA pass/fail with live text preview
-- **Focus Order Visualiser** — tab-order overlay on any URL, rendered in-browser
-- **Screen Reader Preview** — ARIA tree and reading-order render for any page
-- **WCAG 2.1/2.2 Developer Guide** — POUR principles, 24 AA criteria tables, implementation notes
-- **EAA Compliance Checklist** — 42-item interactive checklist with localStorage persistence and PDF export
-- **Blog** — EAA enforcement timeline, e-commerce WCAG failures, automated vs manual testing
-- **Pricing** — Free audit / €3,500 full audit / €890/mo monitoring, FAQ accordion
+- **Live accessibility audit**: paste any URL, get a WCAG 2.1 AA score, violation list, and PDF report in seconds (Playwright + axe-core). `POST /api/audit` accepts optional `profile: strict` (adds AAA-oriented axe tags) and `multiViewport: true` (mobile + desktop merge); responses can include `scanMetadata` (viewports used, optional console / failed-request hints).
+- **Website scanner (tools)**: `/tools/website-scanner` runs the same engine with those options; audit result links into focus order, screen reader preview, colour blindness, and low-vision tools with `?url=…`.
+- **Continuous monitoring**: register a URL for weekly/monthly re-scans; receive email summaries when scores change
+- **Contrast Checker**: real-time WCAG AA/AAA pass/fail with live text preview
+- **Focus Order Visualiser**: tab-order overlay on any URL, rendered in-browser
+- **Screen Reader Preview**: ARIA tree and reading-order render for any page
+- **WCAG 2.1/2.2 Developer Guide**: POUR principles, 24 AA criteria tables, implementation notes
+- **EAA Compliance Checklist**: 42-item interactive checklist with localStorage persistence and PDF export
+- **Blog**: EAA enforcement timeline, e-commerce WCAG failures, automated vs manual testing
+- **Pricing**: Free audit / €3,500 full audit / €890/mo monitoring, FAQ accordion
 
 ---
 
@@ -59,7 +59,7 @@ pnpm install
 ### 3. Configure environment
 ```bash
 cp .env.example .env
-# Edit .env — at minimum set DATABASE_URL
+# Edit .env: at minimum set DATABASE_URL
 ```
 
 ### 4. Set up the database
@@ -75,10 +75,10 @@ pnpm --filter @workspace/api-server exec playwright install chromium
 
 ### 6. Start the dev servers
 ```bash
-# In terminal 1 — API server (port 8080)
+# In terminal 1: API server (port 8080)
 pnpm --filter @workspace/api-server run dev
 
-# In terminal 2 — Frontend (optional $PORT, default 5173)
+# In terminal 2: Frontend (optional $PORT, default 5173)
 pnpm --filter @workspace/accessibility-now run dev
 ```
 
@@ -148,21 +148,21 @@ pnpm --filter @workspace/db run push           # Push schema directly (dev only)
 
 1. Create a branch from `main`
 2. Make your changes; run `pnpm run typecheck` before committing
-3. Open a pull request — CI will run type checks
+3. Open a pull request: CI will run type checks
 4. After merge, `post-merge.sh` automatically installs deps, runs migrations, and syncs to GitHub
 
 ---
 
 ## Documentation
 
-- [Design system](docs/design.md) — colours, typography, GSAP patterns
-- [Roadmap](docs/roadmap.md) — launched features, backlog, Q2/Q3 priorities
-- [Architecture decisions](docs/memory.md) — why decisions were made, gotchas
-- [Ops runbook](docs/admin.md) — DB queries, migrations, SMTP setup, deployment
-- [Screenshot capture](docs/screenshot-capture.md) — Playwright strip fallback, layout stability, Cursor Browser MCP limits
+- [Design system](docs/design.md): colours, typography, GSAP patterns
+- [Roadmap](docs/roadmap.md): launched features, backlog, Q2/Q3 priorities
+- [Architecture decisions](docs/memory.md): why decisions were made, gotchas
+- [Ops runbook](docs/admin.md): DB queries, migrations, SMTP setup, deployment
+- [Screenshot capture](docs/screenshot-capture.md): Playwright strip fallback, layout stability, Cursor Browser MCP limits
 
 ---
 
 ## Licence
 
-Private — accessibility.now. All rights reserved.
+Private. accessibility.now. All rights reserved.

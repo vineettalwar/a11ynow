@@ -198,7 +198,7 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
               ...(result.pageScreenshot ? { pageScreenshot: result.pageScreenshot } : {}),
             };
           } catch (err) {
-            req.log.warn({ err, url }, "Batch scan failed for URL — not persisting failure");
+            req.log.warn({ err, url }, "Batch scan failed for URL; not persisting failure");
             pages[i] = {
               auditId: "",
               url,

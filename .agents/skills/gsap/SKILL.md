@@ -29,23 +29,23 @@ HyperFrames controls GSAP through its `gsap` runtime adapter. Create a paused ti
 
 ## Core Tween Methods
 
-- **gsap.to(targets, vars)** — animate from current state to `vars`. Most common.
-- **gsap.from(targets, vars)** — animate from `vars` to current state (entrances).
-- **gsap.fromTo(targets, fromVars, toVars)** — explicit start and end.
-- **gsap.set(targets, vars)** — apply immediately (duration 0).
+- **gsap.to(targets, vars)**: animate from current state to `vars`. Most common.
+- **gsap.from(targets, vars)**: animate from `vars` to current state (entrances).
+- **gsap.fromTo(targets, fromVars, toVars)**: explicit start and end.
+- **gsap.set(targets, vars)**: apply immediately (duration 0).
 
 Always use **camelCase** property names (e.g. `backgroundColor`, `rotationX`).
 
 ## Common vars
 
-- **duration** — seconds (default 0.5).
-- **delay** — seconds before start.
-- **ease** — `"power1.out"` (default), `"power3.inOut"`, `"back.out(1.7)"`, `"elastic.out(1, 0.3)"`, `"none"`.
-- **stagger** — number `0.1` or object: `{ amount: 0.3, from: "center" }`, `{ each: 0.1, from: "random" }`.
-- **overwrite** — `false` (default), `true`, or `"auto"`.
-- **repeat** — finite number; never `-1` in HyperFrames. Compute repeats from the visible duration. **yoyo** — alternates direction with repeat.
-- **onComplete**, **onStart**, **onUpdate** — callbacks.
-- **immediateRender** — default `true` for from()/fromTo(). Set `false` on later tweens targeting the same property+element to avoid overwrite.
+- **duration**: seconds (default 0.5).
+- **delay**: seconds before start.
+- **ease**: `"power1.out"` (default), `"power3.inOut"`, `"back.out(1.7)"`, `"elastic.out(1, 0.3)"`, `"none"`.
+- **stagger**: number `0.1` or object: `{ amount: 0.3, from: "center" }`, `{ each: 0.1, from: "random" }`.
+- **overwrite**: `false` (default), `true`, or `"auto"`.
+- **repeat**: finite number; never `-1` in HyperFrames. Compute repeats from the visible duration. **yoyo**: alternates direction with repeat.
+- **onComplete**, **onStart**, **onUpdate**: callbacks.
+- **immediateRender**: default `true` for from()/fromTo(). Set `false` on later tweens targeting the same property+element to avoid overwrite.
 
 ## Transforms and CSS
 
@@ -61,12 +61,12 @@ Prefer GSAP's **transform aliases** over raw `transform` string:
 | `skewX`, `skewY`            | skew                |
 | `transformOrigin`           | transform-origin    |
 
-- **autoAlpha** — prefer over `opacity`. At 0: also sets `visibility: hidden`.
-- **CSS variables** — `"--hue": 180`.
-- **svgOrigin** _(SVG only)_ — global SVG coordinate space origin. Don't combine with `transformOrigin`.
-- **Directional rotation** — `"360_cw"`, `"-170_short"`, `"90_ccw"`.
-- **clearProps** — `"all"` or comma-separated; removes inline styles on complete.
-- **Relative values** — `"+=20"`, `"-=10"`, `"*=2"`.
+- **autoAlpha**: prefer over `opacity`. At 0: also sets `visibility: hidden`.
+- **CSS variables**: `"--hue": 180`.
+- **svgOrigin** _(SVG only)_: global SVG coordinate space origin. Don't combine with `transformOrigin`.
+- **Directional rotation**: `"360_cw"`, `"-170_short"`, `"90_ccw"`.
+- **clearProps**: `"all"` or comma-separated; removes inline styles on complete.
+- **Relative values**: `"+=20"`, `"-=10"`, `"*=2"`.
 
 ## Function-Based Values
 
@@ -135,10 +135,10 @@ tl.to(".a", { x: 100 }).to(".b", { y: 50 }).to(".c", { opacity: 0 });
 
 Third argument controls placement:
 
-- **Absolute**: `1` — at 1s
-- **Relative**: `"+=0.5"` — after end; `"-=0.2"` — before end
+- **Absolute**: `1`: at 1s
+- **Relative**: `"+=0.5"`: after end; `"-=0.2"`: before end
 - **Label**: `"intro"`, `"intro+=0.3"`
-- **Alignment**: `"<"` — same start as previous; `">"` — after previous ends; `"<0.2"` — 0.2s after previous starts
+- **Alignment**: `"<"`: same start as previous; `">"`: after previous ends; `"<0.2"`: 0.2s after previous starts
 
 ```javascript
 tl.to(".a", { x: 100 }, 0);
@@ -158,9 +158,9 @@ tl.tweenFromTo("intro", "outro");
 
 ### Timeline Options
 
-- **paused: true** — create paused; call `.play()` to start.
-- **repeat**, **yoyo** — apply to whole timeline.
-- **defaults** — vars merged into every child tween.
+- **paused: true**: create paused; call `.play()` to start.
+- **repeat**, **yoyo**: apply to whole timeline.
+- **defaults**: vars merged into every child tween.
 
 ### Nesting Timelines
 
@@ -214,7 +214,7 @@ Pause or kill off-screen animations.
 
 ## References (loaded on demand)
 
-- **[references/effects.md](references/effects.md)** — Drop-in effects: typewriter text, audio visualizer. Read when needing ready-made effect patterns for HyperFrames.
+- **[references/effects.md](references/effects.md)**: Drop-in effects: typewriter text, audio visualizer. Read when needing ready-made effect patterns for HyperFrames.
 
 ## Best Practices
 
@@ -230,7 +230,7 @@ Pause or kill off-screen animations.
 - Use both svgOrigin and transformOrigin on the same SVG element.
 - Chain animations with delay when a timeline can sequence them.
 - Create tweens before the DOM exists.
-- Skip cleanup — always kill tweens when no longer needed.
+- Skip cleanup: always kill tweens when no longer needed.
 - Use infinite repeat values in HyperFrames compositions. Use finite repeat counts computed from the visible duration.
 
 ## Credits And References

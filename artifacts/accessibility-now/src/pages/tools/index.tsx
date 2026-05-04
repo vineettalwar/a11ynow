@@ -8,7 +8,7 @@ const tools = [
     icon: Radar,
     title: "Website accessibility scanner",
     description:
-      "Full WCAG-tagged axe run in headless Chromium — optional strict profile, mobile + desktop merge, console and network hints, then jump into our other tools on the same URL.",
+      "Full WCAG-tagged axe run in headless Chromium: optional strict profile, mobile + desktop merge, console and network hints, then jump into our other tools on the same URL.",
   },
   {
     href: "/tools/contrast-checker",
@@ -86,7 +86,7 @@ export default function ToolsIndex() {
                 The toolkit
               </h2>
               <p className="text-muted-foreground text-sm max-w-md mt-2" style={{ fontFamily: "var(--app-font-mono)" }}>
-                Same craft as our audits—packaged so you can ship with confidence between engagements.
+                Same craft as our audits, packaged so you can ship with confidence between engagements.
               </p>
             </div>
             <p className="text-xs text-muted-foreground shrink-0 font-sans tabular-nums tracking-wide">

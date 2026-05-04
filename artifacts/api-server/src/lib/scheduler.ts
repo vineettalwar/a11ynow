@@ -103,5 +103,5 @@ export function startScheduler() {
   cron.schedule("0 * * * *", () => {
     runDueScans().catch((err) => logger.error({ err }, "[scheduler] unhandled error"));
   });
-  logger.info("[scheduler] started — runs every hour");
+  logger.info("[scheduler] started: runs every hour");
 }

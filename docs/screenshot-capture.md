@@ -8,13 +8,13 @@ Full-page PNGs for **`/api/page-screenshot`** and **`/api/focus-order`** use `ar
 
 ### Behaviour
 
-1. **Primary path** — Single `page.screenshot({ fullPage: true, scale: "css", animations: "disabled" })` with a **`deviceScaleFactor: 1`** context to avoid oversized GPU bitmaps and flaky Chromium failures.
+1. **Primary path**: Single `page.screenshot({ fullPage: true, scale: "css", animations: "disabled" })` with a **`deviceScaleFactor: 1`** context to avoid oversized GPU bitmaps and flaky Chromium failures.
 
-2. **Fallback path** — If that throws (very tall/wide pages, GPU limits), **tiled strip capture** runs:
+2. **Fallback path**: If that throws (very tall/wide pages, GPU limits), **tiled strip capture** runs:
    - Viewport width may grow up to **4096px** to reduce horizontal tiling.
    - **`position: fixed`** and **`position: sticky`** are set to **`visibility: hidden`** for the strip pass only so they do not redraw on every tile (the page context is discarded afterward; we do not restore visibility).
-   - **Scroll size stability** — `scrollWidth` / `scrollHeight` are polled until two consecutive reads match (within a time budget) before and after viewport widen + hide, to reduce mis-tiling when layout shifts after load (fonts, images, resize observers).
-   - **2D tiling** — Columns × rows with scroll/clipping math, then **pngjs** vertical and horizontal stitching.
+   - **Scroll size stability**: `scrollWidth` / `scrollHeight` are polled until two consecutive reads match (within a time budget) before and after viewport widen + hide, to reduce mis-tiling when layout shifts after load (fonts, images, resize observers).
+   - **2D tiling**: Columns × rows with scroll/clipping math, then **pngjs** vertical and horizontal stitching.
 
 Shared Chromium launch lives in `src/lib/playwright-chromium.ts`. Compliance scans use the same stable screenshot props on viewport and element JPEGs in `src/lib/scan.ts`.
 
@@ -23,7 +23,7 @@ Shared Chromium launch lives in `src/lib/playwright-chromium.ts`. Compliance sca
 Capture the **URL**, **approximate viewport**, and whether the failure is **single-frame** or **strip** (check API logs for `Single-frame full-page screenshot failed` / `Tiled strip screenshot failed`). Pathological cases include:
 
 - Infinite or unbounded document growth (malicious or broken scripts).
-- **`scrollWidth` / `scrollHeight` never stabilizing** — we eventually take the last measurement and log a warning.
+- **`scrollWidth` / `scrollHeight` never stabilizing**: we eventually take the last measurement and log a warning.
 - **Cross-origin or canvas-tainted** content (rare for our clip-based strips).
 
 ---

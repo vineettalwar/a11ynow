@@ -77,7 +77,7 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  /* Warm cream — accessibility.now brand surface */
+  /* Warm cream: accessibility.now brand surface */
   --background: 48 20% 96%;   /* #F5F2EC warm cream */
   --foreground: 0 0% 5%;      /* #0D0D0D near-black */
   --border: 40 15% 88%;
@@ -306,7 +306,7 @@ header.scrolled {
   transform: translateY(-3px) scale(1.01);
 }
 
-/* Tools index — catalog section backdrop */
+/* Tools index: catalog section backdrop */
 .tools-catalog-section {
   background:
     radial-gradient(ellipse 90% 55% at 50% -10%, rgba(255, 130, 50, 0.07) 0%, transparent 55%),
@@ -314,7 +314,7 @@ header.scrolled {
     linear-gradient(180deg, hsl(42, 28%, 98.5%) 0%, hsl(var(--background)) 45%, hsl(40, 22%, 96%) 100%);
 }
 
-/* Home — mini tool teaser cards */
+/* Home: mini tool teaser cards */
 .tool-card {
   position: relative;
   overflow: hidden;
@@ -344,7 +344,7 @@ header.scrolled {
   opacity: 1;
 }
 
-/* Shared empty state panel (tools) — sits on tools-catalog-section */
+/* Shared empty state panel (tools): sits on tools-catalog-section */
 .tool-empty-state {
   background: linear-gradient(
     165deg,
@@ -354,7 +354,7 @@ header.scrolled {
   );
 }
 
-/* Tools index — premium product cards */
+/* Tools index: premium product cards */
 .tool-index-card {
   position: relative;
   overflow: hidden;

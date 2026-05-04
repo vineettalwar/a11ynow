@@ -336,7 +336,7 @@ export const BatchPageResultStatus = {
 } as const;
 
 /**
- * Present when status is success — which engine produced the page result
+ * Present when status is success: which engine produced the page result
  */
 export type BatchPageResultScanEngine =
   | (typeof BatchPageResultScanEngine)[keyof typeof BatchPageResultScanEngine]
@@ -365,7 +365,7 @@ export interface BatchPageResult {
   scannedAt: string;
   status: BatchPageResultStatus;
   error?: string | null;
-  /** Present when status is success — which engine produced the page result */
+  /** Present when status is success: which engine produced the page result */
   scanEngine?: BatchPageResultScanEngine;
 }
 

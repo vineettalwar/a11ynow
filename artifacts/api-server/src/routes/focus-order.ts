@@ -264,7 +264,7 @@ router.get("/focus-order", async (req, res): Promise<void> => {
         const tabIndex = n.tabIndex;
         const issues: string[] = [];
         if (!name) issues.push("Missing accessible name");
-        if (tabIndex > 0) issues.push(`tabindex="${tabIndex}" — avoid positive tabindex`);
+        if (tabIndex > 0) issues.push(`tabindex="${tabIndex}": avoid positive tabindex`);
 
         return {
           index: idx + 1,
@@ -318,7 +318,7 @@ router.get("/focus-order", async (req, res): Promise<void> => {
     if (!hasSkipLink && elements.length > 0) {
       elements.forEach((el) => {
         if (el.index === 1) {
-          el.issues.push("No skip link detected — first focusable element is not a skip link");
+          el.issues.push("No skip link detected: first focusable element is not a skip link");
         }
       });
     }

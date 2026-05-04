@@ -50,7 +50,7 @@ export function getManualFollowUpsFromViolations(violations: AuditViolation[]): 
     add(
       "contrast-verify",
       "Contrast in context",
-      "Use the in-browser contrast checker on real UI states (hover, selected, disabled) — automated ratios can miss gradients or text over images.",
+      "Use the in-browser contrast checker on real UI states (hover, selected, disabled): automated ratios can miss gradients or text over images.",
     );
   }
   if (needsSr) {

@@ -277,7 +277,7 @@ function violationVisualModel(violation: AuditViolation): ViolationVisualModel {
   const whereParts: string[] = [];
   if (region === "iframe-boundary") {
     whereParts.push(
-      "The `<iframe>` on your page — the embedded “window” between your document and third-party markup.",
+      "The `<iframe>` on your page: the embedded “window” between your document and third-party markup.",
     );
   } else if (region === "video-player") {
     whereParts.push(
@@ -293,7 +293,7 @@ function violationVisualModel(violation: AuditViolation): ViolationVisualModel {
     );
   } else if (region === "heading-outline") {
     whereParts.push(
-      "In the page heading structure — the sequence of section titles screen readers use for navigation.",
+      "In the page heading structure: the sequence of section titles screen readers use for navigation.",
     );
   } else if (insideEmbedDoc) {
     whereParts.push("Inside embedded content (an iframe), on the element described by the selector below.");
@@ -308,7 +308,7 @@ function violationVisualModel(violation: AuditViolation): ViolationVisualModel {
   } else if (insideEmbedDoc) {
     ownershipNote = youtubeLike
       ? "This selector matches markup inside a video embed (often YouTube). Inner player issues are usually owned by the vendor; you can still fix the outer iframe name, swap embeds, or document limitations."
-      : "This selector points inside an embedded document. Your app may only control the outer iframe — not the widget’s inner HTML.";
+      : "This selector points inside an embedded document. Your app may only control the outer iframe, not the widget’s inner HTML.";
   }
 
   return {
@@ -399,7 +399,7 @@ function ViolationWhereOnPage({
               </div>
             )}
             <p className="text-[8px] text-center text-muted-foreground mt-1.5 leading-tight px-1">
-              Schematic — not your screenshot
+              Schematic (not your screenshot)
             </p>
           </div>
         </div>
@@ -440,7 +440,7 @@ function scanEngineDescription(
     case "playwright":
       return "Chromium + axe-core. Full DOM and scripts; page is scrolled before the run so lazy content can render; same-origin iframes included.";
     case "static_fallback":
-      return "Scan engine: static HTML only — the headless browser step failed, so JavaScript was not executed. SPAs and client-rendered pages are often under-tested in this mode. On the API server, run: pnpm --filter @workspace/api-server exec playwright install chromium";
+      return "Scan engine: static HTML only. The headless browser step failed, so JavaScript was not executed. SPAs and client-rendered pages are often under-tested in this mode. On the API server, run: pnpm --filter @workspace/api-server exec playwright install chromium";
     default:
       return "Scan engine: not recorded (older audit). New audits show whether Chromium or static analysis was used.";
   }
@@ -699,7 +699,7 @@ export default function AuditResult() {
             <span className="heading-accent">your site.</span>
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Chromium scrolls the full page, then axe analyzes — typically 15–40 seconds.
+            Chromium scrolls the full page, then axe analyzes: typically 15–40 seconds.
           </p>
         </div>
 
@@ -804,7 +804,7 @@ function ViolationElementExamples({ violation }: { violation: AuditViolation }) 
             <div className="space-y-2 min-w-0 order-2 lg:order-1">
               <p className="text-xs font-mono text-muted-foreground font-semibold">Instance {idx + 1}</p>
               <code className="block text-xs font-mono break-all bg-background text-foreground px-2.5 py-2 rounded-md border border-border">
-                {inst.selector || "—"}
+                {inst.selector || ", "}
               </code>
               {inst.failureSummary ? (
                 <div>
@@ -1186,7 +1186,7 @@ function AuditResultView({
               <div className="px-4 py-3 border-b border-border bg-background/80 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-bold font-sans text-foreground">Page at scan time (viewport)</h3>
                 <p className="text-[11px] text-muted-foreground font-mono">
-                  JPEG after axe — same scroll position as rule documentation below.
+                  JPEG after axe: same scroll position as rule documentation below.
                 </p>
               </div>
               <div className="p-3 sm:p-4 bg-muted/30" data-screenshot-inner>
@@ -1250,7 +1250,7 @@ function AuditResultView({
                     </h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       Console errors and failed network requests during the scan can indicate hydration issues, blocked assets, or
-                      third-party scripts. Triangulate with DevTools — they are not automatic WCAG failures.
+                      third-party scripts. Triangulate with DevTools: they are not automatic WCAG failures.
                     </p>
                     {result.scanMetadata.runtimeDiagnostics.consoleErrors.length > 0 ? (
                       <div>
@@ -1276,7 +1276,7 @@ function AuditResultView({
                           {result.scanMetadata.runtimeDiagnostics.failedRequests.map((f, i) => (
                             <li key={i} className="break-all text-foreground/90">
                               {f.url}
-                              {f.errorText ? ` — ${f.errorText}` : ""}
+                              {f.errorText ? `: ${f.errorText}` : ""}
                             </li>
                           ))}
                         </ul>

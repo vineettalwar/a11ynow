@@ -177,15 +177,15 @@ export const CreateAuditResponse = zod.object({
  * Scans up to 10 URLs concurrently (max 3 in parallel) using Server-Sent Events (SSE).
 The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
 with a `type` field:
-- `{ type: "scanning", url, index }` — fired when a URL scan begins
-- `{ type: "page", index, url, status, score, level, auditId, error? }` — fired when a URL scan finishes, or when a URL is skipped (e.g. client disconnected before Playwright started)
-- `{ type: "complete", siteScore, siteLevel, pages[], crossPageViolations[], scannedAt }` — final aggregated result (omitted if the client has already closed the stream)
-- `{ type: "error", message }` — emitted if processing fails
+- `{ type: "scanning", url, index }`: fired when a URL scan begins
+- `{ type: "page", index, url, status, score, level, auditId, error? }`: fired when a URL scan finishes, or when a URL is skipped (e.g. client disconnected before Playwright started)
+- `{ type: "complete", siteScore, siteLevel, pages[], crossPageViolations[], scannedAt }`: final aggregated result (omitted if the client has already closed the stream)
+- `{ type: "error", message }`: emitted if processing fails
 Validation errors (bad URLs etc.) return a 400 JSON response before streaming begins.
 The site-wide score is a `totalChecks`-weighted average of **successful** page scores only (failed or client-skipped pages are excluded).
 `crossPageViolations` deduplicates axe rule ids across successful pages only, then sorts by impact (critical first), then page count, then total affected elements.
 
- * @summary Batch audit up to 10 URLs — streams SSE progress events
+ * @summary Batch audit up to 10 URLs: streams SSE progress events
  */
 export const createBatchAuditBodyUrlsMax = 10;
 

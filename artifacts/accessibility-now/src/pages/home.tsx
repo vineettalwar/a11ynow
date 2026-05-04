@@ -568,7 +568,7 @@ export default function Home() {
                 <span className="heading-accent">how your users do.</span>
               </h2>
               <p className="text-muted-foreground mb-8 reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
-                Eight tools in the browser—colour vision, low vision, reading order, keyboard flow, focus order on a live capture. Nothing to install.
+                Eight tools in the browser, colour vision, low vision, reading order, keyboard flow, focus order on a live capture. Nothing to install.
               </p>
               <Button asChild className="btn-gsap h-12 px-7 font-semibold">
                 <Link href="/tools">Open the tools →</Link>

@@ -225,7 +225,7 @@ export default function FocusOrderVisualizer() {
               </div>
               <p className="text-sm font-semibold font-sans text-foreground">Capturing page and mapping Tab order</p>
               <div className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground font-sans">
-                Full-page screenshot plus focus extraction—typically 15–25 seconds.
+                Full-page screenshot plus focus extraction, typically 15–25 seconds.
               </div>
             </div>
           )}
@@ -450,7 +450,7 @@ export default function FocusOrderVisualizer() {
             <ToolEmptyState
               icon={TabletSmartphone}
               title="Enter a URL to visualise focus order"
-              description="We capture a full-page screenshot in a headless browser, walk every focusable control in real Tab sequence, and paint numbered badges on the image—each hue matches the element family below."
+              description="We capture a full-page screenshot in a headless browser, walk every focusable control in real Tab sequence, and paint numbered badges on the image, each hue matches the element family below."
             >
               <TypeLegendChips />
             </ToolEmptyState>

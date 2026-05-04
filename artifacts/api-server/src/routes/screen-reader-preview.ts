@@ -179,7 +179,7 @@ function extractItems(document: Document): ScreenReaderItem[] {
         issue: isEmpty
           ? "Link has no accessible name"
           : isGeneric
-            ? `Generic link text "${name}" — use descriptive text`
+            ? `Generic link text "${name}": use descriptive text`
             : undefined,
       },
     });
@@ -207,7 +207,7 @@ function extractItems(document: Document): ScreenReaderItem[] {
       node: el,
       item: {
         type: "image",
-        text: isDecorative ? "(decorative — skipped)" : alt ?? "",
+        text: isDecorative ? "(decorative: skipped)" : alt ?? "",
         pass: !missing,
         issue: missing ? "Image is missing the alt attribute" : undefined,
       },
