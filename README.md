@@ -81,11 +81,11 @@ pnpm --filter @workspace/api-server exec playwright install chromium
 # In terminal 1: API server (port 8080)
 pnpm --filter @workspace/api-server run dev
 
-# In terminal 2: Frontend (optional $PORT, default 5173)
+# In terminal 2: Frontend (optional $PORT, default 5180)
 pnpm --filter @workspace/accessibility-now run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Open `http://localhost:5180` in your browser.
 
 ---
 
@@ -104,8 +104,13 @@ See `.env.example` for the full list with comments.
 | `FROM_EMAIL` | No* | Sender address for system emails |
 | `GITHUB_TOKEN` | No | GitHub PAT for post-merge sync |
 | `GITHUB_REPO` | No | GitHub repo HTTPS URL |
+| `SCAN_MAX_CONCURRENT` | No | Max simultaneous Playwright scans (default 2, max 4) |
+| `SCAN_TIMEOUT_MS` | No | Base scan budget in ms (default 45000) |
+| `SHUTDOWN_DRAIN_MS` | No | Graceful shutdown wait for in-flight scans (default 120000) |
 
 *All five SMTP vars must be set together for email delivery. If any are absent, emails are logged but not sent.
+
+**Production checklist:** after deploy, confirm `GET /api/healthz` returns `"scanEngineReady": true`. If false, run `pnpm --filter @workspace/api-server exec playwright install chromium` on the API host.
 
 ---
 

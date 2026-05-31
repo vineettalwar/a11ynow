@@ -43,7 +43,7 @@ pnpm dev
 
 This runs `scripts/dev-local.sh`: starts Docker Postgres (if needed), applies migrations, ensures Playwright Chromium is installed, then starts Vite and the API together.
 
-- Vite defaults to port **5173** (or `PORT` if you set it for the frontend only).
+- Vite defaults to port **5180** (or `PORT` if you set it for the frontend only).
 - The API port is **chosen automatically** unless you set `A11YNOW_API_PORT`. The script exports `VITE_DEV_API_PROXY` so Vite’s `/api` proxy targets the same API instance.
 
 ### Web + API without Docker Postgres
@@ -113,12 +113,22 @@ Avoid `drizzle-kit push` against shared or production databases; it can drop con
 
 ## Scan engine (audits and tools)
 
-Server-side accessibility scans live mainly in **`artifacts/api-server/src/lib/scan.ts`**.
+Server-side accessibility scans live mainly in **`artifacts/api-server/src/lib/scan.ts`**, with concurrency controlled by **`scan-gate.ts`**.
 
 - **Primary path:** Playwright Chromium + `@axe-core/playwright` (full DOM, scripts, visibility).
 - **Fallback:** JSDOM + axe when Playwright cannot run (missing browser, hard failures). Results are less representative for layout and focus.
+- **Concurrency:** `SCAN_MAX_CONCURRENT` (default 2) caps simultaneous browser scans process-wide.
+- **Batch:** `/api/audit/batch` scans URLs **serially** with one reused browser (SSE progress unchanged).
+- **Health:** `GET /api/healthz` returns `scanEngineReady`, `scansInFlight`, and `scansQueued`.
+- **Shutdown:** SIGTERM/SIGINT drains in-flight scans (`SHUTDOWN_DRAIN_MS`, default 120s) before exit.
 
 Redirects are resolved in-process with per-hop URL validation (SSRF-related checks). Monitoring, scheduled re-scans, and batch flows import helpers such as `runAccessibilityScan` and `validateScanUrl` from `scan.ts` (see `routes/audit.ts`, `routes/audit-batch.ts`, `lib/scheduler.ts`).
+
+Optional integration smoke test (requires Chromium installed):
+
+```bash
+SCAN_INTEGRATION=1 pnpm --filter @workspace/api-server run test
+```
 
 ---
 

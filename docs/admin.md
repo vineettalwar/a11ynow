@@ -145,8 +145,56 @@ Deployment is host-specific. In general:
 
 1. Build the frontend (`pnpm --filter @workspace/accessibility-now run build`) and API (`pnpm --filter @workspace/api-server run build` if applicable).
 2. Run `pnpm --filter @workspace/db run migrate` against production `DATABASE_URL` before or as part of the release.
-3. Ensure all required environment variables from `.env.example` are set in production.
-4. Optionally run `scripts/post-merge.sh` after merges for install, migrate, and GitHub sync (see script for behavior).
+3. **Install Playwright Chromium** on the API host (required for full browser scans; without it audits fall back to static HTML only):
+   ```bash
+   pnpm --filter @workspace/api-server exec playwright install chromium
+   # Linux servers often also need:
+   pnpm --filter @workspace/api-server exec playwright install-deps chromium
+   ```
+4. Ensure all required environment variables from `.env.example` are set in production.
+5. Optionally run `scripts/post-merge.sh` after merges for install, migrate, and GitHub sync (see script for behavior).
+
+After deploy, confirm the scan engine with:
+```bash
+curl -s https://your-api-host.example/api/healthz
+# Expect: {"status":"ok","scanEngineReady":true,"scansInFlight":0,"scansQueued":0}
+```
+
+During rolling deploys, `/api/healthz` may briefly return `"status":"draining"` while SIGTERM handlers finish in-flight scans. Load balancers should treat `scanEngineReady: false` as degraded (static HTML fallback only).
+
+Optional scan tuning env vars (API server):
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SCAN_MAX_CONCURRENT` | `2` (max `4`) | Cap simultaneous Playwright scans process-wide |
+| `SCAN_TIMEOUT_MS` | `45000` | Base Playwright budget before multi-viewport / strict extras |
+| `SCAN_SCROLL_MAX_MS` | `12000` | Wall-clock cap for lazy-load scroll pass |
+| `SHUTDOWN_DRAIN_MS` | `120000` | Max wait for in-flight scans on SIGTERM/SIGINT |
+
+---
+
+## Scan engine diagnostics
+
+### static_fallback rate (last 24 hours)
+
+```sql
+SELECT scan_engine, count(*) AS scans
+FROM audits
+WHERE scanned_at > now() - interval '24 hours'
+GROUP BY scan_engine
+ORDER BY scans DESC;
+```
+
+A high `static_fallback` share usually means Chromium is missing, timed out, or blocked — check API logs for `scan_complete` events and `Chromium unavailable` at startup.
+
+### Recent scans by engine
+
+```sql
+SELECT audit_id, url, scan_engine, score, scanned_at
+FROM audits
+ORDER BY scanned_at DESC
+LIMIT 20;
+```
 
 ---
 
@@ -185,9 +233,11 @@ If email is not configured:
 
 If Playwright fails and the JSDOM fallback fires:
 ```
-[scan] Playwright failed: <error message>: falling back to JSDOM
-[scan] JSDOM fallback complete: score: 71
+Playwright audit failed, falling back to fetch-based scan
+Scan complete { event: "scan_complete", scanEngine: "static_fallback", ... }
 ```
+
+Structured `scan_complete` log fields include `urlHost`, `scanEngine`, `durationMs`, `profile`, `multiViewport`, and optional `failurePhase` / `errorClass` when the browser path failed.
 
 JSDOM fallback scores are less accurate (misses JS-rendered content, focus issues, colour contrast). If fallback fires repeatedly, check that Playwright Chromium is installed:
 ```bash

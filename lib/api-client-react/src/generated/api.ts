@@ -203,7 +203,7 @@ export const useCreateAudit = <
 };
 
 /**
- * Scans up to 10 URLs concurrently (max 3 in parallel) using Server-Sent Events (SSE).
+ * Scans up to 10 URLs serially (one browser, one URL at a time) using Server-Sent Events (SSE).
 The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
 with a `type` field:
 - `{ type: "scanning", url, index }`: fired when a URL scan begins

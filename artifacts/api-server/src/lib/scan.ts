@@ -2,8 +2,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
 import { logger } from "./logger";
-import { launchChromiumHeadless } from "./playwright-chromium";
+import { launchChromiumWithRetry } from "./playwright-chromium";
 import { screenshotFriendlyContextOptions, stablePlaywrightScreenshotProps } from "./playwright-screenshot";
+import { withScanSlot } from "./scan-gate";
 
 const dnsLookupAsync = promisify(dnsLookup);
 
@@ -113,13 +114,115 @@ export const PRIVATE_IP_RE =
 /** Hostnames that always resolve to loopback / local-only: block unless private scans are allowed. */
 const PRIVATE_HOSTNAME_RE = /^(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)$/i;
 
-const AUDIT_TIMEOUT_MS = 45000;
-const NETWORK_IDLE_AFTER_LOAD_MS = 8000;
+const DEFAULT_AUDIT_TIMEOUT_MS = 45_000;
+const NETWORK_IDLE_AFTER_LOAD_MS = 8_000;
 const HYDRATION_SETTLE_MS = 800;
-/** After scrolling the page to wake lazy content, pause before axe runs (bounded; keeps total scan under AUDIT_TIMEOUT_MS). */
+/** After scrolling the page to wake lazy content, pause before axe runs (bounded; keeps total scan under budget). */
 const POST_SCROLL_SETTLE_MS = 400;
 const SCROLL_STEP_PX = 420;
 const SCROLL_STEP_DELAY_MS = 120;
+const DEFAULT_SCROLL_MAX_MS = 12_000;
+const SCROLL_MAX_STEPS = 40;
+const MIN_BUDGET_FOR_EXTRA_VIEWPORT_MS = 15_000;
+const MIN_BUDGET_FOR_ELEMENT_SCREENSHOTS_MS = 8_000;
+
+export class ScanTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ScanTimeoutError";
+  }
+}
+
+function parseEnvInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number.parseInt(raw, 10);
+  return Number.isNaN(n) || n < 1 ? fallback : n;
+}
+
+function getScrollMaxMs(): number {
+  return parseEnvInt("SCAN_SCROLL_MAX_MS", DEFAULT_SCROLL_MAX_MS);
+}
+
+/** Total Playwright phase budget (ms) before static fallback. */
+export function computeScanBudgetMs(options: {
+  multiViewport: boolean;
+  profile: ScanProfile;
+}): number {
+  const base = parseEnvInt("SCAN_TIMEOUT_MS", DEFAULT_AUDIT_TIMEOUT_MS);
+  const extra =
+    (options.multiViewport ? 38_000 : 0) + (options.profile === "strict" ? 6_000 : 0);
+  return base + 8_000 + extra;
+}
+
+/** Tracks remaining wall-clock budget across scan phases. */
+export class ScanBudget {
+  private readonly deadline: number;
+
+  constructor(totalMs: number) {
+    this.deadline = Date.now() + totalMs;
+  }
+
+  remainingMs(): number {
+    return Math.max(0, this.deadline - Date.now());
+  }
+
+  assertRemaining(phase: string): void {
+    if (this.remainingMs() <= 0) {
+      throw new ScanTimeoutError(`Scan budget exhausted during ${phase}`);
+    }
+  }
+
+  navigationTimeoutMs(): number {
+    return Math.min(DEFAULT_AUDIT_TIMEOUT_MS, Math.floor(this.remainingMs() * 0.45));
+  }
+
+  networkIdleTimeoutMs(): number {
+    if (this.remainingMs() < 10_000) return 0;
+    return Math.min(4_000, NETWORK_IDLE_AFTER_LOAD_MS);
+  }
+
+  skipElementScreenshots(): boolean {
+    return this.remainingMs() < MIN_BUDGET_FOR_ELEMENT_SCREENSHOTS_MS;
+  }
+
+  canRunExtraViewport(): boolean {
+    return this.remainingMs() >= MIN_BUDGET_FOR_EXTRA_VIEWPORT_MS;
+  }
+}
+
+function isTransientNavError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes("Timeout") ||
+    msg.includes("timeout") ||
+    msg.includes("net::ERR") ||
+    msg.includes("NS_ERROR") ||
+    msg.includes("Navigation failed")
+  );
+}
+
+async function gotoWithRetry(
+  page: import("playwright").Page,
+  url: string,
+  timeoutMs: number,
+): Promise<void> {
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+  } catch (err) {
+    if (!isTransientNavError(err)) throw err;
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+  }
+}
+
+async function reloadWithRetry(page: import("playwright").Page, timeoutMs: number): Promise<void> {
+  try {
+    await page.reload({ waitUntil: "domcontentloaded", timeout: timeoutMs });
+  } catch (err) {
+    if (!isTransientNavError(err)) throw err;
+    await page.reload({ waitUntil: "domcontentloaded", timeout: timeoutMs });
+  }
+}
 
 /**
  * When true, localhost and RFC1918 targets can be scanned (Playwright SSRF route is disabled).
@@ -178,6 +281,10 @@ export interface ScanMetadata {
   multiViewport: boolean;
   viewportsUsed: ScanViewport[];
   runtimeDiagnostics?: RuntimeDiagnostics;
+  /** True when element JPEG captures were skipped to stay within scan budget. */
+  elementScreenshotsSkipped?: boolean;
+  /** True when additional viewport passes were skipped due to budget pressure. */
+  viewportsSkipped?: boolean;
 }
 
 export interface ScanResult {
@@ -289,7 +396,9 @@ async function attachElementScreenshotsMerged(
   page: import("playwright").Page,
   merged: AuditViolation[],
   lastAxeViolations: Array<{ id?: string; nodes?: AxeNodeLike[] }>,
+  skipScreenshots: boolean,
 ): Promise<void> {
+  if (skipScreenshots) return;
   const byRuleId = new Map<string, AxeNodeLike[]>();
   for (const av of lastAxeViolations) {
     const id = typeof av.id === "string" ? av.id : "";
@@ -424,7 +533,9 @@ async function attachElementScreenshots(
   page: import("playwright").Page,
   violations: AuditViolation[],
   axeViolations: Array<{ nodes?: AxeNodeLike[] }>,
+  skipScreenshots: boolean,
 ): Promise<void> {
+  if (skipScreenshots) return;
   const impactRank: Record<string, number> = { critical: 0, serious: 1, moderate: 2, minor: 3 };
   const order = violations
     .map((_, idx) => idx)
@@ -454,25 +565,49 @@ async function attachElementScreenshots(
 
 /**
  * Scroll through the document so intersection observers and lazy-loaded regions mount
- * before axe analyzes. No-op safe if the page has little height.
+ * before axe analyzes. Capped by wall time and step count.
  */
-async function scrollDocumentForLazyContent(page: import("playwright").Page): Promise<void> {
+async function scrollDocumentForLazyContent(
+  page: import("playwright").Page,
+  maxScrollMs: number,
+): Promise<void> {
   await page
     .evaluate(
-      async ({ stepPx, stepDelayMs }: { stepPx: number; stepDelayMs: number }) => {
+      async ({
+        stepPx,
+        stepDelayMs,
+        maxMs,
+        maxSteps,
+      }: {
+        stepPx: number;
+        stepDelayMs: number;
+        maxMs: number;
+        maxSteps: number;
+      }) => {
         const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+        const started = Date.now();
         const root = document.scrollingElement ?? document.documentElement;
         const maxY = Math.max(0, root.scrollHeight - window.innerHeight);
+        let steps = 0;
         for (let y = 0; y <= maxY; y += stepPx) {
+          if (Date.now() - started >= maxMs || steps >= maxSteps) break;
           window.scrollTo({ top: y, left: 0, behavior: "instant" });
           await delay(stepDelayMs);
+          steps++;
         }
-        window.scrollTo({ top: root.scrollHeight, left: 0, behavior: "instant" });
-        await delay(stepDelayMs);
-        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-        await delay(stepDelayMs);
+        if (Date.now() - started < maxMs && steps < maxSteps) {
+          window.scrollTo({ top: root.scrollHeight, left: 0, behavior: "instant" });
+          await delay(stepDelayMs);
+          window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+          await delay(stepDelayMs);
+        }
       },
-      { stepPx: SCROLL_STEP_PX, stepDelayMs: SCROLL_STEP_DELAY_MS },
+      {
+        stepPx: SCROLL_STEP_PX,
+        stepDelayMs: SCROLL_STEP_DELAY_MS,
+        maxMs: maxScrollMs,
+        maxSteps: SCROLL_MAX_STEPS,
+      },
     )
     .catch(() => undefined);
 }
@@ -481,6 +616,8 @@ interface PlaywrightScanEngineOpts {
   profile: ScanProfile;
   viewports: ScanViewport[];
   collectRuntimeDiagnostics: boolean;
+  budget: ScanBudget;
+  onContext?: (context: import("playwright").BrowserContext) => void;
 }
 
 function mapAxeToViolations(
@@ -527,6 +664,9 @@ async function runPlaywrightScan(
   totalChecks: number;
   pageScreenshot?: string;
   runtimeDiagnostics?: RuntimeDiagnostics;
+  viewportsUsed: ScanViewport[];
+  elementScreenshotsSkipped: boolean;
+  viewportsSkipped: boolean;
 }> {
   const tags = [...axeTagsForProfile(engineOpts.profile)];
   const multiVp = engineOpts.viewports.length > 1;
@@ -536,9 +676,13 @@ async function runPlaywrightScan(
     ...screenshotFriendlyContextOptions({ width: firstVp.width, height: firstVp.height }),
     userAgent: "accessibility.now/1.0 Compliance Scanner (+https://accessibility.now)",
   });
+  engineOpts.onContext?.(context);
 
   const consoleErrors: Array<{ type: string; text: string }> = [];
   const failedRequests: Array<{ url: string; errorText?: string }> = [];
+  const { budget } = engineOpts;
+  const skipElementShots = budget.skipElementScreenshots();
+  const scrollMaxMs = Math.min(getScrollMaxMs(), budget.remainingMs());
 
   try {
     if (!allowPrivateTargets) {
@@ -619,19 +763,36 @@ async function runPlaywrightScan(
       passes: number;
       violationsCount: number;
     }> = [];
+    let viewportsSkipped = false;
 
     for (let vi = 0; vi < engineOpts.viewports.length; vi++) {
+      if (vi > 0 && !budget.canRunExtraViewport()) {
+        logger.warn(
+          { url, remainingMs: budget.remainingMs() },
+          "Skipping additional viewport passes due to scan budget",
+        );
+        viewportsSkipped = true;
+        break;
+      }
+
+      budget.assertRemaining(vi === 0 ? "navigation" : "viewport-reload");
       const vp = engineOpts.viewports[vi]!;
+      const navTimeout = budget.navigationTimeoutMs();
       await page.setViewportSize({ width: vp.width, height: vp.height });
       if (vi === 0) {
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: AUDIT_TIMEOUT_MS });
+        await gotoWithRetry(page, url, navTimeout);
       } else {
-        await page.reload({ waitUntil: "domcontentloaded", timeout: AUDIT_TIMEOUT_MS });
+        await reloadWithRetry(page, navTimeout);
       }
-      await page.waitForLoadState("networkidle", { timeout: NETWORK_IDLE_AFTER_LOAD_MS }).catch(() => undefined);
+      const networkIdleMs = budget.networkIdleTimeoutMs();
+      if (networkIdleMs > 0) {
+        await page.waitForLoadState("networkidle", { timeout: networkIdleMs }).catch(() => undefined);
+      }
       await new Promise<void>((r) => setTimeout(r, HYDRATION_SETTLE_MS));
-      await scrollDocumentForLazyContent(page);
+      await scrollDocumentForLazyContent(page, scrollMaxMs);
       await new Promise<void>((r) => setTimeout(r, POST_SCROLL_SETTLE_MS));
+
+      budget.assertRemaining("axe");
 
       const axeResults = await new AxeBuilder({ page })
         .withTags(tags)
@@ -657,10 +818,15 @@ async function runPlaywrightScan(
       violations = mergeViolationsAcrossViewports(
         perRunResults.map((r) => ({ label: r.label, violations: r.violations })),
       );
-      await attachElementScreenshotsMerged(page, violations, last.axeViolationsRaw);
+      await attachElementScreenshotsMerged(page, violations, last.axeViolationsRaw, skipElementShots);
     } else {
       violations = last.violations;
-      await attachElementScreenshots(page, violations, last.axeViolationsRaw as Array<{ nodes?: AxeNodeLike[] }>);
+      await attachElementScreenshots(
+        page,
+        violations,
+        last.axeViolationsRaw as Array<{ nodes?: AxeNodeLike[] }>,
+        skipElementShots,
+      );
     }
 
     await page.evaluate(() => window.scrollTo(0, 0)).catch(() => undefined);
@@ -697,6 +863,9 @@ async function runPlaywrightScan(
       passedChecks,
       totalChecks,
       pageScreenshot,
+      viewportsUsed: perRunResults.map((_, idx) => engineOpts.viewports[idx]!),
+      elementScreenshotsSkipped: skipElementShots,
+      viewportsSkipped,
       ...(runtimeDiagnostics ? { runtimeDiagnostics } : {}),
     };
   } finally {
@@ -706,7 +875,7 @@ async function runPlaywrightScan(
 
 /** Shared Chromium launch for audits (single scans and batch workers). */
 export async function launchChromiumForAudit(): Promise<import("playwright").Browser> {
-  return launchChromiumHeadless();
+  return launchChromiumWithRetry();
 }
 
 export interface RunAccessibilityScanOptions {
@@ -723,10 +892,20 @@ export interface RunAccessibilityScanOptions {
   collectRuntimeDiagnostics?: boolean;
 }
 
+export { ScanGateShutdownError } from "./scan-gate";
+
 export async function runAccessibilityScan(
   url: string,
   options?: RunAccessibilityScanOptions,
 ): Promise<ScanResult> {
+  return withScanSlot(() => runAccessibilityScanInner(url, options));
+}
+
+async function runAccessibilityScanInner(
+  url: string,
+  options?: RunAccessibilityScanOptions,
+): Promise<ScanResult> {
+  const startedAt = Date.now();
   const allowPrivateTargets = scanAllowsPrivateTargets();
   const scanProfile: ScanProfile = options?.profile === "strict" ? "strict" : "default";
   const multiViewport = Boolean(options?.multiViewport);
@@ -738,19 +917,32 @@ export async function runAccessibilityScan(
     logger.info({ url, navigationUrl }, "Scan target resolved after HTTP redirects");
   }
 
+  let urlHost = url;
+  try {
+    urlHost = new URL(navigationUrl).hostname;
+  } catch {
+    /* keep raw url */
+  }
+
   let violations: AuditViolation[] = [];
   let passedChecks = 0;
   let totalChecks = 0;
   let playwrightSucceeded = false;
   let pageScreenshot: string | undefined;
   let playwrightRuntimeDiagnostics: RuntimeDiagnostics | undefined;
+  let playwrightViewportsUsed: ScanViewport[] | undefined;
+  let elementScreenshotsSkipped = false;
+  let viewportsSkipped = false;
+  let failurePhase: string | undefined;
+  let errorClass: string | undefined;
 
   const reuseBrowser = options?.browser;
   let browser: import("playwright").Browser | undefined = reuseBrowser;
   let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  let activeScanContext: import("playwright").BrowserContext | undefined;
 
-  const extraTimeoutMs =
-    (multiViewport ? 38_000 : 0) + (scanProfile === "strict" ? 6_000 : 0) + (collectRuntimeDiagnostics ? 0 : 0);
+  const budgetMs = computeScanBudgetMs({ multiViewport, profile: scanProfile });
+  const budget = new ScanBudget(budgetMs);
 
   try {
     if (!browser) {
@@ -758,10 +950,14 @@ export async function runAccessibilityScan(
     }
 
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutHandle = setTimeout(
-        () => reject(new Error(`Audit timed out after ${AUDIT_TIMEOUT_MS / 1000}s`)),
-        AUDIT_TIMEOUT_MS + 8000 + extraTimeoutMs,
-      );
+      timeoutHandle = setTimeout(() => {
+        activeScanContext?.close().catch(() => {});
+        reject(
+          new ScanTimeoutError(
+            `Audit timed out after ${Math.round(budgetMs / 1000)}s`,
+          ),
+        );
+      }, budgetMs);
     });
 
     const result = await Promise.race([
@@ -769,6 +965,10 @@ export async function runAccessibilityScan(
         profile: scanProfile,
         viewports,
         collectRuntimeDiagnostics,
+        budget,
+        onContext: (ctx) => {
+          activeScanContext = ctx;
+        },
       }),
       timeoutPromise,
     ]);
@@ -778,13 +978,18 @@ export async function runAccessibilityScan(
     playwrightSucceeded = true;
     pageScreenshot = result.pageScreenshot;
     playwrightRuntimeDiagnostics = result.runtimeDiagnostics;
+    playwrightViewportsUsed = result.viewportsUsed;
+    elementScreenshotsSkipped = result.elementScreenshotsSkipped;
+    viewportsSkipped = result.viewportsSkipped;
   } catch (err) {
-    logger.warn({ err, url }, "Playwright audit failed, falling back to fetch-based scan");
-    if (reuseBrowser && browser) {
-      await Promise.all(browser.contexts().map((c) => c.close().catch(() => {})));
+    errorClass = err instanceof Error ? err.name : "Error";
+    if (err instanceof ScanTimeoutError) {
+      failurePhase = "timeout";
     }
+    logger.warn({ err, url, failurePhase, errorClass }, "Playwright audit failed, falling back to fetch-based scan");
   } finally {
     clearTimeout(timeoutHandle);
+    activeScanContext = undefined;
     if (!reuseBrowser) {
       await browser?.close().catch(() => {});
     }
@@ -916,8 +1121,10 @@ export async function runAccessibilityScan(
     ? {
         profile: scanProfile,
         multiViewport,
-        viewportsUsed: viewports.map((v) => ({ ...v })),
+        viewportsUsed: playwrightViewportsUsed ?? viewports.map((v) => ({ ...v })),
         ...(playwrightRuntimeDiagnostics ? { runtimeDiagnostics: playwrightRuntimeDiagnostics } : {}),
+        ...(elementScreenshotsSkipped ? { elementScreenshotsSkipped: true } : {}),
+        ...(viewportsSkipped ? { viewportsSkipped: true } : {}),
       }
     : scanEngine === "static_fallback"
       ? {
@@ -926,6 +1133,22 @@ export async function runAccessibilityScan(
           viewportsUsed: [],
         }
       : undefined;
+
+  const durationMs = Date.now() - startedAt;
+  logger.info(
+    {
+      event: "scan_complete",
+      urlHost,
+      scanEngine,
+      durationMs,
+      profile: scanProfile,
+      multiViewport,
+      totalViolations,
+      ...(failurePhase ? { failurePhase } : {}),
+      ...(errorClass && scanEngine === "static_fallback" ? { errorClass } : {}),
+    },
+    "Scan complete",
+  );
 
   return {
     score,

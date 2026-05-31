@@ -136,7 +136,9 @@ function normalizeAuditResult(r: AuditResult): AuditResult {
         }))
       : undefined,
   }));
-  const scannedOk = typeof r.scannedAt === "string" && !Number.isNaN(Date.parse(r.scannedAt));
+  const scannedParsed =
+    typeof r.scannedAt === "string" && r.scannedAt.trim() ? Date.parse(r.scannedAt) : NaN;
+  const scannedOk = !Number.isNaN(scannedParsed) && scannedParsed > 0;
   const pageScreenshot =
     typeof r.pageScreenshot === "string" && r.pageScreenshot.startsWith("data:image/")
       ? r.pageScreenshot
@@ -151,17 +153,20 @@ function normalizeAuditResult(r: AuditResult): AuditResult {
     seriousViolations: typeof r.seriousViolations === "number" ? r.seriousViolations : 0,
     passedChecks: typeof r.passedChecks === "number" ? r.passedChecks : 0,
     totalChecks: typeof r.totalChecks === "number" ? r.totalChecks : 0,
-    scannedAt: scannedOk ? r.scannedAt : new Date(0).toISOString(),
+    scannedAt: scannedOk ? r.scannedAt : "",
     scanEngine: r.scanEngine ?? "unknown",
     ...(pageScreenshot ? { pageScreenshot } : {}),
     ...(r.scanMetadata ? { scanMetadata: r.scanMetadata } : {}),
   };
 }
 
-function formatScannedAt(iso: string): string {
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "Date unavailable";
-  return new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+/** Full hero-line caption; avoids “Scanned Jan 1, 1970” when the API sent a missing or epoch timestamp. */
+function buildScannedCaption(scannedAt: string): string {
+  const t = typeof scannedAt === "string" && scannedAt.trim() ? Date.parse(scannedAt) : NaN;
+  if (Number.isNaN(t) || t <= 0) {
+    return "Scan date not recorded";
+  }
+  return `Scanned ${new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`;
 }
 
 /** Single neutral card; sections inside use spacing and light fills only. */
@@ -481,7 +486,7 @@ function scanEngineDescription(
     case "static_fallback":
       return "Scan engine: static HTML only. The headless browser step failed, so JavaScript was not executed. SPAs and client-rendered pages are often under-tested in this mode. On the API server, run: pnpm --filter @workspace/api-server exec playwright install chromium";
     default:
-      return "Scan engine: not recorded (older audit). New audits show whether Chromium or static analysis was used.";
+      return "Scan engine not recorded for this audit (older data). New scans show whether Chromium or static HTML analysis was used.";
   }
 }
 
@@ -819,9 +824,9 @@ export default function AuditResult() {
   }
 
   const result = normalizeAuditResult(mergedRaw);
-  const scannedDate = formatScannedAt(result.scannedAt);
+  const scannedCaption = buildScannedCaption(result.scannedAt);
 
-  return <AuditResultView result={result} scannedDate={scannedDate} />;
+  return <AuditResultView result={result} scannedCaption={scannedCaption} />;
 }
 
 function ViolationElementExamples({ violation }: { violation: AuditViolation }) {
@@ -1062,10 +1067,10 @@ function MonitorSetupCard({ url, auditId }: { url: string; auditId: string }) {
 
 function AuditResultView({
   result,
-  scannedDate,
+  scannedCaption,
 }: {
   result: NonNullable<ReturnType<typeof useCreateAudit>["data"]>;
-  scannedDate: string;
+  scannedCaption: string;
 }) {
   const { download, isPending: pdfPending } = useDownloadPdf(result.auditId);
   const violations = Array.isArray(result.violations) ? result.violations : [];
@@ -1163,7 +1168,7 @@ function AuditResultView({
                 {result.url}
               </p>
               <p className="text-xs text-muted-foreground font-mono" data-hero-line>
-                Scanned {scannedDate}
+                {scannedCaption}
               </p>
               <p className="text-xs text-muted-foreground mt-2 max-w-xl leading-relaxed" data-hero-line>
                 {scanEngineDescription(result.scanEngine)}

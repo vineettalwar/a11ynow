@@ -67,9 +67,9 @@ paths:
     post:
       operationId: createBatchAudit
       tags: [audit]
-      summary: Batch audit up to 10 URLs: streams SSE progress events
+      summary: "Batch audit up to 10 URLs: streams SSE progress events"
       description: |
-        Scans up to 10 URLs concurrently (max 3 in parallel) using Server-Sent Events (SSE).
+        Scans up to 10 URLs serially (one browser, one URL at a time) using Server-Sent Events (SSE).
         The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
         with a `type` field:
         - `{ type: "scanning", url, index }`: fired when a URL scan begins
@@ -309,6 +309,16 @@ components:
       properties:
         status:
           type: string
+          description: "`ok` when accepting traffic; `draining` during graceful shutdown."
+        scanEngineReady:
+          type: boolean
+          description: True when Chromium was probed successfully at startup.
+        scansInFlight:
+          type: integer
+          description: Active scans holding a concurrency slot.
+        scansQueued:
+          type: integer
+          description: Scans waiting for a concurrency slot.
       required:
         - status
 
@@ -768,7 +778,7 @@ components:
           type: string
           enum: [playwright, static_fallback, unknown]
           nullable: true
-          description: Present when status is success: which engine produced the page result
+          description: "Present when status is success: which engine produced the page result"
       required:
         - auditId
         - url

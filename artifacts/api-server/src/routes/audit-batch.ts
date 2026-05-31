@@ -99,7 +99,6 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
   try {
     const scannedAt = new Date();
     const pages: BatchPageResult[] = new Array(cleanUrls.length);
-    let idx = 0;
 
     const disconnectedPage = (u: string): BatchPageResult => ({
       auditId: "",
@@ -132,12 +131,11 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
       });
     };
 
-    async function worker() {
+    async function runSerialBatch() {
       const browser = await launchChromiumForAudit();
       try {
-        while (idx < cleanUrls.length) {
-          const i = idx++;
-          const url = cleanUrls[i];
+        for (let i = 0; i < cleanUrls.length; i++) {
+          const url = cleanUrls[i]!;
 
           if (clientGone || res.writableEnded) {
             pages[i] = disconnectedPage(url);
@@ -224,8 +222,7 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
       }
     }
 
-    const workers = Array.from({ length: Math.min(3, cleanUrls.length) }, () => worker());
-    await Promise.all(workers);
+    await runSerialBatch();
 
     const successPages = pages.filter((p) => p.status === "success");
     const siteScore = computeWeightedSiteScore(

@@ -54,6 +54,8 @@ export interface StoredScanMetadata {
   multiViewport: boolean;
   viewportsUsed: Array<{ width: number; height: number; label: string }>;
   runtimeDiagnostics?: StoredRuntimeDiagnostics;
+  elementScreenshotsSkipped?: boolean;
+  viewportsSkipped?: boolean;
 }
 
 export const insertAuditSchema = createInsertSchema(auditsTable);

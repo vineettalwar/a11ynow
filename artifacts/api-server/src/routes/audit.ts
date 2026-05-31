@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { CreateAuditBody, GetAuditParams } from "@workspace/api-zod";
 import { db, auditsTable } from "@workspace/db";
-import { runAccessibilityScan, validateScanUrl, type ScanMetadata } from "../lib/scan";
+import { runAccessibilityScan, validateScanUrl, ScanGateShutdownError, type ScanMetadata } from "../lib/scan";
 
 const router: IRouter = Router();
 
@@ -131,6 +131,14 @@ router.post("/audit", async (req, res): Promise<void> => {
       ...(result.scanMetadata ? { scanMetadata: result.scanMetadata } : {}),
     } satisfies AuditResultData);
   } catch (err) {
+    if (err instanceof ScanGateShutdownError) {
+      req.log.warn({ url }, "Audit rejected: scan engine shutting down");
+      res.status(503).json({
+        error: "scan_unavailable",
+        message: "The scan engine is restarting. Please try again in a moment.",
+      });
+      return;
+    }
     req.log.error({ err, url }, "Audit failed");
     res.status(500).json({
       error: "audit_failed",

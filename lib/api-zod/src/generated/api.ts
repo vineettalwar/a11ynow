@@ -12,7 +12,23 @@ import * as zod from "zod";
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
-  status: zod.string(),
+  status: zod
+    .string()
+    .describe(
+      "`ok` when accepting traffic; `draining` during graceful shutdown.",
+    ),
+  scanEngineReady: zod
+    .boolean()
+    .optional()
+    .describe("True when Chromium was probed successfully at startup."),
+  scansInFlight: zod
+    .number()
+    .optional()
+    .describe("Active scans holding a concurrency slot."),
+  scansQueued: zod
+    .number()
+    .optional()
+    .describe("Scans waiting for a concurrency slot."),
 });
 
 /**
@@ -174,7 +190,7 @@ export const CreateAuditResponse = zod.object({
 });
 
 /**
- * Scans up to 10 URLs concurrently (max 3 in parallel) using Server-Sent Events (SSE).
+ * Scans up to 10 URLs serially (one browser, one URL at a time) using Server-Sent Events (SSE).
 The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
 with a `type` field:
 - `{ type: "scanning", url, index }`: fired when a URL scan begins

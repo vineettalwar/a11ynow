@@ -2,9 +2,18 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import app from "./app";
 import { logger } from "./lib/logger";
+import { probeChromium, CHROMIUM_INSTALL_COMMAND } from "./lib/playwright-chromium";
+import { beginScanGateShutdown, waitForScanDrain } from "./lib/scan-gate";
 import { startScheduler } from "./lib/scheduler";
 
 const isDev = process.env.NODE_ENV === "development";
+
+function parseShutdownDrainMs(): number {
+  const raw = process.env.SHUTDOWN_DRAIN_MS;
+  if (raw === undefined || raw === "") return 120_000;
+  const n = Number.parseInt(raw, 10);
+  return Number.isNaN(n) || n < 5_000 ? 120_000 : n;
+}
 
 function parseInitialPort(): number {
   const rawPort = process.env["PORT"];
@@ -25,6 +34,7 @@ function parseInitialPort(): number {
 
 let server: Server;
 let schedulerStarted = false;
+let shuttingDown = false;
 
 function listeningPort(): number {
   const addr = server.address();
@@ -37,10 +47,20 @@ function listeningPort(): number {
 function onListening(): void {
   const port = listeningPort();
   logger.info({ port }, "Server listening");
-  if (!schedulerStarted) {
-    schedulerStarted = true;
-    startScheduler();
-  }
+  void probeChromium().then((ready) => {
+    if (ready) {
+      logger.info("Chromium scan engine ready");
+    } else {
+      logger.warn(
+        { installCommand: CHROMIUM_INSTALL_COMMAND },
+        "Chromium unavailable; audits will use static HTML fallback until browser is installed",
+      );
+    }
+    if (!schedulerStarted) {
+      schedulerStarted = true;
+      startScheduler();
+    }
+  });
 }
 
 function fatalListen(err: NodeJS.ErrnoException): void {
@@ -66,6 +86,36 @@ function attachListenErrorHandler(requestedPort: number): void {
     fatalListen(err);
   });
 }
+
+function requestShutdown(signal: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  const drainMs = parseShutdownDrainMs();
+  logger.info({ signal, drainMs }, "Shutdown requested; draining scans and closing server");
+
+  beginScanGateShutdown();
+
+  server.close(() => {
+    void waitForScanDrain(drainMs).then((drained) => {
+      if (!drained) {
+        logger.warn({ drainMs }, "Scan drain timed out; exiting anyway");
+      } else {
+        logger.info("All in-flight scans drained");
+      }
+      process.exit(0);
+    });
+  });
+
+  // Force exit if close hangs (e.g. keep-alive connections)
+  setTimeout(() => {
+    logger.warn({ drainMs }, "Forced shutdown after grace period");
+    process.exit(1);
+  }, drainMs + 5_000).unref();
+}
+
+process.on("SIGTERM", () => requestShutdown("SIGTERM"));
+process.on("SIGINT", () => requestShutdown("SIGINT"));
 
 const initialPort = parseInitialPort();
 server = app.listen(initialPort);

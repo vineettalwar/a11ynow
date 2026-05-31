@@ -6,7 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 export interface HealthStatus {
+  /** `ok` when accepting traffic; `draining` during graceful shutdown. */
   status: string;
+  /** True when Chromium was probed successfully at startup. */
+  scanEngineReady?: boolean;
+  /** Active scans holding a concurrency slot. */
+  scansInFlight?: number;
+  /** Scans waiting for a concurrency slot. */
+  scansQueued?: number;
 }
 
 export interface ScanViewportUsed {

@@ -57,7 +57,14 @@ The audit engine in `artifacts/api-server/src/lib/scan.ts` uses two strategies:
 1. **Playwright + Chromium** (primary): full browser render, catches JS-rendered content, most accurate
 2. **JSDOM + axe-core** (fallback): fires if Playwright fails (e.g., browser binary absent, timeout). Less accurate: misses visibility and focus issues.
 
-Playwright binaries are installed in `post-merge.sh` via `playwright install chromium`. The binary path is within the pnpm store and survives normal process restarts.
+**Production stability (May 2026):**
+- `scan-gate.ts` limits concurrent scans (`SCAN_MAX_CONCURRENT`, default 2).
+- Batch audits scan URLs serially with one browser — never share a browser across parallel workers.
+- Timeouts close only the failing scan's browser context; phase budgets cap scroll, networkidle, and screenshots.
+- Startup `probeChromium()` sets `scanEngineReady` on `/api/healthz`.
+- SIGTERM/SIGINT triggers graceful drain (`SHUTDOWN_DRAIN_MS`) before process exit.
+
+Playwright binaries are installed in `post-merge.sh` and `scripts/dev-local.sh` via `playwright install chromium`. On Linux production hosts, also run `playwright install-deps chromium` when system libraries are missing.
 
 ### pnpm monorepo package boundary rationale
 - `lib/*` packages have no dev-server or build artefact: they are TypeScript source imported by other packages via `exports` fields
@@ -90,4 +97,4 @@ The site uses Tailwind v4 (CSS-first config). Custom brand colours are NOT in a 
 - **drizzle.config.ts uses `__dirname`** which requires CJS-style path resolution. The db package uses `"type": "module"` but drizzle-kit handles this correctly when run via the `push`/`generate`/`migrate` scripts.
 - **`zod/v4` import**: the project uses Zod v4 (`import { z } from "zod/v4"`) not `"zod"`. Using the wrong import path causes type mismatches with `drizzle-zod`.
 - **Orval-generated files must not be hand-edited.** Run `pnpm --filter @workspace/api-spec run codegen` after any change to `lib/api-spec/openapi.yaml`. Edits to generated files are wiped on the next codegen run.
-- **Port collisions**: the API server reads `process.env.PORT` (defaults 8080). The Vite dev server also reads `PORT` (defaults 5173). If both workflows share one `PORT` env var, set distinct values per terminal (e.g. API `8080`, frontend `5173`).
+- **Port collisions**: the API server reads `process.env.PORT` (defaults 8080). The Vite dev server also reads `PORT` (defaults 5180). If both workflows share one `PORT` env var, set distinct values per terminal (e.g. API `8080`, frontend `5180`).

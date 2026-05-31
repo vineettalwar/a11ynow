@@ -7,7 +7,7 @@ import { mockupPreviewPlugin } from "./mockupPreviewPlugin";
 export default defineConfig(({ command }) => {
   const basePath = process.env.BASE_PATH ?? "/";
 
-  const rawPort = process.env.PORT ?? "5173";
+  const rawPort = process.env.PORT ?? "5180";
   const port = Number(rawPort);
   if (Number.isNaN(port) || port <= 0) {
     throw new Error(`Invalid PORT value: "${rawPort}"`);

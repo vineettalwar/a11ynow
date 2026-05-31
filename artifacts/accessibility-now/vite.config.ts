@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
-const rawPort = process.env.PORT ?? "5173";
+const rawPort = process.env.PORT ?? "5180";
 
 const port = Number(rawPort);
 
