@@ -2,8 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import gsap from "gsap";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ArrowRight, Sparkles, Code, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { runA11yFixBatchScan, saveA11yFixBatchResult } from "@/lib/a11y-fix-batch";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
 import { A11Y_FIX_INTENTS, type A11yFixIntent } from "@/lib/a11y-fix";
 import { POUR_PRINCIPLES } from "@/data/pour-principles";
@@ -37,9 +40,26 @@ const alsoOnSite = [
   },
 ];
 
+type UrlScanState = {
+  url: string;
+  status: "queued" | "scanning" | "done" | "error";
+  score?: number;
+};
+
+const statusDotClass: Record<UrlScanState["status"], string> = {
+  queued: "bg-muted-foreground/40",
+  scanning: "bg-primary animate-pulse",
+  done: "bg-emerald-500",
+  error: "bg-destructive",
+};
+
 export default function A11yFixLanding() {
   const [intent, setIntent] = useState<A11yFixIntent>("self");
   const [url, setUrl] = useState("");
+  const [wholeSite, setWholeSite] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [urlStates, setUrlStates] = useState<UrlScanState[]>([]);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
 
   const heroRef = useSectionReveal<HTMLElement>();
@@ -68,15 +88,42 @@ export default function A11yFixLanding() {
     return () => cleanups.forEach((fn) => fn());
   }, []);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = url.trim();
     if (!trimmed) return;
-    const params = new URLSearchParams();
-    params.set("url", trimmed);
-    params.set("intent", intent);
-    params.set("rescan", String(Date.now()));
-    setLocation(`/a11y-fix/result?${params.toString()}`);
+
+    if (!wholeSite) {
+      const params = new URLSearchParams();
+      params.set("url", trimmed);
+      params.set("intent", intent);
+      params.set("rescan", String(Date.now()));
+      setLocation(`/a11y-fix/result?${params.toString()}`);
+      return;
+    }
+
+    setScanError(null);
+    setScanning(true);
+    setUrlStates([{ url: trimmed, status: "queued" }]);
+
+    try {
+      const result = await runA11yFixBatchScan(trimmed, intent, (pages) => {
+        setUrlStates(
+          pages.map((p) => ({
+            url: p.url,
+            status: p.status === "scanning" ? "scanning" : p.status === "done" ? "done" : p.status === "error" ? "error" : "queued",
+            score: p.score,
+          })),
+        );
+      });
+      saveA11yFixBatchResult(result);
+      await new Promise((r) => setTimeout(r, 700));
+      setLocation("/a11y-fix/batch-result");
+    } catch (err) {
+      setScanError(err instanceof Error ? err.message : "Whole-site scan failed. Please try again.");
+      setScanning(false);
+      setUrlStates([]);
+    }
   }
 
   const intentIcons: Record<A11yFixIntent, typeof Sparkles> = {
@@ -134,30 +181,71 @@ export default function A11yFixLanding() {
             })}
           </div>
 
-          <form onSubmit={handleSubmit} className="reveal-child space-y-4">
-            <p className="text-xs font-semibold text-primary uppercase tracking-widest font-sans text-center">
-              Step 2 — Enter your website
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <label htmlFor="a11y-fix-url" className="sr-only">Website URL</label>
-              <Input
-                id="a11y-fix-url"
-                type="url"
-                placeholder="https://your-website.de"
-                className="h-14 rounded-xl px-5 text-sm flex-1"
-                style={{ background: "#EFEFEB", border: "1px solid #E4E4E2", boxShadow: "none", fontFamily: "var(--app-font-mono)" }}
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
-              />
-              <Button type="submit" className="btn-gsap h-14 px-8 text-sm font-semibold shrink-0" disabled={!url.trim()}>
-                Run A11y Fix scan →
-              </Button>
+          {scanning && urlStates.length > 0 ? (
+            <div className="reveal-child rounded-2xl border border-border bg-background p-5 space-y-2.5">
+              <p className="text-xs font-semibold font-sans text-muted-foreground uppercase tracking-wide mb-3 text-center">
+                Discovering and scanning site —{" "}
+                {urlStates.filter((s) => s.status === "done" || s.status === "error").length} of {urlStates.length}{" "}
+                complete
+              </p>
+              {urlStates.map((s, i) => (
+                <div key={i} className="flex items-center gap-3 py-2 border-b border-border/40 last:border-0">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${statusDotClass[s.status]}`} />
+                  <span className="flex-1 font-mono text-xs text-foreground truncate" title={s.url}>
+                    {s.url}
+                  </span>
+                  {s.score != null && <span className="text-xs text-muted-foreground shrink-0">Score {s.score}</span>}
+                </div>
+              ))}
             </div>
-            <p className="text-xs text-muted-foreground text-center" style={{ fontFamily: "var(--app-font-mono)" }}>
-              Strict BITV / BFSG profile · mobile + desktop · same scanner as our paid audits
-            </p>
-          </form>
+          ) : (
+            <form onSubmit={(e) => void handleSubmit(e)} className="reveal-child space-y-4">
+              <p className="text-xs font-semibold text-primary uppercase tracking-widest font-sans text-center">
+                Step 2 — Enter your website
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <label htmlFor="a11y-fix-url" className="sr-only">Website URL</label>
+                <Input
+                  id="a11y-fix-url"
+                  type="url"
+                  placeholder="https://your-website.de"
+                  className="h-14 rounded-xl px-5 text-sm flex-1"
+                  style={{ background: "#EFEFEB", border: "1px solid #E4E4E2", boxShadow: "none", fontFamily: "var(--app-font-mono)" }}
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  required
+                />
+                <Button type="submit" className="btn-gsap h-14 px-8 text-sm font-semibold shrink-0" disabled={!url.trim()}>
+                  {wholeSite ? "Scan entire site →" : "Run A11y Fix scan →"}
+                </Button>
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 p-4">
+                <Checkbox
+                  id="a11y-fix-whole-site"
+                  checked={wholeSite}
+                  onCheckedChange={(v) => setWholeSite(v === true)}
+                  className="mt-0.5"
+                  aria-describedby="a11y-fix-whole-site-hint"
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="a11y-fix-whole-site" className="cursor-pointer text-sm font-semibold font-sans">
+                    Scan entire site (up to 10 pages)
+                  </Label>
+                  <p id="a11y-fix-whole-site-hint" className="text-xs text-muted-foreground leading-relaxed">
+                    Discovers linked pages from your entry URL and runs a strict BITV scan on each. Results are grouped by POUR across the whole site.
+                  </p>
+                </div>
+              </div>
+              {scanError ? (
+                <p className="text-sm text-destructive text-center" role="alert">
+                  {scanError}
+                </p>
+              ) : null}
+              <p className="text-xs text-muted-foreground text-center" style={{ fontFamily: "var(--app-font-mono)" }}>
+                Strict BITV / BFSG profile · mobile + desktop · same scanner as our paid audits
+              </p>
+            </form>
+          )}
         </div>
       </section>
 

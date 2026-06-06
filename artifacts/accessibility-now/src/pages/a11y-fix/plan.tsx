@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Circle,
   ExternalLink,
+  FileDown,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -27,6 +28,7 @@ import {
   type FixActionItem,
 } from "@/lib/a11y-fix";
 import { useA11yFixAudit } from "@/hooks/use-a11y-fix-audit";
+import { a11yFixPdfUrl } from "@/lib/a11y-fix-batch";
 import { cn } from "@/lib/utils";
 
 const VALID_INTENTS: A11yFixIntent[] = ["self", "engineers", "monitor"];
@@ -256,6 +258,11 @@ export default function A11yFixPlan() {
                   >
                     <RefreshCw className="w-4 h-4 mr-2" /> Re-scan to verify
                   </Link>
+                </Button>
+                <Button asChild variant="outline" className="h-11 [box-shadow:none]">
+                  <a href={a11yFixPdfUrl(audit.auditId)} download>
+                    <FileDown className="w-4 h-4 mr-2" /> Download A11y Fix PDF
+                  </a>
                 </Button>
                 <Button asChild variant="outline" className="h-11 [box-shadow:none]">
                   <Link href={intentContactHref(intent, { url: audit.url, auditId: audit.auditId })}>
