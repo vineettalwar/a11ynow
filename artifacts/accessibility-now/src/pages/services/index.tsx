@@ -9,9 +9,9 @@ const journeySteps = [
   {
     icon: Sparkles,
     step: "00",
-    label: "FixPilot",
+    label: "A11y Fix",
     description: "Free guided scan grouped by POUR. Know what to fix before you buy anything.",
-    href: "/solutions/fixpilot",
+    href: "/solutions/a11y-fix",
   },
   {
     icon: Search,
@@ -99,7 +99,7 @@ export default function Services() {
             <span className="heading-accent">Stay compliant.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
-            Start free with FixPilot, then escalate to audits, remediation, or monitoring. Same senior engineering team throughout — no overlays, no hand-offs.
+            Start free with A11y Fix, then escalate to audits, remediation, or monitoring. Same senior engineering team throughout — no overlays, no hand-offs.
           </p>
         </div>
       </section>

@@ -451,7 +451,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FixPilot promo */}
+      {/* A11y Fix promo */}
       <section className="py-10 px-4 bg-primary/5 border-y border-primary/10">
         <div className="container mx-auto max-w-5xl">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 rounded-2xl border border-primary/20 bg-white p-6 md:p-8">
@@ -460,7 +460,7 @@ export default function Home() {
                 <Sparkles className="w-6 h-6 text-primary" aria-hidden />
               </div>
               <div>
-                <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-1 font-sans">New · FixPilot</p>
+                <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-1 font-sans">New · A11y Fix</p>
                 <h2 className="text-lg font-extrabold font-sans mb-2">Guided BFSG compliance — free</h2>
                 <p className="text-sm text-muted-foreground max-w-xl" style={{ fontFamily: "var(--app-font-mono)" }}>
                   Scan your site, see every issue under Perceivable, Operable, Understandable, and Robust. Quick wins for your team, engineers when you need them.
@@ -468,7 +468,7 @@ export default function Home() {
               </div>
             </div>
             <Button asChild className="btn-gsap h-12 px-8 font-semibold shrink-0">
-              <Link href="/solutions/fixpilot">Try FixPilot →</Link>
+              <Link href="/solutions/a11y-fix">Try A11y Fix →</Link>
             </Button>
           </div>
         </div>

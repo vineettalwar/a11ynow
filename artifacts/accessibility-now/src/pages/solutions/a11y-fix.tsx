@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Sparkles, Code, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
-import { FIX_PILOT_INTENTS, type FixPilotIntent } from "@/lib/fix-pilot";
+import { A11Y_FIX_INTENTS, type A11yFixIntent } from "@/lib/a11y-fix";
 import { POUR_PRINCIPLES } from "@/data/pour-principles";
 
 const journeySteps = [
@@ -36,8 +36,8 @@ const alsoOnSite = [
   },
 ];
 
-export default function FixPilotLanding() {
-  const [intent, setIntent] = useState<FixPilotIntent>("self");
+export default function A11yFixLanding() {
+  const [intent, setIntent] = useState<A11yFixIntent>("self");
   const [url, setUrl] = useState("");
   const [, setLocation] = useLocation();
 
@@ -75,10 +75,10 @@ export default function FixPilotLanding() {
     params.set("url", trimmed);
     params.set("intent", intent);
     params.set("rescan", String(Date.now()));
-    setLocation(`/fixpilot/result?${params.toString()}`);
+    setLocation(`/a11y-fix/result?${params.toString()}`);
   }
 
-  const intentIcons: Record<FixPilotIntent, typeof Sparkles> = {
+  const intentIcons: Record<A11yFixIntent, typeof Sparkles> = {
     self: Sparkles,
     engineers: Code,
     monitor: ShieldCheck,
@@ -89,14 +89,14 @@ export default function FixPilotLanding() {
       <section ref={heroRef} className="hero-gradient pt-24 pb-16 px-4">
         <div className="container mx-auto max-w-4xl text-center">
           <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-4 font-sans">
-            FixPilot · Guided BFSG compliance
+            A11y Fix · Guided BFSG compliance
           </p>
           <h1 className="text-display font-extrabold tracking-tight mb-5">
             Scan. Group.<br />
             <span className="heading-accent">Fix with a plan.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-2xl mx-auto mb-10 reveal-body" style={{ fontFamily: "var(--app-font-mono)" }}>
-            FixPilot scans your website against German BITV 2.0 / BFSG (EN 301 549) and organises every finding
+            A11y Fix scans your website against German BITV 2.0 / BFSG (EN 301 549) and organises every finding
             under the four WCAG principles — so you know what to fix first and when to call in engineers.
           </p>
         </div>
@@ -108,7 +108,7 @@ export default function FixPilotLanding() {
             Step 1 — Choose your path
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-            {FIX_PILOT_INTENTS.map(({ id, label, description }) => {
+            {A11Y_FIX_INTENTS.map(({ id, label, description }) => {
               const Icon = intentIcons[id];
               const selected = intent === id;
               return (
@@ -137,9 +137,9 @@ export default function FixPilotLanding() {
               Step 2 — Enter your website
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <label htmlFor="fixpilot-url" className="sr-only">Website URL</label>
+              <label htmlFor="a11y-fix-url" className="sr-only">Website URL</label>
               <Input
-                id="fixpilot-url"
+                id="a11y-fix-url"
                 type="url"
                 placeholder="https://your-website.de"
                 className="h-14 rounded-xl px-5 text-sm flex-1"
@@ -149,7 +149,7 @@ export default function FixPilotLanding() {
                 required
               />
               <Button type="submit" className="btn-gsap h-14 px-8 text-sm font-semibold shrink-0" disabled={!url.trim()}>
-                Run FixPilot scan →
+                Run A11y Fix scan →
               </Button>
             </div>
             <p className="text-xs text-muted-foreground text-center" style={{ fontFamily: "var(--app-font-mono)" }}>
@@ -167,7 +167,7 @@ export default function FixPilotLanding() {
               Every issue mapped to <span className="heading-accent">POUR.</span>
             </h2>
             <p className="text-muted-foreground text-sm reveal-body">
-              BITV 2.0 and BFSG reference WCAG 2.1 AA via EN 301 549. FixPilot groups automated findings under
+              BITV 2.0 and BFSG reference WCAG 2.1 AA via EN 301 549. A11y Fix groups automated findings under
               Perceivable, Operable, Understandable, and Robust — the same structure regulators and auditors use.
             </p>
           </div>
@@ -186,7 +186,7 @@ export default function FixPilotLanding() {
       <section ref={journeyRef} className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-4xl">
           <h2 className="text-display-md font-extrabold mb-10 text-center">
-            How FixPilot <span className="heading-accent">works.</span>
+            How A11y Fix <span className="heading-accent">works.</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {journeySteps.map(({ step, title, body }) => (
@@ -204,7 +204,7 @@ export default function FixPilotLanding() {
 
       <section ref={alsoRef} className="py-20 px-4 warm-section">
         <div className="container mx-auto max-w-5xl">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3 font-sans">Beyond FixPilot</p>
+          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3 font-sans">Beyond A11y Fix</p>
           <h2 className="text-display-md font-extrabold mb-10">
             More ways to build <span className="heading-accent">accessibility awareness.</span>
           </h2>
@@ -229,7 +229,7 @@ export default function FixPilotLanding() {
             <span className="heading-accent">We close them.</span>
           </h2>
           <p className="text-muted-foreground mb-8 reveal-body">
-            FixPilot is free. When you need signed conformance, PRs in your repo, or CI regression gates — that is where our team steps in.
+            A11y Fix is free. When you need signed conformance, PRs in your repo, or CI regression gates — that is where our team steps in.
           </p>
           <ul className="text-left max-w-md mx-auto space-y-2 mb-10 text-sm text-muted-foreground">
             {[

@@ -4,9 +4,9 @@ import { groupViolationsByPour } from "@/lib/pour-mapper";
 
 export type FixDifficulty = "quick_win" | "moderate" | "expert";
 
-export type FixPilotIntent = "self" | "engineers" | "monitor";
+export type A11yFixIntent = "self" | "engineers" | "monitor";
 
-export const FIX_PILOT_INTENTS: { id: FixPilotIntent; label: string; description: string }[] = [
+export const A11Y_FIX_INTENTS: { id: A11yFixIntent; label: string; description: string }[] = [
   {
     id: "self",
     label: "Fix it myself",
@@ -139,7 +139,7 @@ export function countByDifficulty(violations: AuditViolation[]): Record<FixDiffi
 /** Suggested next service based on scan shape and user intent. */
 export function recommendedUpsell(
   violations: AuditViolation[],
-  intent: FixPilotIntent,
+  intent: A11yFixIntent,
 ): { href: string; title: string; body: string; cta: string } {
   const { expert } = countByDifficulty(violations);
   const hasExpert = expert >= 3;

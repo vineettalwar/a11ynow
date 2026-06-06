@@ -19,13 +19,13 @@ const SERVICES_COLUMNS: {
   items: SimpleLink[];
 }[] = [
   {
-    href: "/solutions/fixpilot",
-    title: "FixPilot",
+    href: "/solutions/a11y-fix",
+    title: "A11y Fix",
     description: "Guided BFSG scan + fix plan.",
     icon: Sparkles,
     items: [
-      { href: "/solutions/fixpilot", label: "POUR-grouped BFSG scan" },
-      { href: "/solutions/fixpilot", label: "Self-serve fix roadmap" },
+      { href: "/solutions/a11y-fix", label: "POUR-grouped BFSG scan" },
+      { href: "/solutions/a11y-fix", label: "Self-serve fix roadmap" },
       { href: "/services/remediation", label: "Escalate to engineers" },
       { href: "/services/monitoring", label: "Baseline + monitoring" },
     ],

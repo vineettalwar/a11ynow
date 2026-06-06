@@ -25,16 +25,16 @@ import {
   difficultyLabel,
   getFixDifficulty,
   recommendedUpsell,
-  type FixPilotIntent,
-} from "@/lib/fix-pilot";
+  type A11yFixIntent,
+} from "@/lib/a11y-fix";
 import { getHumanContextForViolation } from "@/lib/violation-human-context";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-const VALID_INTENTS: FixPilotIntent[] = ["self", "engineers", "monitor"];
+const VALID_INTENTS: A11yFixIntent[] = ["self", "engineers", "monitor"];
 
-function parseIntent(raw: string | null): FixPilotIntent {
-  return VALID_INTENTS.includes(raw as FixPilotIntent) ? (raw as FixPilotIntent) : "self";
+function parseIntent(raw: string | null): A11yFixIntent {
+  return VALID_INTENTS.includes(raw as A11yFixIntent) ? (raw as A11yFixIntent) : "self";
 }
 
 function impactBadgeClass(impact: AuditViolation["impact"]): string {
@@ -219,7 +219,7 @@ function PourSectionBlock({
   );
 }
 
-export default function FixPilotResult() {
+export default function A11yFixResult() {
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
   const urlParam = params.get("url") ?? "";
@@ -273,7 +273,7 @@ export default function FixPilotResult() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "FixPilot visitor",
+          name: "A11y Fix visitor",
           email: leadEmail.trim(),
           auditId: audit.auditId,
         }),
@@ -293,7 +293,7 @@ export default function FixPilotResult() {
       <div className="container mx-auto max-w-2xl py-24 px-4 text-center">
         <h1 className="text-2xl font-extrabold font-sans mb-4">No URL provided</h1>
         <Button asChild>
-          <Link href="/solutions/fixpilot">Start FixPilot →</Link>
+          <Link href="/solutions/a11y-fix">Start A11y Fix →</Link>
         </Button>
       </div>
     );
@@ -305,7 +305,7 @@ export default function FixPilotResult() {
         <div className="container mx-auto max-w-5xl">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-4 h-4 text-primary" aria-hidden />
-            <p className="text-xs font-semibold text-primary uppercase tracking-widest font-sans">FixPilot results</p>
+            <p className="text-xs font-semibold text-primary uppercase tracking-widest font-sans">A11y Fix results</p>
           </div>
           <h1 className="text-display-md font-extrabold mb-2 break-all">{audit?.url ?? urlParam}</h1>
           <p className="text-sm text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
@@ -330,7 +330,7 @@ export default function FixPilotResult() {
             <AlertOctagon className="w-10 h-10 text-destructive mx-auto mb-4" />
             <p className="text-muted-foreground mb-6">We could not scan this URL. Check it is public and reachable.</p>
             <Button asChild>
-              <Link href="/solutions/fixpilot">Try again</Link>
+              <Link href="/solutions/a11y-fix">Try again</Link>
             </Button>
           </div>
         </section>
@@ -404,7 +404,7 @@ export default function FixPilotResult() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="sm" className="[box-shadow:none]">
-                  <Link href="/solutions/fixpilot">Scan another site</Link>
+                  <Link href="/solutions/a11y-fix">Scan another site</Link>
                 </Button>
               </div>
             </div>
@@ -453,9 +453,9 @@ export default function FixPilotResult() {
                     Automated scans catch roughly 30% of WCAG issues. Leave your email and we will send context on what automation missed and what a manual audit would cover.
                   </p>
                   <form onSubmit={handleLeadSubmit} className="flex flex-col sm:flex-row gap-3">
-                    <label htmlFor="fixpilot-lead-email" className="sr-only">Email</label>
+                    <label htmlFor="a11y-fix-lead-email" className="sr-only">Email</label>
                     <Input
-                      id="fixpilot-lead-email"
+                      id="a11y-fix-lead-email"
                       type="email"
                       placeholder="you@company.de"
                       value={leadEmail}
