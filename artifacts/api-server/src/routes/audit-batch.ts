@@ -4,15 +4,30 @@ import { db, auditsTable } from "@workspace/db";
 import { launchChromiumForAudit, runAccessibilityScan, validateScanUrl, scoreToLevel } from "../lib/scan";
 import type { AuditViolation, ScanEngine } from "../lib/scan";
 import { aggregateCrossPageViolations, computeWeightedSiteScore } from "../lib/batch-report";
+import { discoverSiteUrls } from "../lib/site-discovery";
 
 const router: IRouter = Router();
 
-function parseBatchBody(body: unknown): { ok: true; urls: string[] } | { ok: false; message: string } {
+function parseBatchBody(
+  body: unknown,
+): { ok: true; urls: string[]; wholeSite?: boolean; discoverySource?: string } | { ok: false; message: string } {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return { ok: false, message: "Request body must be a JSON object." };
   }
-  const { urls } = body as Record<string, unknown>;
-  if (!Array.isArray(urls)) return { ok: false, message: "'urls' must be an array of strings." };
+  const record = body as Record<string, unknown>;
+  const wholeSite = record.wholeSite === true;
+
+  if (wholeSite) {
+    if (typeof record.url !== "string" || !record.url.trim()) {
+      return { ok: false, message: "When wholeSite is true, provide a non-empty 'url' to discover pages from." };
+    }
+    return { ok: true, urls: [record.url.trim()], wholeSite: true };
+  }
+
+  const { urls } = record;
+  if (!Array.isArray(urls)) {
+    return { ok: false, message: "'urls' must be an array of strings, or set wholeSite: true with a single url." };
+  }
   if (urls.length < 1) return { ok: false, message: "'urls' must contain at least 1 URL." };
   if (urls.length > 10) return { ok: false, message: "'urls' must contain at most 10 URLs." };
   for (let i = 0; i < urls.length; i++) {
@@ -49,7 +64,25 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
     return;
   }
 
-  const rawUrls = parsed.urls;
+  const scanProfile = (req.body as { profile?: string })?.profile === "strict" ? "strict" as const : "default" as const;
+  const multiViewport = (req.body as { multiViewport?: boolean })?.multiViewport === true;
+
+  let rawUrls = parsed.urls;
+  let discoverySource: string | undefined;
+
+  if (parsed.wholeSite) {
+    let seed = rawUrls[0]!.trim();
+    if (!/^https?:\/\//i.test(seed)) seed = `https://${seed}`;
+    const seedValidation = await validateScanUrl(seed);
+    if (!seedValidation.ok) {
+      res.status(400).json({ error: "invalid_url", message: seedValidation.error });
+      return;
+    }
+    const discovered = await discoverSiteUrls(seedValidation.url);
+    rawUrls = discovered.urls;
+    discoverySource = discovered.source;
+    req.log.info({ seed: seedValidation.url, count: rawUrls.length, source: discovered.source }, "Whole-site URL discovery");
+  }
 
   const normalised: string[] = [];
   for (const raw of rawUrls) {
@@ -159,6 +192,8 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
             const result = await runAccessibilityScan(url, {
               browser,
               collectRuntimeDiagnostics: false,
+              profile: scanProfile,
+              multiViewport,
             });
             const auditId = randomUUID();
 
@@ -251,6 +286,7 @@ router.post("/audit/batch", async (req, res): Promise<void> => {
         type: "complete",
         siteScore,
         siteLevel,
+        ...(discoverySource ? { discoverySource } : {}),
         pages: pages.map((p) => ({
           auditId: p.auditId,
           url: p.url,

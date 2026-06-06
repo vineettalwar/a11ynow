@@ -1275,6 +1275,85 @@ function AuditResultView({
           )}
 
           <div className="space-y-6 mb-12">
+              {(result.complianceReport ?? result.scanMetadata?.complianceReport) ? (
+                <Card className="border-2 border-primary/20 shadow-none">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-bold font-sans">BITV 2.0 / BFSG (EN 301 549)</h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
+                          {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.summaryDe}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={
+                          (result.complianceReport ?? result.scanMetadata?.complianceReport)!.overallStatus ===
+                          "non_conformant"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
+                        {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.overallStatus ===
+                        "non_conformant"
+                          ? "Nicht konform (automatisiert)"
+                          : "Manuelle Prüfung erforderlich"}
+                      </Badge>
+                    </div>
+
+                    {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.clauseFindings.length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          EN 301 549 / BITV-Klauseln
+                        </p>
+                        <ul className="space-y-2 text-xs">
+                          {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.clauseFindings
+                            .slice(0, 8)
+                            .map((c) => (
+                              <li
+                                key={`${c.en301549Clause}-${c.bitvSection}`}
+                                className="flex flex-wrap gap-x-2 gap-y-1 rounded-lg border border-border/60 bg-background/60 px-3 py-2"
+                              >
+                                <span className="font-mono text-primary">{c.en301549Clause}</span>
+                                <span className="text-muted-foreground">·</span>
+                                <span className="font-semibold">{c.titleDe}</span>
+                                <span className="text-muted-foreground ml-auto">
+                                  {c.violationCount} {c.violationCount === 1 ? "Mangel" : "Mängel"}
+                                </span>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.supplementalFindings
+                      .filter((s) => s.status !== "pass")
+                      .length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          Zusatzprüfungen (über axe-core hinaus)
+                        </p>
+                        <ul className="space-y-1.5 text-xs text-muted-foreground">
+                          {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.supplementalFindings
+                            .filter((s) => s.status !== "pass")
+                            .map((s) => (
+                              <li key={s.id} className="flex gap-2">
+                                <span
+                                  className={
+                                    s.status === "fail" ? "text-destructive font-semibold" : "text-amber-700 font-semibold"
+                                  }
+                                >
+                                  {s.status === "fail" ? "Fehler" : "Hinweis"}
+                                </span>
+                                <span>{s.titleDe}: {s.description}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              ) : null}
+
               {result.scanMetadata ? (
                 <Card className="border-2 border-primary/15 shadow-none">
                   <CardContent className="p-6 space-y-3">

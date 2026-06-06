@@ -1,0 +1,19 @@
+name = "accessibility-now-scan"
+main = "src/index.ts"
+compatibility_date = "2025-09-15"
+compatibility_flags = ["nodejs_compat"]
+
+[browser]
+binding = "BROWSER"
+remote = true
+
+[[durable_objects.bindings]]
+name = "PLAYWRIGHT_MCP"
+class_name = "PlaywrightMCP"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PlaywrightMCP"]
+
+[vars]
+SCAN_AUTH_TOKEN = ""

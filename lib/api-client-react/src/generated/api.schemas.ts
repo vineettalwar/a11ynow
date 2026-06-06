@@ -45,11 +45,100 @@ export const ScanMetadataProfile = {
   strict: "strict",
 } as const;
 
+/**
+ * How whole-site URLs were discovered.
+ */
+export type ScanMetadataDiscoverySource =
+  (typeof ScanMetadataDiscoverySource)[keyof typeof ScanMetadataDiscoverySource];
+
+export const ScanMetadataDiscoverySource = {
+  sitemap: "sitemap",
+  links: "links",
+  single: "single",
+} as const;
+
+export type ComplianceReportOverallStatus =
+  (typeof ComplianceReportOverallStatus)[keyof typeof ComplianceReportOverallStatus];
+
+export const ComplianceReportOverallStatus = {
+  conformant: "conformant",
+  non_conformant: "non_conformant",
+  needs_manual_review: "needs_manual_review",
+} as const;
+
+export type ComplianceClauseFindingStatus =
+  (typeof ComplianceClauseFindingStatus)[keyof typeof ComplianceClauseFindingStatus];
+
+export const ComplianceClauseFindingStatus = {
+  conformant: "conformant",
+  non_conformant: "non_conformant",
+  needs_manual_review: "needs_manual_review",
+} as const;
+
+export interface ComplianceClauseFinding {
+  en301549Clause: string;
+  bitvSection: string;
+  wcagCriterion?: string;
+  titleDe: string;
+  titleEn: string;
+  status: ComplianceClauseFindingStatus;
+  violationCount: number;
+  relatedRuleIds: string[];
+}
+
+export type SupplementalFindingStatus =
+  (typeof SupplementalFindingStatus)[keyof typeof SupplementalFindingStatus];
+
+export const SupplementalFindingStatus = {
+  pass: "pass",
+  fail: "fail",
+  warning: "warning",
+} as const;
+
+export type SupplementalFindingImpact =
+  (typeof SupplementalFindingImpact)[keyof typeof SupplementalFindingImpact];
+
+export const SupplementalFindingImpact = {
+  minor: "minor",
+  moderate: "moderate",
+  serious: "serious",
+  critical: "critical",
+} as const;
+
+export interface SupplementalFinding {
+  id: string;
+  titleDe: string;
+  titleEn: string;
+  status: SupplementalFindingStatus;
+  description: string;
+  impact: SupplementalFindingImpact;
+  en301549Clause?: string;
+  bitvSection?: string;
+}
+
+export interface ComplianceReport {
+  framework: string;
+  frameworkVersion: string;
+  legalContextDe: string;
+  legalContextEn: string;
+  overallStatus: ComplianceReportOverallStatus;
+  wcagLevel: string;
+  clauseFindings: ComplianceClauseFinding[];
+  supplementalFindings: SupplementalFinding[];
+  manualReviewRequired: string[];
+  summaryDe: string;
+  summaryEn: string;
+}
+
 export interface ScanMetadata {
   profile: ScanMetadataProfile;
   multiViewport: boolean;
   viewportsUsed: ScanViewportUsed[];
   runtimeDiagnostics?: RuntimeDiagnostics;
+  complianceReport?: ComplianceReport;
+  supplementalFindings?: SupplementalFinding[];
+  /** How whole-site URLs were discovered. */
+  discoverySource?: ScanMetadataDiscoverySource;
 }
 
 /**
@@ -73,6 +162,9 @@ export interface CreateAuditBody {
   /** When true, runs axe at mobile and desktop breakpoints and merges results (slower). Default false.
    */
   multiViewport?: boolean;
+  /** When true with batch endpoint, discovers up to 10 same-origin pages via sitemap or homepage links.
+   */
+  wholeSite?: boolean;
 }
 
 /**
@@ -123,6 +215,12 @@ Omitted on legacy audits. Remote scans do not include original source file line 
   instanceDetails?: AuditViolationInstance[];
   /** Breakpoint labels when this finding was merged from a multi-viewport scan. */
   detectedInViewports?: string[];
+  /** EN 301 549 clause reference (BITV 2.0 / BFSG mapping). */
+  en301549Clause?: string;
+  /** BITV 2.0 section label. */
+  bitvSection?: string;
+  /** German title for compliance reporting. */
+  titleDe?: string;
 }
 
 /**
@@ -182,6 +280,8 @@ export interface AuditResult {
   pageScreenshot?: string;
   /** Scan options, viewports used, and optional runtime diagnostics (Playwright). Omitted on legacy rows. */
   scanMetadata?: ScanMetadata;
+  /** BITV 2.0 / BFSG (EN 301 549) compliance assessment. Also available in scanMetadata when present. */
+  complianceReport?: ComplianceReport;
 }
 
 export interface CreateLeadBody {
@@ -306,13 +406,28 @@ export interface MonitorResponse {
   latest?: MonitorLatest | null;
 }
 
+export type CreateBatchAuditBodyProfile =
+  (typeof CreateBatchAuditBodyProfile)[keyof typeof CreateBatchAuditBodyProfile];
+
+export const CreateBatchAuditBodyProfile = {
+  default: "default",
+  strict: "strict",
+} as const;
+
 export interface CreateBatchAuditBody {
   /**
-   * List of URLs to scan (1–10)
+   * List of URLs to scan (1–10). Omit when wholeSite is true.
    * @minItems 1
    * @maxItems 10
    */
-  urls: string[];
+  urls?: string[];
+  /** Seed URL for whole-site discovery when wholeSite is true. */
+  url?: string;
+  /** Discover up to 10 same-origin pages from sitemap.xml or homepage links. */
+  wholeSite?: boolean;
+  profile?: CreateBatchAuditBodyProfile;
+  /** Run mobile + desktop axe passes and merge results. */
+  multiViewport?: boolean;
 }
 
 export interface CreateBatchAuditPdfBody {

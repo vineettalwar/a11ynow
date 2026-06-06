@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, CheckCircle2, Search, Code, ShieldCheck, Eye, Keyboard, Smartphone, ClipboardList, Plus, Trash2, Layers, TabletSmartphone } from "lucide-react";
+import { ArrowRight, CheckCircle2, Search, Code, ShieldCheck, Eye, Keyboard, Smartphone, ClipboardList, TabletSmartphone } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import gsap from "gsap";
 import { ParticleCanvas } from "@/components/particle-canvas";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
@@ -96,41 +97,45 @@ const statusDotClass: Record<UrlStatus, string> = {
   error: "bg-destructive",
 };
 
-function MultiUrlForm() {
-  const [urls, setUrls] = useState<string[]>(["", ""]);
+function HeroScanForm() {
+  const [url, setUrl] = useState("");
+  const [wholeSite, setWholeSite] = useState(false);
+  const [multiViewport, setMultiViewport] = useState(true);
+  const [strictProfile, setStrictProfile] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [urlStates, setUrlStates] = useState<UrlScanState[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
 
-  function addUrl() {
-    if (urls.length < 10) setUrls((u) => [...u, ""]);
-  }
-
-  function removeUrl(i: number) {
-    setUrls((u) => u.filter((_, idx) => idx !== i));
-  }
-
-  function updateUrl(i: number, val: string) {
-    setUrls((u) => u.map((u2, idx) => (idx === i ? val : u2)));
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const filled = urls.map((u) => u.trim()).filter(Boolean);
-    if (filled.length === 0) return;
+    const trimmed = url.trim();
+    if (!trimmed) return;
+
+    if (!wholeSite) {
+      const params = new URLSearchParams();
+      params.set("url", trimmed);
+      params.set("rescan", String(Date.now()));
+      if (strictProfile) params.set("profile", "strict");
+      if (multiViewport) params.set("multiViewport", "1");
+      setLocation(`/audit-result?${params.toString()}`);
+      return;
+    }
+
     setError(null);
     setScanning(true);
-
-    // Show all URLs as queued immediately
-    const initial: UrlScanState[] = filled.map((url) => ({ url, status: "queued" }));
-    setUrlStates(initial);
+    setUrlStates([{ url: trimmed, status: "queued" }]);
 
     try {
       const res = await fetch(`${MULTI_SCAN_BASE}/api/audit/batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: filled }),
+        body: JSON.stringify({
+          url: trimmed,
+          wholeSite: true,
+          profile: strictProfile ? "strict" : "default",
+          multiViewport,
+        }),
       });
 
       // Handle non-SSE error responses (e.g. 400 validation errors)
@@ -144,14 +149,20 @@ function MultiUrlForm() {
       let buffer = "";
       let batchResult: BatchAuditResponse | null = null;
 
-      // Track progress by index (not URL) so duplicate URLs don't collide
-      const states: UrlScanState[] = filled.map((url) => ({ url, status: "queued" }));
+      const states: UrlScanState[] = [{ url: trimmed, status: "queued" }];
 
-      const patchIndex = (index: number, patch: Partial<UrlScanState>) => {
-        if (index >= 0 && index < states.length) {
-          states[index] = { ...states[index], ...patch };
-          setUrlStates([...states]);
+      const ensureIndex = (index: number, pageUrl?: string) => {
+        while (states.length <= index) {
+          states.push({ url: pageUrl ?? `Page ${states.length + 1}`, status: "queued" });
         }
+        if (pageUrl) states[index] = { ...states[index]!, url: pageUrl };
+      };
+
+      const patchIndex = (index: number, patch: Partial<UrlScanState>, pageUrl?: string) => {
+        if (index < 0) return;
+        ensureIndex(index, pageUrl);
+        states[index] = { ...states[index]!, ...patch };
+        setUrlStates([...states]);
       };
 
       outer: while (true) {
@@ -179,7 +190,7 @@ function MultiUrlForm() {
             } & Partial<BatchAuditResponse>;
 
             if (data.type === "scanning" && data.index != null) {
-              patchIndex(data.index, { status: "scanning" });
+              patchIndex(data.index, { status: "scanning" }, data.url);
             } else if (data.type === "page" && data.index != null) {
               patchIndex(data.index, {
                 status: data.status === "success" ? "done" : "error",
@@ -187,7 +198,7 @@ function MultiUrlForm() {
                 level: data.level,
                 auditId: data.auditId,
                 error: data.error,
-              });
+              }, data.url);
             } else if (data.type === "complete") {
               batchResult = data as unknown as BatchAuditResponse;
               break outer;
@@ -228,11 +239,12 @@ function MultiUrlForm() {
 
   if (scanning && urlStates.length > 0) {
     const doneCount = urlStates.filter((s) => s.status === "done" || s.status === "error").length;
+    const total = Math.max(urlStates.length, 1);
     return (
       <div className="max-w-2xl mx-auto">
         <div className="bg-white/70 border border-border rounded-2xl p-5 space-y-2.5">
           <p className="text-xs font-semibold font-sans text-muted-foreground uppercase tracking-wide mb-3">
-            Scanning {urlStates.length} pages - {doneCount} of {urlStates.length} complete
+            {wholeSite ? "Discovering and scanning site" : "Scanning"} — {doneCount} of {total} complete
           </p>
           {urlStates.map((s, i) => (
             <div key={i} className="flex items-center gap-3 py-2 border-b border-border/40 last:border-0">
@@ -258,62 +270,63 @@ function MultiUrlForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="hero-form space-y-3 max-w-2xl mx-auto">
-      {urls.map((u, i) => (
-        <div key={i} className="flex gap-2 items-center">
-          <label htmlFor={`batch-url-${i}`} className="sr-only">URL {i + 1}</label>
-          <Input
-            id={`batch-url-${i}`}
-            type="url"
-            placeholder={i === 0 ? "https://your-website.com" : `https://your-website.com/page-${i + 1}`}
-            className="h-12 rounded-xl px-5 text-sm flex-1"
-            style={{ background: "#EFEFEB", border: "1px solid #E4E4E2", boxShadow: "none", fontFamily: "var(--app-font-mono)" }}
-            value={u}
-            onChange={(e) => updateUrl(i, e.target.value)}
-          />
-          {urls.length > 1 && (
-            <button
-              type="button"
-              onClick={() => removeUrl(i)}
-              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-lg border border-border hover:bg-destructive/10 hover:border-destructive/30 transition-colors text-muted-foreground hover:text-destructive"
-              aria-label={`Remove URL ${i + 1}`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      ))}
-      <div className="flex gap-3 pt-1">
-        {urls.length < 10 && (
-          <button
-            type="button"
-            onClick={addUrl}
-            className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors font-sans"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add another URL
-            <span className="text-muted-foreground font-normal">({urls.length}/10)</span>
-          </button>
-        )}
-        <Button
-          type="submit"
-          className="btn-gsap h-12 px-8 text-sm font-semibold ml-auto"
-          disabled={!urls.some((u) => u.trim())}
-        >
-          <Layers className="w-4 h-4 mr-2" /> Scan all pages →
+    <form onSubmit={handleSubmit} className="hero-form space-y-4 max-w-2xl mx-auto">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <label htmlFor="hero-url" className="sr-only">Your website URL</label>
+        <Input
+          id="hero-url"
+          type="url"
+          placeholder="https://your-website.com"
+          className="h-14 rounded-xl px-5 text-sm flex-1"
+          style={{ background: "#EFEFEB", border: "1px solid #E4E4E2", boxShadow: "none", fontFamily: "var(--app-font-mono)" }}
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          required
+        />
+        <Button type="submit" className="btn-gsap h-14 px-8 text-sm font-semibold shrink-0" disabled={!url.trim()}>
+          {wholeSite ? "Scan site →" : "Scan page →"}
         </Button>
       </div>
-      {error && (
-        <p className="text-xs text-destructive text-center">{error}</p>
-      )}
+
+      <fieldset className="rounded-xl border border-border/80 bg-white/50 p-4 text-left space-y-3">
+        <legend className="text-xs font-semibold font-sans px-1 text-muted-foreground uppercase tracking-wide">
+          Scan options
+        </legend>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <Checkbox checked={wholeSite} onCheckedChange={(v) => setWholeSite(v === true)} className="mt-0.5" />
+          <span>
+            <span className="font-semibold font-sans text-sm">Scan entire site</span>
+            <span className="block text-xs text-muted-foreground mt-0.5">
+              Discovers up to 10 pages from sitemap or homepage links. Uncheck for a single page only.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <Checkbox checked={multiViewport} onCheckedChange={(v) => setMultiViewport(v === true)} className="mt-0.5" />
+          <span>
+            <span className="font-semibold font-sans text-sm">Mobile + desktop</span>
+            <span className="block text-xs text-muted-foreground mt-0.5">
+              Runs checks at mobile and desktop breakpoints for higher reliability.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <Checkbox checked={strictProfile} onCheckedChange={(v) => setStrictProfile(v === true)} className="mt-0.5" />
+          <span>
+            <span className="font-semibold font-sans text-sm">Stricter profile (BITV / BFSG)</span>
+            <span className="block text-xs text-muted-foreground mt-0.5">
+              Adds AAA-oriented axe rules plus supplemental BITV 2.0 checks beyond axe-core alone.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
+      {error && <p className="text-xs text-destructive text-center">{error}</p>}
     </form>
   );
 }
 
 export default function Home() {
-  const [url, setUrl] = useState("");
-  const [mode, setMode] = useState<"single" | "multi">("single");
-  const [, setLocation] = useLocation();
-
   const heroRef = useRef<HTMLElement>(null);
   const urgencyRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -372,14 +385,6 @@ export default function Home() {
     return () => { tl.kill(); };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (url) {
-      const rescan = Date.now();
-      setLocation(`/audit-result?url=${encodeURIComponent(url)}&rescan=${rescan}`);
-    }
-  };
-
   return (
     <div ref={pageRef} className="flex flex-col w-full">
 
@@ -411,69 +416,14 @@ export default function Home() {
           </h1>
 
           <p className="hero-subtitle text-base text-muted-foreground mb-8 max-w-xl mx-auto" style={{ fontFamily: "var(--app-font-mono)" }}>
-            Free WCAG 2.2 scan in about half a minute, no signup.<br />
-            When you need a manual audit you can stand behind, we do that too.
+            Free BITV 2.0 / BFSG scan against EN 301 549 — Playwright + axe-core + supplemental checks.<br />
+            One page or whole site. No signup.
           </p>
 
-          {/* Mode toggle */}
-          <div className="hero-mode-toggle flex justify-center mb-5">
-            <div className="inline-flex rounded-xl border border-border bg-white/60 p-1 gap-1">
-              <button
-                type="button"
-                onClick={() => setMode("single")}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold font-sans transition-all ${
-                  mode === "single"
-                    ? "bg-foreground text-background shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Single page
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("multi")}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold font-sans transition-all flex items-center gap-1.5 ${
-                  mode === "multi"
-                    ? "bg-foreground text-background shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                Multiple pages
-              </button>
-            </div>
-          </div>
-
-          {mode === "single" ? (
-            <>
-              <form className="hero-form flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto" onSubmit={handleSubmit}>
-                <label htmlFor="hero-url" className="sr-only">Your website URL</label>
-                <Input
-                  id="hero-url"
-                  type="url"
-                  placeholder="https://your-website.com"
-                  className="h-14 rounded-xl px-5 text-sm flex-1"
-                  style={{ background: "#EFEFEB", border: "1px solid #E4E4E2", boxShadow: "none", fontFamily: "var(--app-font-mono)" }}
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  required
-                />
-                <Button type="submit" className="btn-gsap h-14 px-8 text-sm font-semibold shrink-0">
-                  Scan my site →
-                </Button>
-              </form>
-              <p className="hero-disclaimer mt-4 text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
-                Powered by axe-core · WCAG 2.1 AA + 2.2 AA · scrolls the page before analysis · No sign-up required
-              </p>
-            </>
-          ) : (
-            <>
-              <MultiUrlForm />
-              <p className="hero-disclaimer mt-4 text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
-                Up to 10 pages · Scanned in parallel · Combined site-wide report
-              </p>
-            </>
-          )}
+          <HeroScanForm />
+          <p className="hero-disclaimer mt-4 text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
+            Cloudflare Browser Rendering ready · BITV 2.0 / BFSG mapping · axe-core + supplemental checks · scrolls before analysis
+          </p>
         </div>
       </section>
 
