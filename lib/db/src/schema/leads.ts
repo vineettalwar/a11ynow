@@ -7,6 +7,11 @@ export const leadsTable = pgTable("leads", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   auditId: text("audit_id"),
+  company: text("company"),
+  service: text("service"),
+  message: text("message"),
+  websiteUrl: text("website_url"),
+  source: text("source"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 });
 

@@ -13,7 +13,7 @@ router.post("/leads", async (req, res): Promise<void> => {
     return;
   }
 
-  const { name, email, auditId } = parsed.data;
+  const { name, email, auditId, company, service, message, websiteUrl, source } = parsed.data;
 
   try {
     const leadId = randomUUID();
@@ -24,17 +24,27 @@ router.post("/leads", async (req, res): Promise<void> => {
       name,
       email,
       auditId: auditId ?? null,
+      company: company ?? null,
+      service: service ?? null,
+      message: message ?? null,
+      websiteUrl: websiteUrl ?? null,
+      source: source ?? null,
       createdAt: now,
     });
 
     const emailDomain = email.split("@")[1] ?? "unknown";
-    logger.info({ leadId, emailDomain, auditId }, "Lead captured");
+    logger.info({ leadId, emailDomain, auditId, source, service }, "Lead captured");
 
     res.status(201).json({
       leadId,
       name,
       email,
       auditId: auditId ?? null,
+      company: company ?? null,
+      service: service ?? null,
+      message: message ?? null,
+      websiteUrl: websiteUrl ?? null,
+      source: source ?? null,
       createdAt: now.toISOString(),
     });
   } catch (err) {

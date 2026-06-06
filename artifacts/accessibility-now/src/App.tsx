@@ -69,6 +69,10 @@ import MobileChecklist from "@/pages/tools/mobile-checklist";
 import WcagChecklist from "@/pages/tools/wcag-checklist";
 import FocusOrderVisualizer from "@/pages/tools/focus-order";
 import WebsiteScannerTool from "@/pages/tools/website-scanner";
+import A11yFixLanding from "@/pages/solutions/a11y-fix";
+import A11yFixResult from "@/pages/a11y-fix/result";
+import A11yFixPlan from "@/pages/a11y-fix/plan";
+import { LegacyFixPilotRedirect } from "@/components/legacy-redirect";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +83,15 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/contact" component={Contact} />
         <Route path="/audit-result" component={AuditResult} />
+        <Route path="/solutions/a11y-fix" component={A11yFixLanding} />
+        <Route path="/a11y-fix/result" component={A11yFixResult} />
+        <Route path="/a11y-fix/plan" component={A11yFixPlan} />
+        <Route path="/solutions/fixpilot">
+          <LegacyFixPilotRedirect to="/solutions/a11y-fix" />
+        </Route>
+        <Route path="/fixpilot/result">
+          <LegacyFixPilotRedirect to="/a11y-fix/result" />
+        </Route>
         <Route path="/services" component={Services} />
         <Route path="/services/audits" component={Audits} />
         <Route path="/services/remediation" component={Remediation} />

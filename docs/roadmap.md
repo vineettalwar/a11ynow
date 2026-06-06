@@ -20,6 +20,7 @@ Last updated: May 2026
 | Feature | Notes |
 |---|---|
 | Homepage with live URL audit tool | Playwright + axe-core scan, score card, violations list |
+| A11y Fix (`/solutions/a11y-fix`, `/a11y-fix/result`, `/a11y-fix/plan`) | Full journey: scan → POUR results → interactive fix plan → upsell |
 | Audit result page (`/audit-result`) | Score gauge, severity breakdown, PDF download |
 | Services pages (Audits / Remediation / Monitoring) | Full copy, animated sections |
 | EAA page (`/eaa`) | Timeline, scope, directive explainer |

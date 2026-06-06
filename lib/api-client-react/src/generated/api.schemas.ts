@@ -291,6 +291,16 @@ export interface CreateLeadBody {
   email: string;
   /** The audit result they are requesting the full report for */
   auditId?: string;
+  /** Company name (contact form) */
+  company?: string;
+  /** Requested service tier or topic (contact form) */
+  service?: string;
+  /** Free-text project details (contact form) */
+  message?: string;
+  /** Visitor's website URL when provided on contact or A11y Fix flows */
+  websiteUrl?: string;
+  /** Lead source label, e.g. contact, a11y-fix */
+  source?: string;
 }
 
 export interface LeadResponse {
@@ -298,6 +308,11 @@ export interface LeadResponse {
   name: string;
   email: string;
   auditId?: string | null;
+  company?: string | null;
+  service?: string | null;
+  message?: string | null;
+  websiteUrl?: string | null;
+  source?: string | null;
   createdAt: string;
 }
 

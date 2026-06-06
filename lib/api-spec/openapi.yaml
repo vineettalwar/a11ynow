@@ -681,6 +681,22 @@ components:
         auditId:
           type: string
           description: The audit result they are requesting the full report for
+        company:
+          type: string
+          description: Company name (contact form)
+        service:
+          type: string
+          description: Requested service tier or topic (contact form)
+        message:
+          type: string
+          description: Free-text project details (contact form)
+        websiteUrl:
+          type: string
+          format: uri
+          description: Visitor's website URL when provided on contact or A11y Fix flows
+        source:
+          type: string
+          description: Lead source label, e.g. contact, a11y-fix
       required:
         - name
         - email
@@ -695,6 +711,21 @@ components:
         email:
           type: string
         auditId:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        service:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
+        websiteUrl:
+          type: string
+          nullable: true
+        source:
           type: string
           nullable: true
         createdAt:

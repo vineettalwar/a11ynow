@@ -659,6 +659,26 @@ export const CreateLeadBody = zod.object({
     .string()
     .optional()
     .describe("The audit result they are requesting the full report for"),
+  company: zod.string().optional().describe("Company name (contact form)"),
+  service: zod
+    .string()
+    .optional()
+    .describe("Requested service tier or topic (contact form)"),
+  message: zod
+    .string()
+    .optional()
+    .describe("Free-text project details (contact form)"),
+  websiteUrl: zod
+    .string()
+    .url()
+    .optional()
+    .describe(
+      "Visitor's website URL when provided on contact or A11y Fix flows",
+    ),
+  source: zod
+    .string()
+    .optional()
+    .describe("Lead source label, e.g. contact, a11y-fix"),
 });
 
 /**
