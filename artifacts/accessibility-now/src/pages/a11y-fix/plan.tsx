@@ -54,6 +54,16 @@ function PlanItemRow({
       )}
     >
       <div className="flex gap-3 items-start">
+        {item.elementScreenshot && (
+          <figure className="hidden sm:block shrink-0 w-[100px] rounded-lg border border-border bg-muted/20 p-1.5">
+            <img
+              src={item.elementScreenshot}
+              alt=""
+              className="max-h-[72px] w-full object-contain rounded"
+              loading="lazy"
+            />
+          </figure>
+        )}
         <button
           type="button"
           onClick={onToggle}

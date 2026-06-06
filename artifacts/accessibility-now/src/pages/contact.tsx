@@ -3,18 +3,20 @@ import { useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useCreateLead } from "@workspace/api-client-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, MapPin } from "lucide-react";
+import { CheckCircle2, Loader2, Mail, MapPin } from "lucide-react";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
 import gsap from "gsap";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
+  email: z.string().email("Must be a valid email"),
   company: z.string().min(2, "Company is required"),
   url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   service: z.string().min(1, "Please select a service"),
@@ -25,8 +27,9 @@ const VALID_SERVICES = ["audit", "remediation", "monitoring", "unsure"] as const
 
 export default function Contact() {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const search = useSearch();
+  const createLead = useCreateLead();
 
   const heroRef = useSectionReveal<HTMLElement>();
   const formRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
@@ -52,7 +55,10 @@ export default function Contact() {
       const leave = () => gsap.to(btn, { scale: 1, duration: 0.18, ease: "power2.out" });
       btn.addEventListener("mouseenter", enter);
       btn.addEventListener("mouseleave", leave);
-      cleanups.push(() => { btn.removeEventListener("mouseenter", enter); btn.removeEventListener("mouseleave", leave); });
+      cleanups.push(() => {
+        btn.removeEventListener("mouseenter", enter);
+        btn.removeEventListener("mouseleave", leave);
+      });
     });
     return () => cleanups.forEach((fn) => fn());
   }, []);
@@ -61,6 +67,7 @@ export default function Contact() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      email: "",
       company: "",
       url: prefilledUrl,
       service: prefilledService,
@@ -68,16 +75,37 @@ export default function Contact() {
     },
   });
 
-  function onSubmit(_values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast({
-        title: "Request received",
-        description: "We will reply within one business day.",
-      });
-      form.reset();
-    }, 1000);
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    createLead.mutate(
+      {
+        data: {
+          name: values.name.trim(),
+          email: values.email.trim(),
+          company: values.company.trim(),
+          service: values.service,
+          message: values.message.trim(),
+          ...(values.url?.trim() ? { websiteUrl: values.url.trim() } : {}),
+          ...(auditIdParam ? { auditId: auditIdParam } : {}),
+          source: fromA11yFix ? "a11y-fix" : "contact",
+        },
+      },
+      {
+        onSuccess: () => {
+          setSubmitted(true);
+          toast({
+            title: "Request received",
+            description: "We will reply within one business day.",
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Could not submit",
+            description: "Please try again or email hello@accessibility.now",
+            variant: "destructive",
+          });
+        },
+      },
+    );
   }
 
   return (
@@ -137,22 +165,51 @@ export default function Contact() {
             </div>
 
             <div className="reveal-child md:col-span-3 bg-background rounded-2xl border p-8">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-semibold font-sans">Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Jane Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              {submitted ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <p className="font-bold font-sans">Thanks — we will be in touch.</p>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    A member of the team will reply within one business day.
+                  </p>
+                  <Button type="button" variant="outline" className="mt-2" onClick={() => setSubmitted(false)}>
+                    Send another message
+                  </Button>
+                </div>
+              ) : (
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold font-sans">Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Jane Doe" autoComplete="name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold font-sans">Work email</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="jane@company.de" autoComplete="email" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <FormField
                       control={form.control}
                       name="company"
@@ -160,79 +217,85 @@ export default function Contact() {
                         <FormItem>
                           <FormLabel className="text-xs font-semibold font-sans">Company</FormLabel>
                           <FormControl>
-                            <Input placeholder="Acme Corp" {...field} />
+                            <Input placeholder="Acme Corp" autoComplete="organization" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="url"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-semibold font-sans">Website URL (optional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="https://..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="service"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-semibold font-sans">How can we help?</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormField
+                      control={form.control}
+                      name="url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold font-sans">Website URL (optional)</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a service" />
-                            </SelectTrigger>
+                            <Input placeholder="https://..." {...field} />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="audit">Full Accessibility Audit</SelectItem>
-                            <SelectItem value="remediation">Remediation & Development</SelectItem>
-                            <SelectItem value="monitoring">Ongoing Monitoring</SelectItem>
-                            <SelectItem value="unsure">Not sure - need a consultation</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={form.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs font-semibold font-sans">Project details</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Tell us about your tech stack, current challenges, and timeline..."
-                            className="min-h-[120px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="service"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold font-sans">How can we help?</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a service" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="audit">Full Accessibility Audit</SelectItem>
+                              <SelectItem value="remediation">Remediation & Development</SelectItem>
+                              <SelectItem value="monitoring">Ongoing Monitoring</SelectItem>
+                              <SelectItem value="unsure">Not sure - need a consultation</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <Button
-                    type="submit"
-                    className="btn-gsap w-full h-12 text-sm font-semibold"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Submitting..." : "Book a scope call"}
-                  </Button>
-                </form>
-              </Form>
+                    <FormField
+                      control={form.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold font-sans">Project details</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Tell us about your tech stack, current challenges, and timeline..."
+                              className="min-h-[120px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button
+                      type="submit"
+                      className="btn-gsap w-full h-12 text-sm font-semibold"
+                      disabled={createLead.isPending}
+                    >
+                      {createLead.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting…
+                        </>
+                      ) : (
+                        "Book a scope call"
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+              )}
             </div>
           </div>
         </div>

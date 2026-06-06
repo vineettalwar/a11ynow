@@ -2,6 +2,7 @@ import type { AuditViolation } from "@workspace/api-client-react";
 import type { PourPrincipleName } from "@/data/pour-principles";
 import { getViolationPrinciple, groupViolationsByPour } from "@/lib/pour-mapper";
 import { getHumanContextForViolation } from "@/lib/violation-human-context";
+import { primaryInstanceElementScreenshot } from "@/lib/violation-element-preview";
 
 export type FixDifficulty = "quick_win" | "moderate" | "expert";
 
@@ -34,6 +35,7 @@ export interface FixActionItem {
   plainLead: string;
   relatedToolPath?: string;
   affectedElements: number;
+  elementScreenshot?: string;
 }
 
 const DIFFICULTY_ORDER: Record<FixDifficulty, number> = {
@@ -74,6 +76,7 @@ export function buildFixActionPlan(violations: AuditViolation[]): FixActionItem[
         plainLead: human.plainLead,
         relatedToolPath: human.relatedToolPath,
         affectedElements: v.affectedElements ?? 0,
+        elementScreenshot: primaryInstanceElementScreenshot(v),
       };
     });
 }

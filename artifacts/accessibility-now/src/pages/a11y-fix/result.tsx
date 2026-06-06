@@ -19,6 +19,8 @@ import { A11yFixJourneyStepper } from "@/components/a11y-fix/journey-stepper";
 import { A11yFixLeadCapture } from "@/components/a11y-fix/lead-capture";
 import { A11yFixMonitorSetup } from "@/components/a11y-fix/monitor-setup";
 import { A11yFixToolkitLinks } from "@/components/a11y-fix/toolkit-links";
+import { ViolationElementShot } from "@/components/a11y-fix/violation-element-shot";
+import { primaryViolationSelector } from "@/lib/violation-element-preview";
 import { POUR_PRINCIPLES } from "@/data/pour-principles";
 import { groupViolationsByPour } from "@/lib/pour-mapper";
 import { getManualFollowUpsFromViolations } from "@/lib/manual-followups";
@@ -77,33 +79,40 @@ function ViolationFixCard({ violation }: { violation: AuditViolation }) {
   const human = getHumanContextForViolation(violation);
   const difficulty = getFixDifficulty(violation.id);
 
+  const selector = primaryViolationSelector(violation);
+
   return (
     <div className="rounded-xl border border-border bg-background p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+      <div className="flex flex-col sm:flex-row gap-4 mb-3">
         <div className="flex-1 min-w-0">
-          <p className="font-semibold font-sans text-sm text-foreground leading-snug">
-            {violation.titleDe ?? violation.description}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">{human.plainLead}</p>
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold font-sans text-sm text-foreground leading-snug">
+                {violation.titleDe ?? violation.description}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{human.plainLead}</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5 shrink-0">
+              <span
+                className={cn(
+                  "text-[10px] font-semibold font-sans rounded-full border px-2 py-0.5 uppercase tracking-wide",
+                  impactBadgeClass(violation.impact),
+                )}
+              >
+                {violation.impact}
+              </span>
+              <span
+                className={cn(
+                  "text-[10px] font-semibold font-sans rounded-full border px-2 py-0.5",
+                  difficultyBadgeClass(difficulty),
+                )}
+              >
+                {difficultyLabel(difficulty)}
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-1.5 shrink-0">
-          <span
-            className={cn(
-              "text-[10px] font-semibold font-sans rounded-full border px-2 py-0.5 uppercase tracking-wide",
-              impactBadgeClass(violation.impact),
-            )}
-          >
-            {violation.impact}
-          </span>
-          <span
-            className={cn(
-              "text-[10px] font-semibold font-sans rounded-full border px-2 py-0.5",
-              difficultyBadgeClass(difficulty),
-            )}
-          >
-            {difficultyLabel(difficulty)}
-          </span>
-        </div>
+        <ViolationElementShot violation={violation} />
       </div>
 
       {violation.bitvSection && (
@@ -151,15 +160,18 @@ function ViolationFixCard({ violation }: { violation: AuditViolation }) {
             </p>
           )}
           <p className="text-muted-foreground text-xs">{human.whenYouFixIt}</p>
-          {(violation.topSelectors?.length ?? 0) > 0 && (
+          {(selector || (violation.topSelectors?.length ?? 0) > 0) && (
             <div>
               <p className="text-xs font-semibold font-sans mb-1">Selectors</p>
               <ul className="space-y-1">
-                {violation.topSelectors.slice(0, 3).map((sel) => (
-                  <li key={sel} className="text-[11px] font-mono text-muted-foreground truncate" title={sel}>
-                    {sel}
-                  </li>
-                ))}
+                {[selector, ...(violation.topSelectors ?? [])]
+                  .filter((s, i, arr) => s && arr.indexOf(s) === i)
+                  .slice(0, 3)
+                  .map((sel) => (
+                    <li key={sel} className="text-[11px] font-mono text-muted-foreground truncate" title={sel}>
+                      {sel}
+                    </li>
+                  ))}
               </ul>
             </div>
           )}
