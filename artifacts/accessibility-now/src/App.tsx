@@ -72,6 +72,7 @@ import WebsiteScannerTool from "@/pages/tools/website-scanner";
 import A11yFixLanding from "@/pages/solutions/a11y-fix";
 import A11yFixResult from "@/pages/a11y-fix/result";
 import A11yFixPlan from "@/pages/a11y-fix/plan";
+import A11yFixBatchResult from "@/pages/a11y-fix/batch-result";
 import { LegacyFixPilotRedirect } from "@/components/legacy-redirect";
 
 const queryClient = new QueryClient();
@@ -86,6 +87,7 @@ function Router() {
         <Route path="/solutions/a11y-fix" component={A11yFixLanding} />
         <Route path="/a11y-fix/result" component={A11yFixResult} />
         <Route path="/a11y-fix/plan" component={A11yFixPlan} />
+        <Route path="/a11y-fix/batch-result" component={A11yFixBatchResult} />
         <Route path="/solutions/fixpilot">
           <LegacyFixPilotRedirect to="/solutions/a11y-fix" />
         </Route>

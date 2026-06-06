@@ -36,6 +36,7 @@ import {
 } from "@/lib/a11y-fix";
 import { getHumanContextForViolation } from "@/lib/violation-human-context";
 import { useA11yFixAudit } from "@/hooks/use-a11y-fix-audit";
+import { a11yFixPdfUrl } from "@/lib/a11y-fix-batch";
 import { cn } from "@/lib/utils";
 const VALID_INTENTS: A11yFixIntent[] = ["self", "engineers", "monitor"];
 
@@ -445,11 +446,8 @@ export default function A11yFixResult() {
               <div className="flex flex-wrap gap-3">
                 {audit.auditId && (
                   <Button asChild variant="outline" size="sm" className="[box-shadow:none]">
-                    <a
-                      href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/audit/${audit.auditId}/pdf`}
-                      download
-                    >
-                      <FileDown className="w-4 h-4 mr-2" /> Download PDF
+                    <a href={a11yFixPdfUrl(audit.auditId)} download>
+                      <FileDown className="w-4 h-4 mr-2" /> Download A11y Fix PDF
                     </a>
                   </Button>
                 )}
