@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChevronDown, BookOpen, CheckSquare, BookMarked, ShieldCheck, Layers, FileText, Search, Code, Activity } from "lucide-react";
+import { Menu, X, ChevronDown, BookOpen, CheckSquare, BookMarked, ShieldCheck, Layers, FileText, Search, Code, Activity, Sparkles } from "lucide-react";
 import gsap from "gsap";
 
 type SimpleLink = { href: string; label: string };
@@ -18,6 +18,18 @@ const SERVICES_COLUMNS: {
   icon: typeof BookOpen;
   items: SimpleLink[];
 }[] = [
+  {
+    href: "/solutions/fixpilot",
+    title: "FixPilot",
+    description: "Guided BFSG scan + fix plan.",
+    icon: Sparkles,
+    items: [
+      { href: "/solutions/fixpilot", label: "POUR-grouped BFSG scan" },
+      { href: "/solutions/fixpilot", label: "Self-serve fix roadmap" },
+      { href: "/services/remediation", label: "Escalate to engineers" },
+      { href: "/services/monitoring", label: "Baseline + monitoring" },
+    ],
+  },
   {
     href: "/services/audits",
     title: "Audits",

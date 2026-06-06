@@ -2,10 +2,17 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Search, Code, ShieldCheck, Check, Minus, Cpu, FileCode, BadgeCheck } from "lucide-react";
+import { ArrowRight, Search, Code, ShieldCheck, Check, Minus, Cpu, FileCode, BadgeCheck, Sparkles } from "lucide-react";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
 
 const journeySteps = [
+  {
+    icon: Sparkles,
+    step: "00",
+    label: "FixPilot",
+    description: "Free guided scan grouped by POUR. Know what to fix before you buy anything.",
+    href: "/solutions/fixpilot",
+  },
   {
     icon: Search,
     step: "01",
@@ -92,7 +99,7 @@ export default function Services() {
             <span className="heading-accent">Stay compliant.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
-            Three engagements. The same senior engineering team start to finish. No subcontractors, no overlays, no hand-offs.
+            Start free with FixPilot, then escalate to audits, remediation, or monitoring. Same senior engineering team throughout — no overlays, no hand-offs.
           </p>
         </div>
       </section>

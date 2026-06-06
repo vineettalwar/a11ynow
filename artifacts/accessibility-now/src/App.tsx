@@ -69,6 +69,8 @@ import MobileChecklist from "@/pages/tools/mobile-checklist";
 import WcagChecklist from "@/pages/tools/wcag-checklist";
 import FocusOrderVisualizer from "@/pages/tools/focus-order";
 import WebsiteScannerTool from "@/pages/tools/website-scanner";
+import FixPilotLanding from "@/pages/solutions/fixpilot";
+import FixPilotResult from "@/pages/fixpilot/result";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +81,8 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/contact" component={Contact} />
         <Route path="/audit-result" component={AuditResult} />
+        <Route path="/solutions/fixpilot" component={FixPilotLanding} />
+        <Route path="/fixpilot/result" component={FixPilotResult} />
         <Route path="/services" component={Services} />
         <Route path="/services/audits" component={Audits} />
         <Route path="/services/remediation" component={Remediation} />

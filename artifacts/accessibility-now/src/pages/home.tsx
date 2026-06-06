@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, CheckCircle2, Search, Code, ShieldCheck, Eye, Keyboard, Smartphone, ClipboardList, TabletSmartphone } from "lucide-react";
+import { ArrowRight, CheckCircle2, Search, Code, ShieldCheck, Eye, Keyboard, Smartphone, ClipboardList, TabletSmartphone, Sparkles } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import gsap from "gsap";
 import { ParticleCanvas } from "@/components/particle-canvas";
@@ -447,6 +447,29 @@ export default function Home() {
               <p className="text-3xl font-extrabold font-sans text-foreground mb-1">June 2025</p>
               <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>EAA enforcement started</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FixPilot promo */}
+      <section className="py-10 px-4 bg-primary/5 border-y border-primary/10">
+        <div className="container mx-auto max-w-5xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 rounded-2xl border border-primary/20 bg-white p-6 md:p-8">
+            <div className="flex gap-4 items-start">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="w-6 h-6 text-primary" aria-hidden />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-1 font-sans">New · FixPilot</p>
+                <h2 className="text-lg font-extrabold font-sans mb-2">Guided BFSG compliance — free</h2>
+                <p className="text-sm text-muted-foreground max-w-xl" style={{ fontFamily: "var(--app-font-mono)" }}>
+                  Scan your site, see every issue under Perceivable, Operable, Understandable, and Robust. Quick wins for your team, engineers when you need them.
+                </p>
+              </div>
+            </div>
+            <Button asChild className="btn-gsap h-12 px-8 font-semibold shrink-0">
+              <Link href="/solutions/fixpilot">Try FixPilot →</Link>
+            </Button>
           </div>
         </div>
       </section>
