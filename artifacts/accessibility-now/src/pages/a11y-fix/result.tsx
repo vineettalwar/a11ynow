@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useSearch } from "wouter";
-import { useCreateAudit } from "@workspace/api-client-react";
-import type { AuditResult, AuditViolation } from "@workspace/api-client-react";
+import type { AuditViolation } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -17,20 +15,26 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AuditPendingScanFrame } from "@/components/audit-pending-scan-frame";
+import { A11yFixJourneyStepper } from "@/components/a11y-fix/journey-stepper";
+import { A11yFixLeadCapture } from "@/components/a11y-fix/lead-capture";
+import { A11yFixMonitorSetup } from "@/components/a11y-fix/monitor-setup";
+import { A11yFixToolkitLinks } from "@/components/a11y-fix/toolkit-links";
 import { POUR_PRINCIPLES } from "@/data/pour-principles";
 import { groupViolationsByPour } from "@/lib/pour-mapper";
+import { getManualFollowUpsFromViolations } from "@/lib/manual-followups";
 import {
+  buildFixActionPlan,
   countByDifficulty,
   difficultyBadgeClass,
   difficultyLabel,
   getFixDifficulty,
+  intentContactHref,
   recommendedUpsell,
   type A11yFixIntent,
 } from "@/lib/a11y-fix";
 import { getHumanContextForViolation } from "@/lib/violation-human-context";
+import { useA11yFixAudit } from "@/hooks/use-a11y-fix-audit";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
-
 const VALID_INTENTS: A11yFixIntent[] = ["self", "engineers", "monitor"];
 
 function parseIntent(raw: string | null): A11yFixIntent {
@@ -83,10 +87,20 @@ function ViolationFixCard({ violation }: { violation: AuditViolation }) {
           <p className="text-xs text-muted-foreground mt-1">{human.plainLead}</p>
         </div>
         <div className="flex flex-wrap gap-1.5 shrink-0">
-          <span className={cn("text-[10px] font-semibold font-sans rounded-full border px-2 py-0.5 uppercase tracking-wide", impactBadgeClass(violation.impact))}>
+          <span
+            className={cn(
+              "text-[10px] font-semibold font-sans rounded-full border px-2 py-0.5 uppercase tracking-wide",
+              impactBadgeClass(violation.impact),
+            )}
+          >
             {violation.impact}
           </span>
-          <span className={cn("text-[10px] font-semibold font-sans rounded-full border px-2 py-0.5", difficultyBadgeClass(difficulty))}>
+          <span
+            className={cn(
+              "text-[10px] font-semibold font-sans rounded-full border px-2 py-0.5",
+              difficultyBadgeClass(difficulty),
+            )}
+          >
             {difficultyLabel(difficulty)}
           </span>
         </div>
@@ -203,7 +217,11 @@ function PourSectionBlock({
             </p>
           )}
         </div>
-        {open ? <ChevronUp className="w-5 h-5 shrink-0 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 shrink-0 text-muted-foreground" />}
+        {open ? (
+          <ChevronUp className="w-5 h-5 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="w-5 h-5 shrink-0 text-muted-foreground" />
+        )}
       </button>
 
       {open && (
@@ -223,72 +241,30 @@ export default function A11yFixResult() {
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
   const urlParam = params.get("url") ?? "";
+  const auditIdParam = params.get("auditId") ?? "";
   const intent = parseIntent(params.get("intent"));
   const rescanKey = params.get("rescan") ?? "";
 
-  const { toast } = useToast();
-  const [leadEmail, setLeadEmail] = useState("");
-  const [leadSubmitting, setLeadSubmitting] = useState(false);
-
-  const createAudit = useCreateAudit({
-    mutation: {
-      onError: (err) => {
-        toast({
-          title: "Scan failed",
-          description: err instanceof Error ? err.message : "Could not complete the scan.",
-          variant: "destructive",
-        });
-      },
-    },
+  const { audit, isLoading, isError } = useA11yFixAudit({
+    urlParam,
+    auditIdParam,
+    rescanKey,
+    intent,
   });
 
-  useEffect(() => {
-    if (!urlParam.trim()) return;
-    createAudit.mutate({
-      data: {
-        url: urlParam.trim(),
-        profile: "strict",
-        multiViewport: true,
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- rescanKey triggers re-scan
-  }, [urlParam, rescanKey]);
-
-  const audit: AuditResult | undefined = createAudit.data;
   const violations = audit?.violations ?? [];
   const pourGroups = useMemo(() => groupViolationsByPour(violations), [violations]);
   const difficultyCounts = useMemo(() => countByDifficulty(violations), [violations]);
+  const actionPlan = useMemo(() => buildFixActionPlan(violations), [violations]);
+  const manualFollowUps = useMemo(() => getManualFollowUpsFromViolations(violations), [violations]);
   const upsell = useMemo(() => recommendedUpsell(violations, intent), [violations, intent]);
   const compliance = audit?.complianceReport ?? audit?.scanMetadata?.complianceReport;
 
-  const isLoading = createAudit.isPending;
-  const isError = createAudit.isError;
+  const planHref = audit?.auditId
+    ? `/a11y-fix/plan?auditId=${audit.auditId}&intent=${intent}`
+    : undefined;
 
-  async function handleLeadSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!leadEmail.trim() || !audit?.auditId) return;
-    setLeadSubmitting(true);
-    try {
-      const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/leads`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "A11y Fix visitor",
-          email: leadEmail.trim(),
-          auditId: audit.auditId,
-        }),
-      });
-      if (!res.ok) throw new Error("Request failed");
-      toast({ title: "Request received", description: "We will follow up within one business day." });
-      setLeadEmail("");
-    } catch {
-      toast({ title: "Could not submit", description: "Please try again or use the contact form.", variant: "destructive" });
-    } finally {
-      setLeadSubmitting(false);
-    }
-  }
-
-  if (!urlParam.trim()) {
+  if (!urlParam && !auditIdParam) {
     return (
       <div className="container mx-auto max-w-2xl py-24 px-4 text-center">
         <h1 className="text-2xl font-extrabold font-sans mb-4">No URL provided</h1>
@@ -301,16 +277,19 @@ export default function A11yFixResult() {
 
   return (
     <div className="flex flex-col w-full">
-      <section className="hero-gradient pt-20 pb-10 px-4">
-        <div className="container mx-auto max-w-5xl">
-          <div className="flex items-center gap-2 mb-4">
+      <section className="hero-gradient pt-20 pb-8 px-4 border-b">
+        <div className="container mx-auto max-w-5xl space-y-6">
+          <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" aria-hidden />
             <p className="text-xs font-semibold text-primary uppercase tracking-widest font-sans">A11y Fix results</p>
           </div>
-          <h1 className="text-display-md font-extrabold mb-2 break-all">{audit?.url ?? urlParam}</h1>
-          <p className="text-sm text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
-            BITV 2.0 / BFSG strict scan · grouped by POUR
-          </p>
+          <A11yFixJourneyStepper current="scan" planHref={planHref} />
+          <div>
+            <h1 className="text-display-md font-extrabold mb-2 break-all">{audit?.url ?? urlParam}</h1>
+            <p className="text-sm text-muted-foreground" style={{ fontFamily: "var(--app-font-mono)" }}>
+              BITV 2.0 / BFSG strict scan · grouped by POUR
+            </p>
+          </div>
         </div>
       </section>
 
@@ -319,7 +298,7 @@ export default function A11yFixResult() {
           <div className="container mx-auto max-w-3xl text-center space-y-6">
             <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" aria-hidden />
             <p className="text-sm text-muted-foreground">Scanning against EN 301 549…</p>
-            <AuditPendingScanFrame displayUrl={urlParam} />
+            <AuditPendingScanFrame displayUrl={urlParam || audit?.url || ""} />
           </div>
         </section>
       )}
@@ -367,6 +346,16 @@ export default function A11yFixResult() {
                 </Card>
               </div>
 
+              {audit.pageScreenshot && (
+                <div className="rounded-2xl border border-border overflow-hidden mb-6">
+                  <img
+                    src={audit.pageScreenshot}
+                    alt="Screenshot of scanned page"
+                    className="w-full max-h-64 object-cover object-top"
+                  />
+                </div>
+              )}
+
               {compliance && (
                 <div className="rounded-2xl border border-border bg-muted/20 p-6 mb-6">
                   <div className="flex flex-wrap items-center gap-3 mb-3">
@@ -374,32 +363,88 @@ export default function A11yFixResult() {
                     <ComplianceStatusBadge status={compliance.overallStatus} />
                   </div>
                   <p className="text-sm text-foreground leading-relaxed mb-4">{compliance.summaryDe}</p>
+                  {compliance.supplementalFindings?.length > 0 && (
+                    <ul className="text-xs space-y-1 mb-4">
+                      {compliance.supplementalFindings
+                        .filter((f) => f.status !== "pass")
+                        .slice(0, 4)
+                        .map((f) => (
+                          <li key={f.id} className="text-muted-foreground">
+                            <span className="font-semibold text-foreground">{f.titleDe}: </span>
+                            {f.description}
+                          </li>
+                        ))}
+                    </ul>
+                  )}
                   {compliance.manualReviewRequired.length > 0 && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-4">
-                      <p className="text-xs font-semibold font-sans text-amber-900 mb-2">Requires manual review (cannot be automated)</p>
+                      <p className="text-xs font-semibold font-sans text-amber-900 mb-2">
+                        Requires manual review (cannot be automated)
+                      </p>
                       <ul className="text-xs text-amber-900/90 space-y-1 list-disc pl-4">
                         {compliance.manualReviewRequired.slice(0, 4).map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
                       <Button asChild variant="link" className="h-auto p-0 mt-3 text-xs text-amber-900">
-                        <Link href="/contact?service=audit">Book manual audit for sign-off →</Link>
+                        <Link href={intentContactHref("self", { url: audit.url, auditId: audit.auditId })}>
+                          Book manual audit for sign-off →
+                        </Link>
                       </Button>
                     </div>
                   )}
                 </div>
               )}
 
+              {actionPlan.length > 0 && planHref && (
+                <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="font-bold font-sans text-base mb-1">Step 3 — Your fix plan is ready</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {actionPlan.length} prioritized items — {difficultyCounts.quick_win} quick wins to start with.
+                      </p>
+                    </div>
+                    <Button asChild className="btn-gsap h-12 px-8 font-semibold shrink-0">
+                      <Link href={planHref}>
+                        Open fix plan <ArrowRight className="w-4 h-4 ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
+                  <ol className="mt-4 space-y-2">
+                    {actionPlan.slice(0, 3).map((item, i) => (
+                      <li key={item.id} className="flex items-start gap-2 text-sm">
+                        <span className="text-xs font-bold text-primary font-sans w-5 shrink-0">{i + 1}.</span>
+                        <span className="text-foreground">{item.title}</span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-semibold rounded-full border px-2 py-0.5 shrink-0",
+                            difficultyBadgeClass(item.difficulty),
+                          )}
+                        >
+                          {difficultyLabel(item.difficulty)}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-3">
                 {audit.auditId && (
                   <Button asChild variant="outline" size="sm" className="[box-shadow:none]">
-                    <a href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/audit/${audit.auditId}/pdf`} download>
+                    <a
+                      href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/audit/${audit.auditId}/pdf`}
+                      download
+                    >
                       <FileDown className="w-4 h-4 mr-2" /> Download PDF
                     </a>
                   </Button>
                 )}
                 <Button asChild variant="outline" size="sm" className="[box-shadow:none]">
-                  <Link href={`/audit-result?url=${encodeURIComponent(audit.url)}&profile=strict&multiViewport=1`}>
+                  <Link
+                    href={`/audit-result?auditId=${audit.auditId}&url=${encodeURIComponent(audit.url)}&profile=strict&multiViewport=1`}
+                  >
                     Full technical report →
                   </Link>
                 </Button>
@@ -417,9 +462,12 @@ export default function A11yFixResult() {
                   Issues by <span className="heading-accent">principle.</span>
                 </h2>
                 <p className="text-sm text-muted-foreground max-w-2xl">
-                  {intent === "self" && "Start with quick wins in each section. Escalate expert items to our remediation team when needed."}
-                  {intent === "engineers" && "We scoped this scan for a remediation sprint. Expert items are highlighted — book a call to confirm sprint size."}
-                  {intent === "monitor" && "This is your compliance baseline. Set up monitoring to catch regressions after you ship fixes."}
+                  {intent === "self" &&
+                    "Start with quick wins in each section. Escalate expert items to our remediation team when needed."}
+                  {intent === "engineers" &&
+                    "We scoped this scan for a remediation sprint. Expert items are highlighted — book a call to confirm sprint size."}
+                  {intent === "monitor" &&
+                    "This is your compliance baseline. Set up monitoring to catch regressions after you ship fixes."}
                 </p>
               </div>
 
@@ -431,6 +479,46 @@ export default function A11yFixResult() {
                   defaultOpen={pourGroups[p.name].length > 0 && idx === 0}
                 />
               ))}
+
+              {manualFollowUps.length > 0 && (
+                <div className="rounded-2xl border border-primary/15 bg-background p-6">
+                  <h3 className="font-bold font-sans text-sm mb-3">Recommended manual checks</h3>
+                  <ul className="space-y-2">
+                    {manualFollowUps.map((item) => (
+                      <li key={item.id} className="text-sm">
+                        <span className="font-semibold font-sans">{item.title}. </span>
+                        <span className="text-muted-foreground">{item.detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="py-12 px-4 bg-white">
+            <div className="container mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {intent === "monitor" ? (
+                <A11yFixMonitorSetup url={audit.url} auditId={audit.auditId} />
+              ) : (
+                <div className="rounded-2xl border border-border p-6 flex flex-col justify-center">
+                  <h3 className="font-bold font-sans text-sm mb-2">Step 4 — Act on your plan</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Mark items done in the fix plan, re-scan to verify, or book engineers for the hard parts.
+                  </p>
+                  {planHref && (
+                    <Button asChild className="h-11 font-semibold mb-3">
+                      <Link href={planHref}>Open interactive fix plan →</Link>
+                    </Button>
+                  )}
+                  <Button asChild variant="outline" className="h-11 [box-shadow:none]">
+                    <Link href={intentContactHref(intent, { url: audit.url, auditId: audit.auditId })}>
+                      {upsell.cta}
+                    </Link>
+                  </Button>
+                </div>
+              )}
+              <A11yFixToolkitLinks scannedUrl={audit.url} />
             </div>
           </section>
 
@@ -439,46 +527,37 @@ export default function A11yFixResult() {
               <h2 className="text-2xl font-extrabold font-sans mb-3 text-white">{upsell.title}</h2>
               <p className="text-gray-400 text-sm mb-8 max-w-xl mx-auto">{upsell.body}</p>
               <Button asChild className="btn-gsap h-12 px-8 font-semibold">
-                <Link href={upsell.href}>{upsell.cta}</Link>
+                <Link href={intentContactHref(intent, { url: audit.url, auditId: audit.auditId })}>{upsell.cta}</Link>
               </Button>
             </div>
           </section>
 
-          <section className="py-16 px-4 bg-white">
+          <section className="py-16 px-4 warm-section">
             <div className="container mx-auto max-w-xl">
-              <Card>
-                <CardContent className="pt-8 pb-8">
-                  <h2 className="font-extrabold font-sans text-lg mb-2">Get the full report by email</h2>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    Automated scans catch roughly 30% of WCAG issues. Leave your email and we will send context on what automation missed and what a manual audit would cover.
-                  </p>
-                  <form onSubmit={handleLeadSubmit} className="flex flex-col sm:flex-row gap-3">
-                    <label htmlFor="a11y-fix-lead-email" className="sr-only">Email</label>
-                    <Input
-                      id="a11y-fix-lead-email"
-                      type="email"
-                      placeholder="you@company.de"
-                      value={leadEmail}
-                      onChange={(e) => setLeadEmail(e.target.value)}
-                      required
-                      className="h-11"
-                    />
-                    <Button type="submit" disabled={leadSubmitting || !audit.auditId} className="h-11 shrink-0">
-                      {leadSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send report →"}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+              <div className="rounded-2xl border bg-background p-8">
+                <h2 className="font-extrabold font-sans text-lg mb-2">Get the full report by email</h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Automated scans catch roughly 30% of WCAG issues. Leave your details and we will send context on what
+                  automation missed.
+                </p>
+                <A11yFixLeadCapture auditId={audit.auditId} />
+              </div>
 
               <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <Link href="/services/remediation" className="rounded-xl border p-5 hover:border-primary transition-colors group">
+                <Link
+                  href="/services/remediation"
+                  className="rounded-xl border p-5 hover:border-primary transition-colors group bg-background"
+                >
                   <p className="font-bold font-sans mb-1 group-hover:text-primary">Remediation sprints</p>
                   <p className="text-xs text-muted-foreground">PRs in your repo, WCAG-cited fixes.</p>
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary mt-3">
                     Learn more <ArrowRight className="w-3 h-3" />
                   </span>
                 </Link>
-                <Link href="/services/monitoring" className="rounded-xl border p-5 hover:border-primary transition-colors group">
+                <Link
+                  href="/services/monitoring"
+                  className="rounded-xl border p-5 hover:border-primary transition-colors group bg-background"
+                >
                   <p className="font-bold font-sans mb-1 group-hover:text-primary">Monitoring retainer</p>
                   <p className="text-xs text-muted-foreground">Re-scans, CI gates, regression alerts.</p>
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary mt-3">

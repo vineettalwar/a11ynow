@@ -20,7 +20,7 @@ Last updated: May 2026
 | Feature | Notes |
 |---|---|
 | Homepage with live URL audit tool | Playwright + axe-core scan, score card, violations list |
-| A11y Fix (`/solutions/a11y-fix`, `/a11y-fix/result`) | Guided BFSG scan grouped by POUR; reuses strict audit engine |
+| A11y Fix (`/solutions/a11y-fix`, `/a11y-fix/result`, `/a11y-fix/plan`) | Full journey: scan → POUR results → interactive fix plan → upsell |
 | Audit result page (`/audit-result`) | Score gauge, severity breakdown, PDF download |
 | Services pages (Audits / Remediation / Monitoring) | Full copy, animated sections |
 | EAA page (`/eaa`) | Timeline, scope, directive explainer |
@@ -51,7 +51,6 @@ Last updated: May 2026
 
 | Feature | Task | Notes |
 |---|---|---|
-| A11y Fix guided BFSG journey (`/solutions/a11y-fix`) | — | POUR-grouped scan results, upsell to audits/remediation/monitoring |
 | Docs, migrations, assets & GitHub sync | #37 | This task |
 | Redesign About page | #42 | Less text, more visual: blocked on #37 |
 

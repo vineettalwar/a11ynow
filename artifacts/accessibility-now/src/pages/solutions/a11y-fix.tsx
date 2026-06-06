@@ -7,6 +7,7 @@ import { ArrowRight, Sparkles, Code, ShieldCheck, CheckCircle2 } from "lucide-re
 import { useSectionReveal } from "@/hooks/use-section-reveal";
 import { A11Y_FIX_INTENTS, type A11yFixIntent } from "@/lib/a11y-fix";
 import { POUR_PRINCIPLES } from "@/data/pour-principles";
+import { A11yFixJourneyStepper } from "@/components/a11y-fix/journey-stepper";
 
 const journeySteps = [
   { step: "01", title: "Choose your path", body: "Self-serve guidance, engineer-led fixes, or ongoing monitoring." },
@@ -87,7 +88,8 @@ export default function A11yFixLanding() {
   return (
     <div ref={pageRef} className="flex flex-col w-full">
       <section ref={heroRef} className="hero-gradient pt-24 pb-16 px-4">
-        <div className="container mx-auto max-w-4xl text-center">
+        <div className="container mx-auto max-w-4xl text-center space-y-8">
+          <A11yFixJourneyStepper current="choose" />
           <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-4 font-sans">
             A11y Fix · Guided BFSG compliance
           </p>

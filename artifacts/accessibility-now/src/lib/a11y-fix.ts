@@ -1,8 +1,112 @@
 import type { AuditViolation } from "@workspace/api-client-react";
 import type { PourPrincipleName } from "@/data/pour-principles";
-import { groupViolationsByPour } from "@/lib/pour-mapper";
+import { getViolationPrinciple, groupViolationsByPour } from "@/lib/pour-mapper";
+import { getHumanContextForViolation } from "@/lib/violation-human-context";
 
 export type FixDifficulty = "quick_win" | "moderate" | "expert";
+
+export type A11yFixJourneyStep = "choose" | "scan" | "plan" | "act";
+
+export const A11Y_FIX_JOURNEY_STEPS: { id: A11yFixJourneyStep; label: string }[] = [
+  { id: "choose", label: "Choose" },
+  { id: "scan", label: "Scan" },
+  { id: "plan", label: "Plan" },
+  { id: "act", label: "Act" },
+];
+
+export const A11Y_FIX_PLAN_STORAGE_PREFIX = "a11y_fix_plan_";
+
+export function getPlanStorageKey(auditId: string): string {
+  return `${A11Y_FIX_PLAN_STORAGE_PREFIX}${auditId}`;
+}
+
+export interface FixActionItem {
+  id: string;
+  ruleId: string;
+  title: string;
+  principle: PourPrincipleName;
+  difficulty: FixDifficulty;
+  impact: AuditViolation["impact"];
+  help?: string;
+  helpUrl?: string;
+  bitvSection?: string;
+  wcagCriteria: string;
+  plainLead: string;
+  relatedToolPath?: string;
+  affectedElements: number;
+}
+
+const DIFFICULTY_ORDER: Record<FixDifficulty, number> = {
+  quick_win: 0,
+  moderate: 1,
+  expert: 2,
+};
+
+const IMPACT_ORDER: Record<string, number> = {
+  critical: 4,
+  serious: 3,
+  moderate: 2,
+  minor: 1,
+};
+
+export function buildFixActionPlan(violations: AuditViolation[]): FixActionItem[] {
+  return [...violations]
+    .sort((a, b) => {
+      const d = DIFFICULTY_ORDER[getFixDifficulty(a.id)] - DIFFICULTY_ORDER[getFixDifficulty(b.id)];
+      if (d !== 0) return d;
+      const i = (IMPACT_ORDER[b.impact] ?? 0) - (IMPACT_ORDER[a.impact] ?? 0);
+      if (i !== 0) return i;
+      return (b.affectedElements ?? 0) - (a.affectedElements ?? 0);
+    })
+    .map((v) => {
+      const human = getHumanContextForViolation(v);
+      return {
+        id: `${v.id}:${v.wcagCriteria}`,
+        ruleId: v.id,
+        title: v.titleDe ?? v.description,
+        principle: getViolationPrinciple(v),
+        difficulty: getFixDifficulty(v.id),
+        impact: v.impact,
+        help: v.help,
+        helpUrl: v.helpUrl,
+        bitvSection: v.bitvSection,
+        wcagCriteria: v.wcagCriteria,
+        plainLead: human.plainLead,
+        relatedToolPath: human.relatedToolPath,
+        affectedElements: v.affectedElements ?? 0,
+      };
+    });
+}
+
+export function loadPlanProgress(auditId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(getPlanStorageKey(auditId));
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as string[];
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function savePlanProgress(auditId: string, completed: Set<string>): void {
+  try {
+    localStorage.setItem(getPlanStorageKey(auditId), JSON.stringify([...completed]));
+  } catch {
+    // localStorage may be unavailable
+  }
+}
+
+export function intentContactHref(
+  intent: A11yFixIntent,
+  opts: { url?: string; auditId?: string },
+): string {
+  const service = intent === "monitor" ? "monitoring" : intent === "engineers" ? "remediation" : "audit";
+  const params = new URLSearchParams({ service, source: "a11y-fix" });
+  if (opts.url) params.set("url", opts.url);
+  if (opts.auditId) params.set("auditId", opts.auditId);
+  return `/contact?${params.toString()}`;
+}
 
 export type A11yFixIntent = "self" | "engineers" | "monitor";
 

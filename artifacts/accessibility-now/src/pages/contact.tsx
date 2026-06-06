@@ -35,6 +35,12 @@ export default function Contact() {
   const params = new URLSearchParams(search);
   const serviceParam = params.get("service") ?? "";
   const prefilledService = (VALID_SERVICES as readonly string[]).includes(serviceParam) ? serviceParam : "";
+  const prefilledUrl = params.get("url") ?? "";
+  const auditIdParam = params.get("auditId") ?? "";
+  const fromA11yFix = params.get("source") === "a11y-fix";
+  const prefilledMessage = fromA11yFix
+    ? `I ran A11y Fix on ${prefilledUrl || "my site"}${auditIdParam ? ` (audit ${auditIdParam})` : ""}. I would like help with the next steps.`
+    : "";
 
   useEffect(() => {
     const el = pageRef.current;
@@ -53,7 +59,13 @@ export default function Contact() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "", company: "", url: "", service: prefilledService, message: "" },
+    defaultValues: {
+      name: "",
+      company: "",
+      url: prefilledUrl,
+      service: prefilledService,
+      message: prefilledMessage,
+    },
   });
 
   function onSubmit(_values: z.infer<typeof formSchema>) {
