@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
 import { Loader2, Download, Glasses } from "lucide-react";
-
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { apiUrl } from "@/lib/api-base";
 
 interface VisionMode {
   id: string;
@@ -62,7 +61,7 @@ const MODES: VisionMode[] = [
 type ImgState = "idle" | "loading" | "loaded" | "error";
 
 function screenshotSrc(url: string) {
-  return `${BASE_URL}/api/page-screenshot?url=${encodeURIComponent(url)}`;
+  return `${apiUrl("/api/page-screenshot")}?url=${encodeURIComponent(url)}`;
 }
 
 async function downloadLowVision(

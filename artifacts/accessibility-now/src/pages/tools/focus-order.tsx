@@ -75,7 +75,7 @@ function TypeLegendChips() {
 const SVG_MARKER_R = 12;
 const SVG_FONT_SIZE = 11;
 
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { apiUrl } from "@/lib/api-base";
 
 function buildAnnotatedCanvas(
   img: HTMLImageElement,
@@ -142,7 +142,7 @@ export default function FocusOrderVisualizer() {
     setFilter("all");
     setHoveredIndex(null);
     try {
-      const resp = await fetch(`${BASE_URL}/api/focus-order?url=${encodeURIComponent(target)}`);
+      const resp = await fetch(`${apiUrl("/api/focus-order")}?url=${encodeURIComponent(target)}`);
       if (!resp.ok) {
         const data = await resp.json().catch(() => ({}));
         throw new Error(data.message || "Could not analyse focus order.");

@@ -4,11 +4,11 @@ import { promisify } from "util";
 import { launchChromiumHeadless } from "../lib/playwright-chromium";
 import { logger } from "../lib/logger";
 import { captureFullPagePng, screenshotFriendlyContextOptions } from "../lib/playwright-screenshot";
+import { gotoPageForCapture } from "../lib/playwright-nav";
+import { normalizeHttpUrl, validatePublicUrl, PRIVATE_IP_RE } from "../lib/public-url";
 
 const router: IRouter = Router();
 const dnsLookupAsync = promisify(dnsLookup);
-const PRIVATE_IP_RE =
-  /^(127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1$|fc00:|fd[0-9a-f]{2}:|fe80:)/i;
 const SCREENSHOT_TIMEOUT_MS = 20000;
 
 const CACHE_TTL_MS = 60_000;
@@ -41,33 +41,6 @@ function cacheSet(url: string, png: Buffer): void {
   screenshotCache.set(url, { png, expiresAt: Date.now() + CACHE_TTL_MS });
 }
 
-async function validateUrl(
-  raw: string,
-): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  let parsed: URL;
-  try {
-    parsed = new URL(raw);
-  } catch {
-    return { ok: false, error: "Invalid URL." };
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return { ok: false, error: "Only http and https URLs are allowed." };
-  }
-  const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
-  if (PRIVATE_IP_RE.test(hostname)) {
-    return { ok: false, error: "Internal addresses are not allowed." };
-  }
-  try {
-    const { address } = await dnsLookupAsync(hostname);
-    if (PRIVATE_IP_RE.test(address)) {
-      return { ok: false, error: "Internal addresses are not allowed." };
-    }
-  } catch {
-    return { ok: false, error: "Could not resolve hostname." };
-  }
-  return { ok: true, url: parsed.href };
-}
-
 router.get("/page-screenshot", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.query.url) ? req.query.url[0] : req.query.url;
   if (typeof raw !== "string" || !raw) {
@@ -75,8 +48,7 @@ router.get("/page-screenshot", async (req, res): Promise<void> => {
     return;
   }
 
-  const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  const validation = await validateUrl(normalized);
+  const validation = await validatePublicUrl(normalizeHttpUrl(raw));
   if (!validation.ok) {
     res.status(400).json({ error: "invalid_url", message: validation.error });
     return;
@@ -134,10 +106,7 @@ router.get("/page-screenshot", async (req, res): Promise<void> => {
 
     const page = await context.newPage();
 
-    await page.goto(url, {
-      waitUntil: "networkidle",
-      timeout: SCREENSHOT_TIMEOUT_MS,
-    });
+    await gotoPageForCapture(page, url, SCREENSHOT_TIMEOUT_MS);
 
     const png = await captureFullPagePng(page, {
       screenshotTimeoutMs: SCREENSHOT_TIMEOUT_MS,

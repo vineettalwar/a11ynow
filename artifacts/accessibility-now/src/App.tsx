@@ -74,6 +74,21 @@ import A11yFixResult from "@/pages/a11y-fix/result";
 import A11yFixPlan from "@/pages/a11y-fix/plan";
 import A11yFixBatchResult from "@/pages/a11y-fix/batch-result";
 import { LegacyFixPilotRedirect } from "@/components/legacy-redirect";
+import { SeoHead } from "@/components/seo-head";
+
+// New tools
+import AltTextChecker from "@/pages/tools/alt-text-checker";
+import HeadingStructure from "@/pages/tools/heading-structure";
+import LinkTextChecker from "@/pages/tools/link-text-checker";
+
+// New compliance / tech / guides
+import ComplianceUkEqualityAct from "@/pages/resources/compliance/uk-equality-act";
+import ComplianceWcag22 from "@/pages/resources/compliance/wcag-22";
+import TechVue from "@/pages/resources/technologies/vue";
+import TechAngular from "@/pages/resources/technologies/angular";
+import GuideAltText from "@/pages/resources/guides/alt-text";
+import GuideForms from "@/pages/resources/guides/forms";
+import ShopifyEaaChecklist from "@/pages/resources/checklists/shopify-eaa";
 
 const queryClient = new QueryClient();
 
@@ -115,9 +130,12 @@ function Router() {
         <Route path="/resources/guides/aria" component={GuideAria} />
         <Route path="/resources/guides/keyboard-accessibility" component={GuideKeyboard} />
         <Route path="/resources/guides/screen-readers" component={GuideScreenReaders} />
+        <Route path="/resources/guides/alt-text" component={GuideAltText} />
+        <Route path="/resources/guides/forms" component={GuideForms} />
 
         <Route path="/resources/checklists" component={ChecklistsIndex} />
         <Route path="/resources/checklists/eaa" component={EaaChecklist} />
+        <Route path="/resources/checklists/shopify-eaa" component={ShopifyEaaChecklist} />
 
         <Route path="/resources/compliance" component={ComplianceIndex} />
         <Route path="/resources/compliance/eaa" component={EAA} />
@@ -125,6 +143,8 @@ function Router() {
         <Route path="/resources/compliance/section-508" component={ComplianceSection508} />
         <Route path="/resources/compliance/aoda" component={ComplianceAoda} />
         <Route path="/resources/compliance/en-301-549" component={ComplianceEn301549} />
+        <Route path="/resources/compliance/uk-equality-act" component={ComplianceUkEqualityAct} />
+        <Route path="/resources/compliance/wcag-22" component={ComplianceWcag22} />
 
         <Route path="/resources/technologies" component={TechnologiesIndex} />
         <Route path="/resources/technologies/wordpress" component={TechWordpress} />
@@ -133,6 +153,8 @@ function Router() {
         <Route path="/resources/technologies/shopify" component={TechShopify} />
         <Route path="/resources/technologies/react" component={TechReact} />
         <Route path="/resources/technologies/nextjs" component={TechNextjs} />
+        <Route path="/resources/technologies/vue" component={TechVue} />
+        <Route path="/resources/technologies/angular" component={TechAngular} />
 
         <Route path="/about" component={About} />
         <Route path="/pricing" component={Pricing} />
@@ -150,6 +172,9 @@ function Router() {
         <Route path="/tools/wcag-checklist" component={WcagChecklist} />
         <Route path="/tools/focus-order" component={FocusOrderVisualizer} />
         <Route path="/tools/website-scanner" component={WebsiteScannerTool} />
+        <Route path="/tools/alt-text-checker" component={AltTextChecker} />
+        <Route path="/tools/heading-structure" component={HeadingStructure} />
+        <Route path="/tools/link-text-checker" component={LinkTextChecker} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
@@ -161,6 +186,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <SeoHead />
           <Router />
         </WouterRouter>
         <Toaster />

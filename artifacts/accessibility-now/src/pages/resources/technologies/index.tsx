@@ -10,6 +10,8 @@ const ITEMS = [
   { href: "/resources/technologies/shopify", title: "Shopify", description: "Themes, apps, checkout extensibility, and the EAA merchant obligation.", category: "E-commerce", logo: "S" },
   { href: "/resources/technologies/react", title: "React", description: "Component primitives, focus management, and testing for accessible React apps.", category: "Framework", logo: "Re" },
   { href: "/resources/technologies/nextjs", title: "Next.js", description: "App router, server components, and accessible patterns for the most popular React framework.", category: "Framework", logo: "Nx" },
+  { href: "/resources/technologies/vue", title: "Vue.js", description: "Composition API, Nuxt, focus traps, and accessible component patterns.", category: "Framework", logo: "Vu" },
+  { href: "/resources/technologies/angular", title: "Angular", description: "CDK a11y, LiveAnnouncer, Material theming, and enterprise patterns.", category: "Framework", logo: "Ng" },
 ];
 
 export default function TechnologiesIndex() {

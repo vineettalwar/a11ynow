@@ -562,6 +562,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <p className="text-xs text-muted-foreground mb-3 leading-relaxed max-w-xs">
               A11y agency: WCAG audits, remediation, and monitoring, focused on teams shipping in the EU.
             </p>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
+              A product of{" "}
+              <a
+                href="https://sometech.work"
+                className="text-foreground hover:text-primary transition-colors font-semibold"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                SomeTech.work
+              </a>
+              {" "}— tech consulting for European companies.
+            </p>
           </div>
           <div>
             <h4 className="font-semibold text-sm mb-4 font-sans">Services</h4>

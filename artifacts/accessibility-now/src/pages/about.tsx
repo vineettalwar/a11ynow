@@ -122,7 +122,16 @@ export default function About() {
                   className="text-lg text-[#1A1A1A] leading-relaxed"
                   style={{ fontFamily: "var(--app-font-mono)" }}
                 >
-                  accessibility.now is a digital accessibility agency with the same senior team from first scope call through audit, remediation, and monitoring.
+                  accessibility.now is a digital accessibility agency — a product of{" "}
+                  <a
+                    href="https://sometech.work"
+                    className="text-[#FF4D1C] hover:underline font-semibold"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    SomeTech.work
+                  </a>
+                  . Same senior team from first scope call through audit, remediation, and monitoring.
                 </p>
               </div>
               <Button
