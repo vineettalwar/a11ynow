@@ -1,0 +1,9 @@
+# Cloudflare Pages — accessibility.now frontend
+# Deploy: cd artifacts/accessibility-now && pnpm build && npx wrangler pages deploy dist/public
+name = "accessibility-now"
+pages_build_output_dir = "dist/public"
+compatibility_date = "2025-09-15"
+
+[vars]
+# Override in Cloudflare dashboard → Settings → Environment variables
+# API_ORIGIN = "https://api.accessibility.now"

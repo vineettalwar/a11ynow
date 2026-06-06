@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
 import { Loader2, Columns2, MonitorPlay, Download, Eye } from "lucide-react";
-
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { apiUrl } from "@/lib/api-base";
 
 interface VisionType {
   id: string;
@@ -67,7 +66,7 @@ type ViewMode = "single" | "side-by-side";
 type ImgState = "idle" | "loading" | "loaded" | "error";
 
 function screenshotSrc(url: string) {
-  return `${BASE_URL}/api/page-screenshot?url=${encodeURIComponent(url)}`;
+  return `${apiUrl("/api/page-screenshot")}?url=${encodeURIComponent(url)}`;
 }
 
 function clamp(v: number): number {

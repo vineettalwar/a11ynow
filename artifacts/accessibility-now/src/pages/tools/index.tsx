@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, Mic, Keyboard, Palette, Glasses, Smartphone, ClipboardList, ArrowRight, TabletSmartphone, Radar } from "lucide-react";
+import { Eye, Mic, Keyboard, Palette, Glasses, Smartphone, ClipboardList, ArrowRight, TabletSmartphone, Radar, Image, Heading, Link2 } from "lucide-react";
 
 const tools = [
   {
@@ -58,6 +58,24 @@ const tools = [
     title: "Focus Order Visualizer",
     description: "Capture a screenshot of any page and overlay numbered markers showing the keyboard Tab order - colour-coded by element type with issue detection.",
   },
+  {
+    href: "/tools/alt-text-checker",
+    icon: Image,
+    title: "Alt Text Checker",
+    description: "Scan any URL for images missing alt attributes. Uses headless Chromium so SPAs and lazy-loaded images are included.",
+  },
+  {
+    href: "/tools/heading-structure",
+    icon: Heading,
+    title: "Heading Structure Checker",
+    description: "List every H1–H6 in document order and flag empty headings that break screen reader navigation.",
+  },
+  {
+    href: "/tools/link-text-checker",
+    icon: Link2,
+    title: "Link Text Checker",
+    description: "Find links with no accessible name or generic text like 'click here' — a top WCAG 2.4.4 audit failure.",
+  },
 ];
 
 export default function ToolsIndex() {
@@ -73,7 +91,7 @@ export default function ToolsIndex() {
             <span className="heading-accent">sees your website.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl leading-relaxed">
-            Nine interactive tools for developers and designers. All run in-browser - no account needed, no data sent.
+            Twelve interactive tools for developers and designers. Server-backed scans use headless Chromium — no account needed.
           </p>
         </div>
       </section>
@@ -90,7 +108,7 @@ export default function ToolsIndex() {
               </p>
             </div>
             <p className="text-xs text-muted-foreground shrink-0 font-sans tabular-nums tracking-wide">
-              9 tools
+              12 tools
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7 md:gap-8">

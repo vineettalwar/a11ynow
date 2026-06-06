@@ -652,4 +652,210 @@ export const SEO_CONTENT: Record<string, SeoArticleContent> = {
     ctaTitle: "Need a screen-reader",
     ctaBody: "We test on real NVDA, JAWS, VoiceOver, and TalkBack - not just an automated scan - and document every issue we find.",
   },
+
+  "compliance-uk-equality-act": {
+    breadcrumb: [...COMPLIANCE_BC, { href: "/resources/compliance/uk-equality-act", label: "UK Equality Act" }],
+    kicker: "Compliance · United Kingdom",
+    title: "UK Equality Act and public sector",
+    titleAccent: "accessibility.",
+    intro:
+      "The Equality Act 2010 requires service providers in the UK not to discriminate against disabled people. For websites and apps, courts and regulators expect reasonable adjustments — typically WCAG 2.1 Level AA. Public sector bodies must also meet the Public Sector Bodies Accessibility Regulations (PSBAR).",
+    sections: [
+      {
+        heading: "Who it applies to",
+        body:
+          "Any organisation providing goods, services, or facilities to the public in the UK — retailers, banks, universities, utilities, hospitality, and SaaS vendors with UK customers.\n\nPublic sector websites and mobile apps must publish an accessibility statement and meet WCAG 2.1 AA under PSBAR, with annual monitoring reports to GDS.",
+      },
+      {
+        heading: "What conformance looks like",
+        bullets: [
+          "WCAG 2.1 Level AA across customer-facing journeys (many teams now target 2.2).",
+          "Accessible PDFs, videos with captions, and forms that work with assistive tech.",
+          "An accessibility statement with a contact route for reporting barriers.",
+          "For public sector: published monitoring report and remediation plan for known issues.",
+        ],
+      },
+      {
+        heading: "Enforcement and risk",
+        body:
+          "The Equality and Human Rights Commission can investigate and require action. Disabled users can bring discrimination claims. Public sector monitoring is published — poor scores are visible to procurement and press.\n\nThe practical risk is reputational and commercial: inaccessible checkout, onboarding, or self-service flows lose customers and invite complaints.",
+      },
+    ],
+    related: [
+      { href: "/eaa", label: "European Accessibility Act", description: "EU equivalent for cross-border sellers." },
+      { href: "/resources/compliance/wcag-22", label: "WCAG 2.2", description: "The technical standard behind most audits." },
+      { href: "/tools/website-scanner", label: "Free scanner", description: "Baseline automated check in minutes." },
+    ],
+    ctaTitle: "Selling in the UK?",
+    ctaBody: "We audit against WCAG 2.2, map findings to the Equality Act reasonable-adjustment standard, and help you publish a defensible accessibility statement.",
+  },
+
+  "compliance-wcag-22": {
+    breadcrumb: [...COMPLIANCE_BC, { href: "/resources/compliance/wcag-22", label: "WCAG 2.2" }],
+    kicker: "Compliance · W3C standard",
+    title: "WCAG 2.2 compliance — what's new and",
+    titleAccent: "who must meet it.",
+    intro:
+      "Web Content Accessibility Guidelines 2.2 became a W3C Recommendation in October 2023. EN 301 549 and the European Accessibility Act reference WCAG 2.1 today, but procurement and best-practice audits increasingly expect 2.2 — especially the new focus and target-size criteria.",
+    sections: [
+      {
+        heading: "Nine new success criteria in 2.2",
+        bullets: [
+          "2.4.11 Focus Appearance (Minimum) — visible focus indicator requirements.",
+          "2.4.12 Focus Appearance (Enhanced) — AAA-level focus visibility.",
+          "2.4.13 Focus Not Obscured — focus must not be hidden by sticky headers or overlays.",
+          "2.5.7 Dragging Movements — provide a non-drag alternative.",
+          "2.5.8 Target Size (Minimum) — 24×24 CSS pixel minimum for pointer targets.",
+          "3.2.6 Consistent Help — help mechanisms in the same relative place.",
+          "3.3.7 Redundant Entry — don't ask for the same information twice in one session.",
+          "3.3.8 Accessible Authentication (Minimum) — no cognitive function tests without alternatives.",
+          "3.3.9 Accessible Authentication (Enhanced) — AAA authentication requirements.",
+        ],
+      },
+      {
+        heading: "2.2 vs 2.1 for your roadmap",
+        body:
+          "If you already conform to WCAG 2.1 AA, 2.2 is an incremental upgrade — not a rewrite. The criteria that bite most teams in production are focus appearance, focus not obscured, and target size.\n\nWe recommend targeting 2.2 AA for any site shipping after 2024, especially e-commerce and SaaS with modals, sticky nav, and drag-and-drop.",
+      },
+    ],
+    related: [
+      { href: "/resources/wcag-guide", label: "WCAG 2.2 guide", description: "Full POUR walkthrough." },
+      { href: "/tools/wcag-checklist", label: "WCAG checklist", description: "Interactive 2.1 AA checklist." },
+      { href: "/services/audits", label: "Conformance audit", description: "Manual + automated testing." },
+    ],
+    ctaTitle: "Upgrading to 2.2?",
+    ctaBody: "We gap-assess your 2.1 baseline against 2.2, prioritise the criteria that affect your UI patterns, and fix them in engineering sprints.",
+  },
+
+  "tech-vue": {
+    breadcrumb: [...TECH_BC, { href: "/resources/technologies/vue", label: "Vue.js" }],
+    kicker: "Technologies · Vue 3",
+    title: "Vue.js accessibility — Composition API",
+    titleAccent: "patterns.",
+    intro:
+      "Vue's reactivity and single-file components make it easy to ship fast — and easy to ship inaccessible custom widgets. Semantic HTML first, VueUse focus helpers second, ARIA only when the platform cannot express the pattern.",
+    sections: [
+      {
+        heading: "Foundations",
+        bullets: [
+          "Use native elements (`button`, `a`, `input`) before div-as-button patterns.",
+          "Bind `aria-*` and `role` explicitly — Vue does not add them automatically.",
+          "Use `@vueuse/integrations/useFocusTrap` for modals and drawers.",
+          "Announce route changes with a polite live region in your router layout.",
+          "Test with axe-core in Vitest/Playwright component tests.",
+        ],
+      },
+      {
+        heading: "Common Vue pitfalls",
+        body:
+          "Teleport modals without focus return, v-if menus that remove focus from the DOM without moving it, and dynamic `:style` that hides focus rings are the top three issues we see in Nuxt and Vite SPAs.\n\nNuxt 3: set per-route `useHead({ title })` for meaningful document titles — VoiceOver reads the title on navigation.",
+      },
+    ],
+    related: [
+      { href: "/resources/technologies/react", label: "React guide", description: "Similar SPA focus patterns." },
+      { href: "/resources/guides/aria", label: "ARIA guide", description: "When custom widgets need roles." },
+      { href: "/tools/focus-order", label: "Focus order tool", description: "Visualise tab sequence." },
+    ],
+    ctaTitle: "Vue app in production?",
+    ctaBody: "We audit Nuxt and Vue SPAs with keyboard and screen reader testing, then pair with your team on component fixes.",
+  },
+
+  "tech-angular": {
+    breadcrumb: [...TECH_BC, { href: "/resources/technologies/angular", label: "Angular" }],
+    kicker: "Technologies · Angular",
+    title: "Angular accessibility — CDK and",
+    titleAccent: "Material patterns.",
+    intro:
+      "Angular ships strong accessibility tooling via `@angular/cdk/a11y` and Angular Material. Enterprise teams often under-use LiveAnnouncer, FocusMonitor, and listbox patterns — leaving keyboard and screen reader users behind.",
+    sections: [
+      {
+        heading: "Use the CDK first",
+        bullets: [
+          "`LiveAnnouncer` for toasts, validation, and async updates.",
+          "`FocusTrap` and `CdkTrapFocus` for modals and side panels.",
+          "`ListKeyManager` for roving tabindex in menus and toolbars.",
+          "Angular Material components with built-in ARIA — extend, don't replace.",
+          "eslint-plugin-jsx-a11y equivalent: `@angular-eslint/template/accessibility-*` rules.",
+        ],
+      },
+      {
+        heading: "Material vs custom UI",
+        body:
+          "Custom Material theme overrides often remove focus indicators or shrink touch targets below 2.5.8. Audit your theme SCSS for `:focus-visible` and minimum hit areas before declaring AA conformance.\n\nServer-side rendering with Angular Universal: ensure title and meta update per route for screen reader page announcements.",
+      },
+    ],
+    related: [
+      { href: "/resources/guides/keyboard-accessibility", label: "Keyboard guide", description: "Focus and tab order." },
+      { href: "/tools/keyboard-tester", label: "Keyboard tester", description: "Interactive checklist." },
+      { href: "/services/remediation", label: "Remediation", description: "Engineering sprints." },
+    ],
+    ctaTitle: "Angular enterprise app?",
+    ctaBody: "We review Material customisations, CDK usage, and template semantics — then deliver fixes as pull requests.",
+  },
+
+  "guide-alt-text": {
+    breadcrumb: [...GUIDES_BC, { href: "/resources/guides/alt-text", label: "Alt text" }],
+    kicker: "Guides · Images",
+    title: "Alt text that helps — not keyword",
+    titleAccent: "stuffing.",
+    intro:
+      "Alternative text is the most misunderstood WCAG requirement. It is not SEO metadata — it is how blind and low-vision users understand images. Get it wrong and you either hide information or waste people's time with noise.",
+    sections: [
+      {
+        heading: "Decision tree",
+        bullets: [
+          "Informative image → concise alt describing meaning and function, not appearance.",
+          "Decorative image → `alt=\"\"` or `role=\"presentation\"` so screen readers skip it.",
+          "Functional image (icon button) → alt describes the action, not the icon shape.",
+          "Complex chart or diagram → short alt plus longer description nearby or via `aria-describedby`.",
+          "Text in image → reproduce the text in alt unless redundant with adjacent copy.",
+        ],
+      },
+      {
+        heading: "Length and tone",
+        body:
+          "Aim for under 150 characters for simple images. Lead with the point: 'Quarterly revenue up 12%' not 'A bar chart with blue bars showing...'.\n\nIf your CMS auto-fills alt from filenames, turn that off — `IMG_4832.jpg` helps nobody.",
+      },
+    ],
+    related: [
+      { href: "/tools/alt-text-checker", label: "Alt text checker", description: "Scan any URL for missing alt." },
+      { href: "/resources/guides/screen-readers", label: "Screen readers", description: "How alt is announced." },
+      { href: "/services/audits", label: "Content audit", description: "Media library review." },
+    ],
+    ctaTitle: "Thousands of images?",
+    ctaBody: "We audit CMS media libraries, write alt guidelines for your editors, and fix the high-traffic pages first.",
+  },
+
+  "guide-forms": {
+    breadcrumb: [...GUIDES_BC, { href: "/resources/guides/forms", label: "Forms" }],
+    kicker: "Guides · Forms",
+    title: "Accessible forms — labels, errors, and",
+    titleAccent: "validation.",
+    intro:
+      "Forms are where accessibility lawsuits and abandoned carts concentrate. Missing labels, placeholder-only fields, and errors that only turn borders red fail WCAG 1.3.1, 3.3.1, and 3.3.2 — and frustrate every user on mobile.",
+    sections: [
+      {
+        heading: "Non-negotiables",
+        bullets: [
+          "Every control has a visible `<label>` or `aria-label` / `aria-labelledby`.",
+          "Required fields marked in text, not colour alone (`*` plus '(required)').",
+          "Errors identified in text, linked to fields with `aria-describedby` or `aria-errormessage`.",
+          "Do not clear user input on validation failure.",
+          "Group related fields with `<fieldset>` and `<legend>`.",
+        ],
+      },
+      {
+        heading: "Live validation done right",
+        body:
+          "Validate on submit at minimum. If you validate as the user types, use `aria-live=\"polite\"` on a summary region — not `role=\"alert\"` on every keystroke.\n\nAutocomplete attributes (`autocomplete=\"email\"`) help WCAG 2.2 authentication criteria and reduce cognitive load.",
+      },
+    ],
+    related: [
+      { href: "/tools/screen-reader-preview", label: "Screen reader preview", description: "See form labels announced." },
+      { href: "/resources/guides/aria", label: "ARIA guide", description: "Describedby and live regions." },
+      { href: "/tools/website-scanner", label: "Website scanner", description: "Catch label violations." },
+    ],
+    ctaTitle: "Checkout or signup broken?",
+    ctaBody: "We test forms with keyboard and screen readers, map errors to WCAG criteria, and fix the flows that block conversion.",
+  },
 };

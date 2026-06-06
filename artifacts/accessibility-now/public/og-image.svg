@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="accessibility.now  WCAG audits and free accessibility tools">
+  <rect width="1200" height="630" fill="#F7F7F5"/>
+  <rect x="0" y="0" width="1200" height="8" fill="#FF4D1C"/>
+  <text x="80" y="280" font-family="Inter, system-ui, sans-serif" font-size="72" font-weight="800" fill="#0A0A0A">accessibility.now</text>
+  <text x="80" y="360" font-family="JetBrains Mono, monospace" font-size="28" fill="#525252">WCAG audits · free tools · EAA compliance</text>
+  <text x="80" y="520" font-family="JetBrains Mono, monospace" font-size="20" fill="#737373">A product of SomeTech.work</text>
+  <circle cx="1080" cy="120" r="48" fill="#FF4D1C" opacity="0.15"/>
+  <circle cx="1080" cy="120" r="24" fill="#FF4D1C"/>
+</svg>

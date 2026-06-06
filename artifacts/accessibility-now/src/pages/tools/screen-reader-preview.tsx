@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
 import { CheckCircle2, XCircle, Loader2, Mic } from "lucide-react";
+import { apiUrl } from "@/lib/api-base";
 
 type ItemType = "title" | "landmark" | "heading" | "link" | "button" | "image" | "form-label";
 
@@ -20,6 +21,7 @@ interface ScreenReaderItem {
 interface PreviewResult {
   url: string;
   items: ScreenReaderItem[];
+  engine?: string;
 }
 
 const TYPE_LABELS: Record<ItemType, string> = {
@@ -34,8 +36,6 @@ const TYPE_LABELS: Record<ItemType, string> = {
 
 const TYPE_BADGE_CLASS =
   "bg-muted/80 text-foreground border border-border/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]";
-
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function ScreenReaderPreview() {
   const search = useSearch();
@@ -60,7 +60,7 @@ export default function ScreenReaderPreview() {
     setError(null);
     setResult(null);
     try {
-      const resp = await fetch(`${BASE_URL}/api/screen-reader-preview?url=${encodeURIComponent(target)}`);
+      const resp = await fetch(`${apiUrl("/api/screen-reader-preview")}?url=${encodeURIComponent(target)}`);
       if (!resp.ok) {
         const data = await resp.json().catch(() => ({}));
         throw new Error(data.message || "Could not fetch screen reader preview.");

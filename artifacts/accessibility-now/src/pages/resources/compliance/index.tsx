@@ -9,6 +9,8 @@ const ITEMS = [
   { href: "/resources/compliance/ada", icon: Flag, title: "ADA", description: "Americans with Disabilities Act, applied to U.S. websites and apps by federal courts.", region: "US" },
   { href: "/resources/compliance/section-508", icon: Building2, title: "Section 508", description: "U.S. federal procurement standard. VPATs and ACRs explained.", region: "US Federal" },
   { href: "/resources/compliance/aoda", icon: FileText, title: "AODA", description: "Accessibility for Ontarians with Disabilities Act - Ontario, Canada.", region: "CA" },
+  { href: "/resources/compliance/uk-equality-act", icon: Flag, title: "UK Equality Act", description: "Service provider obligations and PSBAR for UK public sector websites.", region: "UK" },
+  { href: "/resources/compliance/wcag-22", icon: ShieldCheck, title: "WCAG 2.2", description: "New success criteria, focus rules, and who should target 2.2 AA.", region: "Global" },
 ];
 
 export default function ComplianceIndex() {
