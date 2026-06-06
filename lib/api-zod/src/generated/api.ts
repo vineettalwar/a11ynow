@@ -49,6 +49,12 @@ export const CreateAuditBody = zod.object({
     .describe(
       "When true, runs axe at mobile and desktop breakpoints and merges results (slower). Default false.\n",
     ),
+  wholeSite: zod
+    .boolean()
+    .optional()
+    .describe(
+      "When true with batch endpoint, discovers up to 10 same-origin pages via sitemap or homepage links.\n",
+    ),
 });
 
 export const createAuditResponseScoreMin = 0;
@@ -138,6 +144,15 @@ export const CreateAuditResponse = zod.object({
         .describe(
           "Breakpoint labels when this finding was merged from a multi-viewport scan.",
         ),
+      en301549Clause: zod
+        .string()
+        .optional()
+        .describe("EN 301 549 clause reference (BITV 2.0 \/ BFSG mapping)."),
+      bitvSection: zod.string().optional().describe("BITV 2.0 section label."),
+      titleDe: zod
+        .string()
+        .optional()
+        .describe("German title for compliance reporting."),
     }),
   ),
   passedChecks: zod.number(),
@@ -182,10 +197,121 @@ export const CreateAuditResponse = zod.object({
             .optional(),
         })
         .optional(),
+      complianceReport: zod
+        .object({
+          framework: zod.string(),
+          frameworkVersion: zod.string(),
+          legalContextDe: zod.string(),
+          legalContextEn: zod.string(),
+          overallStatus: zod.enum([
+            "conformant",
+            "non_conformant",
+            "needs_manual_review",
+          ]),
+          wcagLevel: zod.string(),
+          clauseFindings: zod.array(
+            zod.object({
+              en301549Clause: zod.string(),
+              bitvSection: zod.string(),
+              wcagCriterion: zod.string().optional(),
+              titleDe: zod.string(),
+              titleEn: zod.string(),
+              status: zod.enum([
+                "conformant",
+                "non_conformant",
+                "needs_manual_review",
+              ]),
+              violationCount: zod.number(),
+              relatedRuleIds: zod.array(zod.string()),
+            }),
+          ),
+          supplementalFindings: zod.array(
+            zod.object({
+              id: zod.string(),
+              titleDe: zod.string(),
+              titleEn: zod.string(),
+              status: zod.enum(["pass", "fail", "warning"]),
+              description: zod.string(),
+              impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+              en301549Clause: zod.string().optional(),
+              bitvSection: zod.string().optional(),
+            }),
+          ),
+          manualReviewRequired: zod.array(zod.string()),
+          summaryDe: zod.string(),
+          summaryEn: zod.string(),
+        })
+        .optional(),
+      supplementalFindings: zod
+        .array(
+          zod.object({
+            id: zod.string(),
+            titleDe: zod.string(),
+            titleEn: zod.string(),
+            status: zod.enum(["pass", "fail", "warning"]),
+            description: zod.string(),
+            impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+            en301549Clause: zod.string().optional(),
+            bitvSection: zod.string().optional(),
+          }),
+        )
+        .optional(),
+      discoverySource: zod
+        .enum(["sitemap", "links", "single"])
+        .optional()
+        .describe("How whole-site URLs were discovered."),
     })
     .optional()
     .describe(
       "Scan options, viewports used, and optional runtime diagnostics (Playwright). Omitted on legacy rows.",
+    ),
+  complianceReport: zod
+    .object({
+      framework: zod.string(),
+      frameworkVersion: zod.string(),
+      legalContextDe: zod.string(),
+      legalContextEn: zod.string(),
+      overallStatus: zod.enum([
+        "conformant",
+        "non_conformant",
+        "needs_manual_review",
+      ]),
+      wcagLevel: zod.string(),
+      clauseFindings: zod.array(
+        zod.object({
+          en301549Clause: zod.string(),
+          bitvSection: zod.string(),
+          wcagCriterion: zod.string().optional(),
+          titleDe: zod.string(),
+          titleEn: zod.string(),
+          status: zod.enum([
+            "conformant",
+            "non_conformant",
+            "needs_manual_review",
+          ]),
+          violationCount: zod.number(),
+          relatedRuleIds: zod.array(zod.string()),
+        }),
+      ),
+      supplementalFindings: zod.array(
+        zod.object({
+          id: zod.string(),
+          titleDe: zod.string(),
+          titleEn: zod.string(),
+          status: zod.enum(["pass", "fail", "warning"]),
+          description: zod.string(),
+          impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+          en301549Clause: zod.string().optional(),
+          bitvSection: zod.string().optional(),
+        }),
+      ),
+      manualReviewRequired: zod.array(zod.string()),
+      summaryDe: zod.string(),
+      summaryEn: zod.string(),
+    })
+    .optional()
+    .describe(
+      "BITV 2.0 \/ BFSG (EN 301 549) compliance assessment. Also available in scanMetadata when present.",
     ),
 });
 
@@ -210,7 +336,23 @@ export const CreateBatchAuditBody = zod.object({
     .array(zod.string())
     .min(1)
     .max(createBatchAuditBodyUrlsMax)
-    .describe("List of URLs to scan (1–10)"),
+    .optional()
+    .describe("List of URLs to scan (1–10). Omit when wholeSite is true."),
+  url: zod
+    .string()
+    .optional()
+    .describe("Seed URL for whole-site discovery when wholeSite is true."),
+  wholeSite: zod
+    .boolean()
+    .optional()
+    .describe(
+      "Discover up to 10 same-origin pages from sitemap.xml or homepage links.",
+    ),
+  profile: zod.enum(["default", "strict"]).optional(),
+  multiViewport: zod
+    .boolean()
+    .optional()
+    .describe("Run mobile + desktop axe passes and merge results."),
 });
 
 /**
@@ -327,6 +469,15 @@ export const GetAuditResponse = zod.object({
         .describe(
           "Breakpoint labels when this finding was merged from a multi-viewport scan.",
         ),
+      en301549Clause: zod
+        .string()
+        .optional()
+        .describe("EN 301 549 clause reference (BITV 2.0 \/ BFSG mapping)."),
+      bitvSection: zod.string().optional().describe("BITV 2.0 section label."),
+      titleDe: zod
+        .string()
+        .optional()
+        .describe("German title for compliance reporting."),
     }),
   ),
   passedChecks: zod.number(),
@@ -371,10 +522,121 @@ export const GetAuditResponse = zod.object({
             .optional(),
         })
         .optional(),
+      complianceReport: zod
+        .object({
+          framework: zod.string(),
+          frameworkVersion: zod.string(),
+          legalContextDe: zod.string(),
+          legalContextEn: zod.string(),
+          overallStatus: zod.enum([
+            "conformant",
+            "non_conformant",
+            "needs_manual_review",
+          ]),
+          wcagLevel: zod.string(),
+          clauseFindings: zod.array(
+            zod.object({
+              en301549Clause: zod.string(),
+              bitvSection: zod.string(),
+              wcagCriterion: zod.string().optional(),
+              titleDe: zod.string(),
+              titleEn: zod.string(),
+              status: zod.enum([
+                "conformant",
+                "non_conformant",
+                "needs_manual_review",
+              ]),
+              violationCount: zod.number(),
+              relatedRuleIds: zod.array(zod.string()),
+            }),
+          ),
+          supplementalFindings: zod.array(
+            zod.object({
+              id: zod.string(),
+              titleDe: zod.string(),
+              titleEn: zod.string(),
+              status: zod.enum(["pass", "fail", "warning"]),
+              description: zod.string(),
+              impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+              en301549Clause: zod.string().optional(),
+              bitvSection: zod.string().optional(),
+            }),
+          ),
+          manualReviewRequired: zod.array(zod.string()),
+          summaryDe: zod.string(),
+          summaryEn: zod.string(),
+        })
+        .optional(),
+      supplementalFindings: zod
+        .array(
+          zod.object({
+            id: zod.string(),
+            titleDe: zod.string(),
+            titleEn: zod.string(),
+            status: zod.enum(["pass", "fail", "warning"]),
+            description: zod.string(),
+            impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+            en301549Clause: zod.string().optional(),
+            bitvSection: zod.string().optional(),
+          }),
+        )
+        .optional(),
+      discoverySource: zod
+        .enum(["sitemap", "links", "single"])
+        .optional()
+        .describe("How whole-site URLs were discovered."),
     })
     .optional()
     .describe(
       "Scan options, viewports used, and optional runtime diagnostics (Playwright). Omitted on legacy rows.",
+    ),
+  complianceReport: zod
+    .object({
+      framework: zod.string(),
+      frameworkVersion: zod.string(),
+      legalContextDe: zod.string(),
+      legalContextEn: zod.string(),
+      overallStatus: zod.enum([
+        "conformant",
+        "non_conformant",
+        "needs_manual_review",
+      ]),
+      wcagLevel: zod.string(),
+      clauseFindings: zod.array(
+        zod.object({
+          en301549Clause: zod.string(),
+          bitvSection: zod.string(),
+          wcagCriterion: zod.string().optional(),
+          titleDe: zod.string(),
+          titleEn: zod.string(),
+          status: zod.enum([
+            "conformant",
+            "non_conformant",
+            "needs_manual_review",
+          ]),
+          violationCount: zod.number(),
+          relatedRuleIds: zod.array(zod.string()),
+        }),
+      ),
+      supplementalFindings: zod.array(
+        zod.object({
+          id: zod.string(),
+          titleDe: zod.string(),
+          titleEn: zod.string(),
+          status: zod.enum(["pass", "fail", "warning"]),
+          description: zod.string(),
+          impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+          en301549Clause: zod.string().optional(),
+          bitvSection: zod.string().optional(),
+        }),
+      ),
+      manualReviewRequired: zod.array(zod.string()),
+      summaryDe: zod.string(),
+      summaryEn: zod.string(),
+    })
+    .optional()
+    .describe(
+      "BITV 2.0 \/ BFSG (EN 301 549) compliance assessment. Also available in scanMetadata when present.",
     ),
 });
 
@@ -533,6 +795,20 @@ export const GetMonitorResponse = zod.object({
             .describe(
               "Breakpoint labels when this finding was merged from a multi-viewport scan.",
             ),
+          en301549Clause: zod
+            .string()
+            .optional()
+            .describe(
+              "EN 301 549 clause reference (BITV 2.0 \/ BFSG mapping).",
+            ),
+          bitvSection: zod
+            .string()
+            .optional()
+            .describe("BITV 2.0 section label."),
+          titleDe: zod
+            .string()
+            .optional()
+            .describe("German title for compliance reporting."),
         }),
       ),
       passedChecks: zod.number(),

@@ -1,9 +1,17 @@
 import AxeBuilder from "@axe-core/playwright";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
+import {
+  buildComplianceReport,
+  enrichViolationsWithCompliance,
+  type ComplianceReport,
+  type SupplementalFinding,
+} from "./compliance/bitv-bfsg";
 import { logger } from "./logger";
 import { launchChromiumWithRetry } from "./playwright-chromium";
 import { screenshotFriendlyContextOptions, stablePlaywrightScreenshotProps } from "./playwright-screenshot";
+import { cloudflareScanEnabled, runCloudflareScan } from "./cloudflare-scan";
+import { runSupplementalChecksFromHtml, runSupplementalChecksInPage } from "./supplemental-checks";
 import { withScanSlot } from "./scan-gate";
 
 const dnsLookupAsync = promisify(dnsLookup);
@@ -261,6 +269,12 @@ export interface AuditViolation {
   instanceDetails?: AuditViolationInstance[];
   /** When merged across viewport runs, which breakpoints reported this rule. */
   detectedInViewports?: string[];
+  /** EN 301 549 clause reference (BITV 2.0 / BFSG mapping). */
+  en301549Clause?: string;
+  /** BITV 2.0 section label. */
+  bitvSection?: string;
+  /** German title for compliance reporting. */
+  titleDe?: string;
 }
 
 export type ScanProfile = "default" | "strict";
@@ -285,6 +299,12 @@ export interface ScanMetadata {
   elementScreenshotsSkipped?: boolean;
   /** True when additional viewport passes were skipped due to budget pressure. */
   viewportsSkipped?: boolean;
+  /** BITV 2.0 / BFSG (EN 301 549) compliance assessment. */
+  complianceReport?: ComplianceReport;
+  /** Supplemental checks beyond axe-core. */
+  supplementalFindings?: SupplementalFinding[];
+  /** How whole-site URLs were discovered (when applicable). */
+  discoverySource?: "sitemap" | "links" | "single";
 }
 
 export interface ScanResult {
@@ -301,6 +321,8 @@ export interface ScanResult {
   pageScreenshot?: string;
   /** Present for Playwright scans when diagnostics or multi-viewport ran. */
   scanMetadata?: ScanMetadata;
+  /** BITV 2.0 / BFSG compliance report (also in scanMetadata when present). */
+  complianceReport?: ComplianceReport;
 }
 
 export function scoreToLevel(
@@ -667,6 +689,7 @@ async function runPlaywrightScan(
   viewportsUsed: ScanViewport[];
   elementScreenshotsSkipped: boolean;
   viewportsSkipped: boolean;
+  supplementalFindings: SupplementalFinding[];
 }> {
   const tags = [...axeTagsForProfile(engineOpts.profile)];
   const multiVp = engineOpts.viewports.length > 1;
@@ -829,6 +852,19 @@ async function runPlaywrightScan(
       );
     }
 
+    let supplementalFindings: SupplementalFinding[] = [];
+    const supplemental = await runSupplementalChecksInPage(page).catch(() => null);
+    if (supplemental) {
+      supplementalFindings = supplemental.findings;
+      const existingIds = new Set(violations.map((v) => v.id));
+      for (const sv of supplemental.violations) {
+        if (!existingIds.has(sv.id)) {
+          violations.push(sv);
+          existingIds.add(sv.id);
+        }
+      }
+    }
+
     await page.evaluate(() => window.scrollTo(0, 0)).catch(() => undefined);
     await new Promise<void>((r) => setTimeout(r, 200));
 
@@ -866,6 +902,7 @@ async function runPlaywrightScan(
       viewportsUsed: perRunResults.map((_, idx) => engineOpts.viewports[idx]!),
       elementScreenshotsSkipped: skipElementShots,
       viewportsSkipped,
+      supplementalFindings,
       ...(runtimeDiagnostics ? { runtimeDiagnostics } : {}),
     };
   } finally {
@@ -909,6 +946,24 @@ async function runAccessibilityScanInner(
   const allowPrivateTargets = scanAllowsPrivateTargets();
   const scanProfile: ScanProfile = options?.profile === "strict" ? "strict" : "default";
   const multiViewport = Boolean(options?.multiViewport);
+
+  if (cloudflareScanEnabled() && !options?.browser) {
+    const cfResult = await runCloudflareScan(url, { profile: scanProfile, multiViewport });
+    return {
+      score: cfResult.score,
+      level: cfResult.level,
+      totalViolations: cfResult.totalViolations,
+      criticalViolations: cfResult.criticalViolations,
+      seriousViolations: cfResult.seriousViolations,
+      violations: cfResult.violations,
+      passedChecks: cfResult.passedChecks,
+      totalChecks: cfResult.totalChecks,
+      scanEngine: cfResult.scanEngine,
+      ...(cfResult.pageScreenshot ? { pageScreenshot: cfResult.pageScreenshot } : {}),
+      ...(cfResult.scanMetadata ? { scanMetadata: cfResult.scanMetadata } : {}),
+      complianceReport: cfResult.complianceReport,
+    };
+  }
   const collectRuntimeDiagnostics = options?.collectRuntimeDiagnostics !== false;
   const viewports: ScanViewport[] = multiViewport ? [...MULTI_VIEWPORTS] : [DEFAULT_VIEWPORT_DESKTOP];
 
@@ -933,6 +988,7 @@ async function runAccessibilityScanInner(
   let playwrightViewportsUsed: ScanViewport[] | undefined;
   let elementScreenshotsSkipped = false;
   let viewportsSkipped = false;
+  let supplementalFindings: SupplementalFinding[] = [];
   let failurePhase: string | undefined;
   let errorClass: string | undefined;
 
@@ -981,6 +1037,7 @@ async function runAccessibilityScanInner(
     playwrightViewportsUsed = result.viewportsUsed;
     elementScreenshotsSkipped = result.elementScreenshotsSkipped;
     viewportsSkipped = result.viewportsSkipped;
+    supplementalFindings = result.supplementalFindings;
   } catch (err) {
     errorClass = err instanceof Error ? err.name : "Error";
     if (err instanceof ScanTimeoutError) {
@@ -1070,6 +1127,16 @@ async function runAccessibilityScanInner(
               ...(instanceDetails && instanceDetails.length > 0 ? { instanceDetails } : {}),
             };
           });
+
+          const supplemental = runSupplementalChecksFromHtml(html, navigationUrl);
+          supplementalFindings = supplemental.findings;
+          const existingIds = new Set(violations.map((v) => v.id));
+          for (const sv of supplemental.violations) {
+            if (!existingIds.has(sv.id)) {
+              violations.push(sv);
+              existingIds.add(sv.id);
+            }
+          }
         } else {
           violations = [
             {
@@ -1106,6 +1173,9 @@ async function runAccessibilityScanInner(
     }
   }
 
+  violations = enrichViolationsWithCompliance(violations);
+  const complianceReport = buildComplianceReport(violations, supplementalFindings);
+
   const criticalViolations = violations.filter((v) => v.impact === "critical").length;
   const seriousViolations = violations.filter((v) => v.impact === "serious").length;
   const totalViolations = violations.length;
@@ -1122,6 +1192,8 @@ async function runAccessibilityScanInner(
         profile: scanProfile,
         multiViewport,
         viewportsUsed: playwrightViewportsUsed ?? viewports.map((v) => ({ ...v })),
+        complianceReport,
+        supplementalFindings,
         ...(playwrightRuntimeDiagnostics ? { runtimeDiagnostics: playwrightRuntimeDiagnostics } : {}),
         ...(elementScreenshotsSkipped ? { elementScreenshotsSkipped: true } : {}),
         ...(viewportsSkipped ? { viewportsSkipped: true } : {}),
@@ -1131,6 +1203,8 @@ async function runAccessibilityScanInner(
           profile: scanProfile,
           multiViewport: false,
           viewportsUsed: [],
+          complianceReport,
+          supplementalFindings,
         }
       : undefined;
 
@@ -1162,6 +1236,7 @@ async function runAccessibilityScanInner(
     scanEngine,
     ...(pageScreenshot && pageScreenshot.length > 0 ? { pageScreenshot } : {}),
     ...(scanMetadata ? { scanMetadata } : {}),
+    complianceReport,
   };
 }
 

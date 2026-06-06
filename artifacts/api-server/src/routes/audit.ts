@@ -129,7 +129,8 @@ router.post("/audit", async (req, res): Promise<void> => {
       scanEngine: result.scanEngine,
       ...(result.pageScreenshot ? { pageScreenshot: result.pageScreenshot } : {}),
       ...(result.scanMetadata ? { scanMetadata: result.scanMetadata } : {}),
-    } satisfies AuditResultData);
+      ...(result.complianceReport ? { complianceReport: result.complianceReport } : {}),
+    } satisfies AuditResultData & { complianceReport?: unknown });
   } catch (err) {
     if (err instanceof ScanGateShutdownError) {
       req.log.warn({ url }, "Audit rejected: scan engine shutting down");

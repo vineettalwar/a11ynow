@@ -379,6 +379,16 @@ components:
             $ref: "#/components/schemas/ScanViewportUsed"
         runtimeDiagnostics:
           $ref: "#/components/schemas/RuntimeDiagnostics"
+        complianceReport:
+          $ref: "#/components/schemas/ComplianceReport"
+        supplementalFindings:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupplementalFinding"
+        discoverySource:
+          type: string
+          enum: [sitemap, links, single]
+          description: How whole-site URLs were discovered.
       required:
         - profile
         - multiViewport
@@ -399,6 +409,10 @@ components:
           type: boolean
           description: |
             When true, runs axe at mobile and desktop breakpoints and merges results (slower). Default false.
+        wholeSite:
+          type: boolean
+          description: |
+            When true with batch endpoint, discovers up to 10 same-origin pages via sitemap or homepage links.
       required:
         - url
 
@@ -468,6 +482,15 @@ components:
           items:
             type: string
           description: Breakpoint labels when this finding was merged from a multi-viewport scan.
+        en301549Clause:
+          type: string
+          description: EN 301 549 clause reference (BITV 2.0 / BFSG mapping).
+        bitvSection:
+          type: string
+          description: BITV 2.0 section label.
+        titleDe:
+          type: string
+          description: German title for compliance reporting.
       required:
         - id
         - wcagCriteria
@@ -475,6 +498,111 @@ components:
         - impact
         - affectedElements
         - topSelectors
+
+    SupplementalFinding:
+      type: object
+      properties:
+        id:
+          type: string
+        titleDe:
+          type: string
+        titleEn:
+          type: string
+        status:
+          type: string
+          enum: [pass, fail, warning]
+        description:
+          type: string
+        impact:
+          type: string
+          enum: [minor, moderate, serious, critical]
+        en301549Clause:
+          type: string
+        bitvSection:
+          type: string
+      required:
+        - id
+        - titleDe
+        - titleEn
+        - status
+        - description
+        - impact
+
+    ComplianceClauseFinding:
+      type: object
+      properties:
+        en301549Clause:
+          type: string
+        bitvSection:
+          type: string
+        wcagCriterion:
+          type: string
+        titleDe:
+          type: string
+        titleEn:
+          type: string
+        status:
+          type: string
+          enum: [conformant, non_conformant, needs_manual_review]
+        violationCount:
+          type: integer
+        relatedRuleIds:
+          type: array
+          items:
+            type: string
+      required:
+        - en301549Clause
+        - bitvSection
+        - titleDe
+        - titleEn
+        - status
+        - violationCount
+        - relatedRuleIds
+
+    ComplianceReport:
+      type: object
+      properties:
+        framework:
+          type: string
+        frameworkVersion:
+          type: string
+        legalContextDe:
+          type: string
+        legalContextEn:
+          type: string
+        overallStatus:
+          type: string
+          enum: [conformant, non_conformant, needs_manual_review]
+        wcagLevel:
+          type: string
+        clauseFindings:
+          type: array
+          items:
+            $ref: "#/components/schemas/ComplianceClauseFinding"
+        supplementalFindings:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupplementalFinding"
+        manualReviewRequired:
+          type: array
+          items:
+            type: string
+        summaryDe:
+          type: string
+        summaryEn:
+          type: string
+      required:
+        - framework
+        - frameworkVersion
+        - legalContextDe
+        - legalContextEn
+        - overallStatus
+        - wcagLevel
+        - clauseFindings
+        - supplementalFindings
+        - manualReviewRequired
+        - summaryDe
+        - summaryEn
 
     AuditResult:
       type: object
@@ -523,6 +651,9 @@ components:
         scanMetadata:
           $ref: "#/components/schemas/ScanMetadata"
           description: Scan options, viewports used, and optional runtime diagnostics (Playwright). Omitted on legacy rows.
+        complianceReport:
+          $ref: "#/components/schemas/ComplianceReport"
+          description: BITV 2.0 / BFSG (EN 301 549) compliance assessment. Also available in scanMetadata when present.
       required:
         - auditId
         - url
@@ -725,9 +856,19 @@ components:
             type: string
           minItems: 1
           maxItems: 10
-          description: List of URLs to scan (1–10)
-      required:
-        - urls
+          description: List of URLs to scan (1–10). Omit when wholeSite is true.
+        url:
+          type: string
+          description: Seed URL for whole-site discovery when wholeSite is true.
+        wholeSite:
+          type: boolean
+          description: Discover up to 10 same-origin pages from sitemap.xml or homepage links.
+        profile:
+          type: string
+          enum: [default, strict]
+        multiViewport:
+          type: boolean
+          description: Run mobile + desktop axe passes and merge results.
 
     CreateBatchAuditPdfBody:
       type: object
