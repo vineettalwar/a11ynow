@@ -26,8 +26,9 @@ import type { AuditViolation as ApiAuditViolation } from "@workspace/api-client-
 import { useCreateLead } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { getHumanContextForViolation } from "@/lib/violation-human-context";
+import { getAppBasePath } from "@/lib/api-base";
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const BASE = getAppBasePath();
 
 interface AuditViolation {
   id: string;

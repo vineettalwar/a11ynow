@@ -62,7 +62,9 @@ export default function ScreenReaderPreview() {
     try {
       const resp = await fetch(`${apiUrl("/api/screen-reader-preview")}?url=${encodeURIComponent(target)}`);
       if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
+        const data = (await resp.json().catch(() => ({}))) as {
+          message?: string;
+        };
         throw new Error(data.message || "Could not fetch screen reader preview.");
       }
       const data: PreviewResult = await resp.json();

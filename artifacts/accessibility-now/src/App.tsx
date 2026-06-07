@@ -75,6 +75,7 @@ import A11yFixPlan from "@/pages/a11y-fix/plan";
 import A11yFixBatchResult from "@/pages/a11y-fix/batch-result";
 import { LegacyFixPilotRedirect } from "@/components/legacy-redirect";
 import { SeoHead } from "@/components/seo-head";
+import { getAppBasePath } from "@/lib/api-base";
 
 // New tools
 import AltTextChecker from "@/pages/tools/alt-text-checker";
@@ -185,7 +186,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <WouterRouter base={getAppBasePath()}>
           <SeoHead />
           <Router />
         </WouterRouter>

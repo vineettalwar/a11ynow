@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { getAppBasePath } from "@/lib/api-base";
 import { cn } from "@/lib/utils";
 import { AuditPendingScanFrame } from "@/components/audit-pending-scan-frame";
 import {
@@ -576,7 +577,7 @@ function LeadCaptureForm({ auditId }: { auditId: string }) {
   );
 }
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const BASE = getAppBasePath();
 
 function useDownloadPdf(auditId: string) {
   const [isPending, setIsPending] = useState(false);

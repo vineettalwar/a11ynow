@@ -1,5 +1,8 @@
 # Cloudflare deployment
 
+> Note: this document describes the **current production split** (Pages SPA + separate API host).  
+> A new Next.js 16 + OpenNext Worker foundation now exists in `artifacts/accessibility-now` for staged migration work, but it is not the production deployment path yet.
+
 accessibility.now splits across three deploy targets:
 
 | Component | Platform | Artifact |
@@ -7,6 +10,19 @@ accessibility.now splits across three deploy targets:
 | **Frontend (SPA)** | Cloudflare Pages | `artifacts/accessibility-now/dist/public` |
 | **API (Express + Playwright + Postgres)** | Node host (Fly.io, Railway, VPS, etc.) | `artifacts/api-server` |
 | **Scan worker (optional)** | Cloudflare Workers Browser Rendering | `artifacts/scan-worker` |
+
+## Experimental Next.js Worker preview
+
+The frontend package also contains an in-place Next.js 16 + OpenNext scaffold used for migration work:
+
+```bash
+cd artifacts/accessibility-now
+pnpm run build:next
+pnpm run build:opennext
+pnpm run preview:cf
+```
+
+This uses `wrangler.jsonc` and serves a staging-only Worker preview. Keep `wrangler.toml` and the Pages deploy flow unchanged until the migration cutover is complete.
 
 ## 1. Deploy the frontend to Cloudflare Pages
 

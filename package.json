@@ -7,6 +7,7 @@
     "try": "pnpm install && bash scripts/dev-local.sh",
     "dev": "bash scripts/dev-local.sh",
     "dev:web": "pnpm --filter @workspace/accessibility-now dev",
+    "dev:next": "pnpm --filter @workspace/accessibility-now run dev:next",
     "dev:no-db": "bash scripts/dev-no-db.sh",
     "db:up": "bash scripts/dev-db-up.sh",
     "db:down": "bash scripts/dev-db-down.sh",

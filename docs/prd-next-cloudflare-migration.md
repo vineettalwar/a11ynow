@@ -519,6 +519,8 @@ Each major PR must update:
 4. Do we migrate directly in `artifacts/accessibility-now`, or use a temporary parallel Next app during transition?
 5. Do we want D1 only, or a temporary fallback path while data is migrated?
 
+Current implementation note: Phase 0 uses an **in-place** scaffold inside `artifacts/accessibility-now/src/app/` while the legacy `src/pages/` and Vite runtime stay intact.
+
 ## 16. Immediate next step
 
 Start with the smallest production-meaningful slice:

@@ -16,9 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2, AlertOctagon, TrendingUp, Calendar, Globe } from "lucide-react";
 import { Link } from "wouter";
 import type { AuditViolation } from "@workspace/api-client-react";
+import { getAppBasePath } from "@/lib/api-base";
 import { getHumanContextForViolation } from "@/lib/violation-human-context";
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const BASE = getAppBasePath();
 
 interface MonitorScan {
   id: string;

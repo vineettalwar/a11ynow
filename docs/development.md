@@ -72,6 +72,39 @@ Vite proxies **`/api` → `VITE_DEV_API_PROXY`** (default `http://127.0.0.1:8080
 
 **Port gotcha:** both stacks can read `PORT`. If you export one `PORT` for everything, the API and Vite may collide. Prefer separate terminals with explicit values, or use `pnpm dev` which unsets `PORT` for Vite and pins the API via `A11YNOW_API_PORT` / free port (see `scripts/dev-app-servers.sh`).
 
+### Next.js migration runtime (Phase 0+)
+
+The migration to Next.js 16 happens **in-place** inside `artifacts/accessibility-now`. During the migration, both runtimes coexist:
+
+- **Legacy:** Vite SPA on port `5180`
+- **Migration scaffold:** Next.js App Router on port `5181`
+
+Use the new scaffold locally with:
+
+```bash
+pnpm run dev:next
+```
+
+This runs `next dev` only. It does **not** start Docker, Postgres, or the legacy API.
+
+Implementation note: the new App Router scaffold lives in `artifacts/accessibility-now/src/app/` so it can coexist with the legacy `src/pages/` tree while the migration is in progress.
+
+To preview the Cloudflare Worker build locally:
+
+```bash
+pnpm --filter @workspace/accessibility-now run preview:cf
+```
+
+Useful migration commands:
+
+```bash
+pnpm --filter @workspace/accessibility-now run build:next
+pnpm --filter @workspace/accessibility-now run build:opennext
+pnpm --filter @workspace/accessibility-now run cf:typegen
+```
+
+See [next-migration-rules](next-migration-rules.md) for runtime boundaries and sequencing rules.
+
 ---
 
 ## Changing the HTTP API
