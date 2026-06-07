@@ -101,9 +101,26 @@ Useful migration commands:
 pnpm --filter @workspace/accessibility-now run build:next
 pnpm --filter @workspace/accessibility-now run build:opennext
 pnpm --filter @workspace/accessibility-now run cf:typegen
+pnpm --filter @workspace/accessibility-now run d1:migrate:local
 ```
 
 See [next-migration-rules](next-migration-rules.md) for runtime boundaries and sequencing rules.
+
+### Phase 1 note: local D1-backed leads
+
+The new `POST /api/leads` route in the Next/OpenNext runtime writes to a local D1 database. Before testing that slice on `dev:next` or `preview:cf`, apply the local migration once:
+
+```bash
+pnpm --filter @workspace/accessibility-now run d1:migrate:local
+```
+
+This uses the D1 binding from `artifacts/accessibility-now/wrangler.jsonc`. The checked-in `database_id` is a local placeholder for development and must be replaced with a real Cloudflare D1 database ID before remote deploys.
+
+When a real Cloudflare D1 database has been provisioned, apply the same migrations remotely with:
+
+```bash
+pnpm --filter @workspace/accessibility-now run d1:migrate:remote
+```
 
 ---
 

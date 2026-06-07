@@ -3,6 +3,9 @@ import { useRouter } from "next/router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Router as WouterRouter } from "wouter";
+import "../index.css";
+import { Layout } from "@/components/layout";
+import { SeoHead } from "@/components/seo-head";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { getAppBasePath } from "@/lib/api-base";
@@ -38,7 +41,10 @@ export default function LegacyPagesApp({
           ssrPath={path}
           ssrSearch={search}
         >
-          <Component {...pageProps} />
+          <SeoHead />
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
         </WouterRouter>
         <Toaster />
       </TooltipProvider>
