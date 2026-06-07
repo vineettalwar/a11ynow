@@ -14,6 +14,23 @@
       "service": "accessibility-now-next"
     }
   ],
+  "browser": {
+    "binding": "BROWSER"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SCAN_GATE",
+        "class_name": "ScanGateDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ScanGateDO"]
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -22,6 +39,12 @@
       "migrations_dir": "./migrations"
     }
   ],
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
+  "vars": {
+    "APP_BASE_URL": "https://accessibility.now"
+  },
   "observability": {
     "enabled": true
   }

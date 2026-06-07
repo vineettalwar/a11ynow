@@ -1,0 +1,5 @@
+import BlogWcagEcommercePage from "@/views/resources/blog-wcag-ecommerce";
+
+export default function Page() {
+  return <BlogWcagEcommercePage />;
+}

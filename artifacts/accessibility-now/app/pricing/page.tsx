@@ -1,0 +1,5 @@
+import PricingPage from "@/views/pricing";
+
+export default function Page() {
+  return <PricingPage />;
+}

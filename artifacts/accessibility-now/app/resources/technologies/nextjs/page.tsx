@@ -1,0 +1,13 @@
+import { Suspense } from "react";
+import TechNextjs from "@/views/resources/technologies/nextjs";
+import { buildSeoMetadata } from "@/lib/seo-metadata";
+
+export const metadata = buildSeoMetadata("tech-nextjs");
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <TechNextjs />
+    </Suspense>
+  );
+}

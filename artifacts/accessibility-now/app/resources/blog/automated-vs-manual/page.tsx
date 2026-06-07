@@ -1,0 +1,5 @@
+import BlogAutomatedVsManualPage from "@/views/resources/blog-automated-vs-manual";
+
+export default function Page() {
+  return <BlogAutomatedVsManualPage />;
+}

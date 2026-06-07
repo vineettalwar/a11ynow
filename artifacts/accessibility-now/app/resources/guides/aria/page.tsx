@@ -1,0 +1,5 @@
+import GuideAriaPage from "@/views/resources/guides/aria";
+
+export default function Page() {
+  return <GuideAriaPage />;
+}

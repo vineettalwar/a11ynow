@@ -1,0 +1,5 @@
+import ComplianceSection508Page from "@/views/resources/compliance/section-508";
+
+export default function Page() {
+  return <ComplianceSection508Page />;
+}

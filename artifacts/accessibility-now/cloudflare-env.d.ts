@@ -4,6 +4,9 @@
 interface __BaseEnv_CloudflareEnv {
 	DB: D1Database;
 	ASSETS: Fetcher;
+	BROWSER?: Fetcher;
+	SCAN_GATE?: DurableObjectNamespace;
+	SCAN_MAX_CONCURRENT?: string;
 	WORKER_SELF_REFERENCE: Service<typeof import("./.open-next/worker").default>;
 }
 declare namespace Cloudflare {

@@ -1,0 +1,5 @@
+import ResourcesPage from "@/views/resources/index";
+
+export default function Page() {
+  return <ResourcesPage />;
+}
