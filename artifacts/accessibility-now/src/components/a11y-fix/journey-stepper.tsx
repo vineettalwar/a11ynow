@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import Link from "next/link";
 import { Check } from "lucide-react";
 import { A11Y_FIX_JOURNEY_STEPS, type A11yFixJourneyStep } from "@/lib/a11y-fix";
 import { cn } from "@/lib/utils";

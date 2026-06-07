@@ -8,13 +8,7 @@ import {
 } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-let scrollTriggerRegistered = false;
-function ensureScrollTrigger(): void {
-  if (typeof window === "undefined" || scrollTriggerRegistered) return;
-  gsap.registerPlugin(ScrollTrigger);
-  scrollTriggerRegistered = true;
-}
+import { registerScrollTrigger } from "@/lib/register-scroll-trigger";
 
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
@@ -23,11 +17,12 @@ function prefersReducedMotion(): boolean {
 
 /** Subscribes to prefers-reduced-motion for entrance / decorative tweens. */
 export function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(prefersReducedMotion);
+  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const onChange = () => setReduced(mq.matches);
+    onChange();
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
@@ -86,7 +81,8 @@ export function useAuditHeroEntrance(options: {
 }
 
 /**
- * Metrics (3D tilt stagger), score ring draw, centre score count-up, and screenshot curtain: once per auditId.
+ * Metrics (3D tilt stagger), score ring draw, centre score count-up, and screenshot curtain.
+ * Re-runs when the score changes (e.g. audit row hydrates after a partial load).
  */
 export function useAuditMetricsEntrance(options: {
   auditId: string;
@@ -98,7 +94,8 @@ export function useAuditMetricsEntrance(options: {
 
   useLayoutEffect(() => {
     if (!auditId) return;
-    const key = auditId;
+    const roundedScore = Math.round(score);
+    const key = `${auditId}:${roundedScore}`;
     if (lastKey.current === key) return;
     lastKey.current = key;
 
@@ -107,12 +104,17 @@ export function useAuditMetricsEntrance(options: {
     const metrics = metricsRef.current;
     const shot = screenshotRef.current;
 
+    const restoreScoreText = () => {
+      if (scoreNum) scoreNum.textContent = String(roundedScore);
+    };
+
     if (reducedMotion) {
       if (scoreCircle) {
         gsap.set(scoreCircle, {
-          attr: { strokeDashoffset: RING_C - (RING_C * score) / 100 },
+          attr: { strokeDashoffset: RING_C - (RING_C * roundedScore) / 100 },
         });
       }
+      restoreScoreText();
       return;
     }
 
@@ -138,7 +140,7 @@ export function useAuditMetricsEntrance(options: {
       }
 
       if (scoreCircle) {
-        const target = RING_C - (RING_C * score) / 100;
+        const target = RING_C - (RING_C * roundedScore) / 100;
         tl.fromTo(
           scoreCircle,
           { attr: { strokeDashoffset: RING_C } },
@@ -152,21 +154,14 @@ export function useAuditMetricsEntrance(options: {
       }
 
       if (scoreNum) {
-        const proxy = { v: 0 };
-        const end = Math.round(score);
-        scoreNum.textContent = "0";
-        tl.to(
-          proxy,
+        tl.fromTo(
+          scoreNum,
+          { innerText: 0 },
           {
-            v: end,
+            innerText: roundedScore,
             duration: 1.05,
             ease: "power2.out",
-            onUpdate: () => {
-              scoreNum.textContent = String(Math.round(proxy.v));
-            },
-            onComplete: () => {
-              scoreNum.textContent = String(end);
-            },
+            snap: { innerText: 1 },
           },
           0.08,
         );
@@ -196,18 +191,37 @@ export function useAuditMetricsEntrance(options: {
       }
     });
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      lastKey.current = "";
+      restoreScoreText();
+    };
   }, [auditId, reducedMotion, score, scoreRingRef, scoreNumberRef, metricsRef, screenshotRef]);
+}
+
+function revealStuckViolationCards(list: HTMLElement): void {
+  const cards = list.querySelectorAll<HTMLElement>("[data-violation-card]");
+  cards.forEach((card) => {
+    const opacity = gsap.getProperty(card, "opacity");
+    const visibility = gsap.getProperty(card, "visibility");
+    if (opacity === 0 || visibility === "hidden") {
+      gsap.set(card, { clearProps: "opacity,visibility,transform,filter,clipPath" });
+    }
+  });
 }
 
 /**
  * Violation cards: scroll-linked reveal + toolbar glide-in.
+ * Uses the whole violations section (toolbar + list) as the ScrollTrigger target so
+ * layout shifts above (screenshot, compliance cards) cannot leave cards invisible
+ * while the heading is already on screen.
  */
 export function useViolationCardsEntrance(options: {
   auditId: string;
   violationFingerprint: string;
   violationCount: number;
   reducedMotion: boolean;
+  violationsSectionRef: RefObject<HTMLDivElement | null>;
   violationsListRef: RefObject<HTMLDivElement | null>;
   violationsToolbarRef: RefObject<HTMLDivElement | null>;
 }): void {
@@ -216,14 +230,16 @@ export function useViolationCardsEntrance(options: {
     violationFingerprint,
     violationCount,
     reducedMotion,
+    violationsSectionRef,
     violationsListRef,
     violationsToolbarRef,
   } = options;
   const lastKey = useRef("");
 
   useLayoutEffect(() => {
+    const section = violationsSectionRef.current;
     const list = violationsListRef.current;
-    if (!auditId || !list || violationCount === 0) return;
+    if (!auditId || !section || !list || violationCount === 0) return;
     const key = `${auditId}:${violationFingerprint}`;
     if (lastKey.current === key) return;
 
@@ -231,27 +247,44 @@ export function useViolationCardsEntrance(options: {
     if (cards.length === 0) return;
     lastKey.current = key;
 
+    const tb = violationsToolbarRef.current;
+
     if (reducedMotion) {
       gsap.set(cards, { clearProps: "opacity,visibility,transform,filter,clipPath" });
-      const tb = violationsToolbarRef.current;
       if (tb) gsap.set(tb, { clearProps: "opacity,visibility,transform,filter" });
       return;
     }
 
-    ensureScrollTrigger();
+    registerScrollTrigger();
 
-    const ctx = gsap.context(() => {
-      const tb = violationsToolbarRef.current;
+    let revealed = false;
+    const revealAll = () => {
+      if (revealed) return;
+      revealed = true;
       if (tb) {
-        gsap.from(tb, {
-          y: 22,
-          autoAlpha: 0,
-          filter: "blur(5px)",
+        gsap.to(tb, {
+          y: 0,
+          autoAlpha: 1,
+          filter: "blur(0px)",
           duration: 0.52,
           ease: "power3.out",
         });
       }
+      gsap.to(cards, {
+        autoAlpha: 1,
+        y: 0,
+        rotateX: 0,
+        filter: "blur(0px)",
+        duration: 0.72,
+        stagger: { each: 0.08, from: "start" },
+        ease: "back.out(1.14)",
+      });
+    };
 
+    const ctx = gsap.context(() => {
+      if (tb) {
+        gsap.set(tb, { y: 22, autoAlpha: 0, filter: "blur(5px)" });
+      }
       gsap.set(cards, {
         autoAlpha: 0,
         y: 52,
@@ -260,48 +293,55 @@ export function useViolationCardsEntrance(options: {
         filter: "blur(5px)",
       });
 
-      const tweenTo = {
-        autoAlpha: 1,
-        y: 0,
-        rotateX: 0,
-        filter: "blur(0px)",
-        duration: 0.72,
-        stagger: { each: 0.08, from: "start" as const },
-        ease: "back.out(1.14)" as const,
-      };
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top 92%",
+        once: true,
+        onEnter: revealAll,
+      });
 
-      const vh = window.innerHeight;
-      const listTop = list.getBoundingClientRect().top;
-      // Treat as in-view if the list has started entering the viewport (not only when it is
-      // high in the frame). Previously we used vh * 0.92, which paired with start: "top 88%"
-      // left cards at autoAlpha: 0 while the Violations heading and nav were already visible.
-      const mostlyVisible = listTop < vh * 1.02;
-
-      if (mostlyVisible) {
-        gsap.to(cards, { ...tweenTo, delay: 0.06 });
-      } else {
-        gsap.to(cards, {
-          ...tweenTo,
-          scrollTrigger: {
-            trigger: list,
-            // Fire as soon as the list begins intersecting the viewport from below: avoids a
-            // persistent blank strip under the Violations toolbar until the user scrolls far.
-            start: "top bottom",
-            once: true,
-          },
-        });
+      // Content above (screenshot, compliance) can shift layout after first measure.
+      ScrollTrigger.refresh();
+      if (ScrollTrigger.isInViewport(section, 0.05)) {
+        revealAll();
       }
-    });
+    }, section);
+
+    const refresh = () => {
+      ScrollTrigger.refresh();
+      if (ScrollTrigger.isInViewport(section, 0.05)) {
+        revealAll();
+      }
+    };
+
+    refresh();
+    window.addEventListener("load", refresh);
+    const refreshTimers = [400, 1200].map((ms) => window.setTimeout(refresh, ms));
+
+    const failsafe = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          revealAll();
+          revealStuckViolationCards(list);
+        }
+      },
+      { root: null, threshold: 0.05 },
+    );
+    failsafe.observe(section);
 
     return () => {
+      window.removeEventListener("load", refresh);
+      refreshTimers.forEach(clearTimeout);
+      failsafe.disconnect();
       ctx.revert();
-      requestAnimationFrame(() => ScrollTrigger.refresh());
+      requestAnimationFrame(refresh);
     };
   }, [
     auditId,
     violationFingerprint,
     violationCount,
     reducedMotion,
+    violationsSectionRef,
     violationsListRef,
     violationsToolbarRef,
   ]);

@@ -1,13 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+"use client";
+
+import { useLayoutEffect, useMemo, useRef } from "react";
 import gsap from "gsap";
 import { Globe } from "lucide-react";
-import { getAppBasePath } from "@/lib/api-base";
-
-const APP_BASE = getAppBasePath();
-
-function pageScreenshotPreviewSrc(url: string): string {
-  return `${APP_BASE}/api/page-screenshot?url=${encodeURIComponent(url)}`;
-}
 
 const HOTSPOTS: { top: string; left?: string; right?: string; tag: string }[] = [
   { top: "12%", left: "10%", tag: "Contrast" },
@@ -30,27 +25,18 @@ function safeUrlParts(raw: string): { href: string; host: string } | null {
 
 /**
  * HUD-style “scanner” viewport: staged page chrome, top-to-bottom beam, issue hotspots.
+ * Uses wireframe only — no live page screenshot during the scan (avoids a second Chromium run).
  */
 export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const beamRef = useRef<HTMLDivElement>(null);
   const wireframeRef = useRef<HTMLDivElement>(null);
-  const thumbRef = useRef<HTMLImageElement>(null);
 
   const parsed = useMemo(() => safeUrlParts(displayUrl), [displayUrl]);
   const faviconSrc = parsed
     ? `https://icons.duckduckgo.com/ip3/${encodeURIComponent(parsed.host)}.ico`
     : null;
-
-  const previewSrc = parsed ? pageScreenshotPreviewSrc(parsed.href) : null;
-  const [thumbState, setThumbState] = useState<"none" | "loading" | "loaded" | "error">(
-    previewSrc ? "loading" : "none",
-  );
-
-  useEffect(() => {
-    setThumbState(previewSrc ? "loading" : "none");
-  }, [previewSrc]);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -61,13 +47,11 @@ export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const layers = root.querySelectorAll<HTMLElement>(".audit-preview-reveal");
     const hotspots = root.querySelectorAll<HTMLElement>(".audit-scan-hotspot");
-    const thumb = thumbRef.current;
 
     if (reduced) {
       gsap.set(layers, { opacity: 1, y: 0 });
       gsap.set(beam, { top: "50%", opacity: 0.5 });
       gsap.set(hotspots, { opacity: 0.85, scale: 1 });
-      if (thumb) gsap.set(thumb, { opacity: 0 });
       return;
     }
 
@@ -87,7 +71,6 @@ export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
       );
 
       gsap.set(beam, { top: -3 });
-      if (thumb) gsap.set(thumb, { opacity: 0 });
 
       const h = Math.max(vp.getBoundingClientRect().height, 160);
       const beamH = 3;
@@ -116,23 +99,6 @@ export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
     return () => ctx.revert();
   }, []);
 
-  useEffect(() => {
-    if (thumbState !== "loaded") return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const thumb = thumbRef.current;
-    const wire = wireframeRef.current;
-    if (!thumb || !wire) return;
-
-    if (reduced) {
-      gsap.set(thumb, { opacity: 1 });
-      gsap.set(wire, { opacity: 0 });
-      return;
-    }
-
-    gsap.to(thumb, { opacity: 1, duration: 0.85, ease: "power2.out" });
-    gsap.to(wire, { opacity: 0, duration: 0.65, ease: "power2.inOut", delay: 0.05 });
-  }, [thumbState]);
-
   return (
     <div
       ref={rootRef}
@@ -140,13 +106,11 @@ export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
       aria-hidden
     >
       <div className="relative rounded-md bg-[#050608] p-3 sm:p-4 shadow-[0_0_0_1px_rgba(52,211,153,0.25),0_24px_48px_-12px_rgba(0,0,0,0.45)] ring-1 ring-emerald-500/30">
-        {/* Corner brackets */}
         <span className="pointer-events-none absolute -left-px -top-px z-20 h-8 w-8 border-l-[3px] border-t-[3px] border-emerald-400" />
         <span className="pointer-events-none absolute -right-px -top-px z-20 h-8 w-8 border-r-[3px] border-t-[3px] border-emerald-400" />
         <span className="pointer-events-none absolute -bottom-px -left-px z-20 h-8 w-8 border-b-[3px] border-l-[3px] border-emerald-400" />
         <span className="pointer-events-none absolute -bottom-px -right-px z-20 h-8 w-8 border-b-[3px] border-r-[3px] border-emerald-400" />
 
-        {/* Chrome bar */}
         <div className="audit-preview-reveal mb-2 flex items-center gap-2 rounded border border-white/10 bg-black/55 px-2.5 py-1.5">
           {faviconSrc ? (
             <img
@@ -165,7 +129,6 @@ export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
           </span>
         </div>
 
-        {/* Viewport */}
         <div
           ref={viewportRef}
           className="audit-scan-viewport relative aspect-4/3 w-full overflow-hidden rounded-sm border border-emerald-500/20 bg-linear-to-b from-zinc-900 via-[#0a0b0f] to-black"
@@ -180,23 +143,6 @@ export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
             aria-hidden
           />
 
-          {previewSrc ? (
-            <img
-              ref={thumbRef}
-              src={previewSrc}
-              alt=""
-              width={1280}
-              height={900}
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-              className="pointer-events-none absolute inset-0 z-1 h-full w-full object-cover object-top opacity-0"
-              onLoad={() => setThumbState("loaded")}
-              onError={() => setThumbState("error")}
-            />
-          ) : null}
-
-          {/* Abstract “page” (placeholder until live preview loads) */}
           <div ref={wireframeRef} className="absolute inset-0 z-2 p-3 sm:p-4">
             <div className="audit-preview-reveal mb-3 flex gap-2">
               <div className="h-2 w-14 rounded-sm bg-white/12" />

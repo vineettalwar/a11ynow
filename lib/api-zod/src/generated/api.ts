@@ -32,8 +32,10 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * Runs an automated accessibility audit on the provided URL and returns a compliance snapshot
- * @summary Submit URL for accessibility audit
+ * Creates an async scan job and returns `202 Accepted` with a pending audit snapshot.
+Poll `GET /audit/jobs/{jobId}` or `GET /audit/{auditId}` until the scan completes.
+
+ * @summary Submit URL for accessibility audit (async job)
  */
 export const CreateAuditBody = zod.object({
   url: zod.string().describe("The URL to audit for accessibility compliance"),
@@ -57,146 +59,247 @@ export const CreateAuditBody = zod.object({
     ),
 });
 
-export const createAuditResponseScoreMin = 0;
-export const createAuditResponseScoreMax = 100;
+/**
+ * Returns job status and the current audit snapshot (pending or completed).
+ * @summary Get audit job status
+ */
+export const GetAuditJobParams = zod.object({
+  jobId: zod.coerce.string(),
+});
 
-export const CreateAuditResponse = zod.object({
+export const getAuditJobResponseResultScoreMin = 0;
+export const getAuditJobResponseResultScoreMax = 100;
+
+export const GetAuditJobResponse = zod.object({
+  jobId: zod.string(),
   auditId: zod.string(),
+  status: zod.enum(["pending", "running", "completed", "failed"]),
   url: zod.string(),
-  scannedAt: zod.coerce.date(),
-  score: zod
-    .number()
-    .min(createAuditResponseScoreMin)
-    .max(createAuditResponseScoreMax)
-    .describe("Overall accessibility compliance score"),
-  level: zod
-    .enum(["critical", "poor", "moderate", "good", "excellent"])
-    .describe("Score level label"),
-  totalViolations: zod.number(),
-  criticalViolations: zod.number(),
-  seriousViolations: zod.number(),
-  violations: zod.array(
-    zod.object({
-      id: zod.string().describe('WCAG criterion ID (e.g. \"color-contrast\")'),
-      wcagCriteria: zod
-        .string()
-        .describe('WCAG criterion reference (e.g. \"1.4.3 Contrast Minimum\")'),
-      description: zod.string(),
-      impact: zod.enum(["minor", "moderate", "serious", "critical"]),
-      affectedElements: zod
-        .number()
-        .describe("Number of affected elements on the page"),
-      topSelectors: zod
-        .array(zod.string())
-        .describe("Up to 3 representative CSS selectors for affected elements"),
-      help: zod
-        .string()
-        .optional()
-        .describe("Short remediation guidance from axe-core for this rule."),
-      helpUrl: zod
-        .string()
-        .optional()
-        .describe("Link to axe rule documentation (Deque University)."),
-      instanceDetails: zod
-        .array(
-          zod
-            .object({
-              selector: zod
-                .string()
-                .describe(
-                  "CSS selector chain from axe (joined target segments)",
-                ),
-              htmlSnippet: zod
-                .string()
-                .describe(
-                  "Truncated outer HTML of the element in the scanned page",
-                ),
-              failureSummary: zod
-                .string()
-                .optional()
-                .describe(
-                  "Axe human-readable reason this node failed the check",
-                ),
-              elementScreenshot: zod
-                .string()
-                .optional()
-                .describe(
-                  "JPEG data URL of the node's rendered bounds (Playwright engine only; omitted when capture fails).\n",
-                ),
-              checkDetails: zod
-                .array(zod.string())
-                .optional()
-                .describe(
-                  "Messages from axe check results attached to this node (`any` \/ `all` \/ `none`).",
-                ),
-            })
-            .describe(
-              "One DOM node axe flagged for this rule (up to 3 per violation on new audits)",
-            ),
-        )
-        .optional()
-        .describe(
-          "Up to 3 affected nodes with selector, HTML, failure text, optional element screenshot, and axe check messages.\nOmitted on legacy audits. Remote scans do not include original source file line numbers; use DevTools with the selector.\n",
-        ),
-      detectedInViewports: zod
-        .array(zod.string())
-        .optional()
-        .describe(
-          "Breakpoint labels when this finding was merged from a multi-viewport scan.",
-        ),
-      en301549Clause: zod
-        .string()
-        .optional()
-        .describe("EN 301 549 clause reference (BITV 2.0 \/ BFSG mapping)."),
-      bitvSection: zod.string().optional().describe("BITV 2.0 section label."),
-      titleDe: zod
-        .string()
-        .optional()
-        .describe("German title for compliance reporting."),
-    }),
-  ),
-  passedChecks: zod.number(),
-  totalChecks: zod.number(),
-  scanEngine: zod
-    .enum(["playwright", "static_fallback", "unknown"])
-    .describe(
-      "Engine used for this audit: `playwright` is headless Chromium with axe (full JS\/DOM).\n`static_fallback` is HTML fetched into JSDOM when the browser engine fails (no client-side JS).\n`unknown` is stored for legacy rows before this field existed.\n",
-    ),
-  pageScreenshot: zod
-    .string()
-    .optional()
-    .describe(
-      "Viewport JPEG data URL of the page after the axe run (Playwright only). Omitted for static fallback, legacy rows, or when capture failed.\n",
-    ),
-  scanMetadata: zod
+  error: zod.string().optional(),
+  result: zod
     .object({
-      profile: zod.enum(["default", "strict"]),
-      multiViewport: zod.boolean(),
-      viewportsUsed: zod.array(
+      auditId: zod.string(),
+      url: zod.string(),
+      scannedAt: zod.coerce.date(),
+      score: zod
+        .number()
+        .min(getAuditJobResponseResultScoreMin)
+        .max(getAuditJobResponseResultScoreMax)
+        .describe("Overall accessibility compliance score"),
+      level: zod
+        .enum(["critical", "poor", "moderate", "good", "excellent"])
+        .describe("Score level label"),
+      totalViolations: zod.number(),
+      criticalViolations: zod.number(),
+      seriousViolations: zod.number(),
+      violations: zod.array(
         zod.object({
-          width: zod.number(),
-          height: zod.number(),
-          label: zod.string(),
+          id: zod
+            .string()
+            .describe('WCAG criterion ID (e.g. \"color-contrast\")'),
+          wcagCriteria: zod
+            .string()
+            .describe(
+              'WCAG criterion reference (e.g. \"1.4.3 Contrast Minimum\")',
+            ),
+          description: zod.string(),
+          impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+          affectedElements: zod
+            .number()
+            .describe("Number of affected elements on the page"),
+          topSelectors: zod
+            .array(zod.string())
+            .describe(
+              "Up to 3 representative CSS selectors for affected elements",
+            ),
+          help: zod
+            .string()
+            .optional()
+            .describe(
+              "Short remediation guidance from axe-core for this rule.",
+            ),
+          helpUrl: zod
+            .string()
+            .optional()
+            .describe("Link to axe rule documentation (Deque University)."),
+          instanceDetails: zod
+            .array(
+              zod
+                .object({
+                  selector: zod
+                    .string()
+                    .describe(
+                      "CSS selector chain from axe (joined target segments)",
+                    ),
+                  htmlSnippet: zod
+                    .string()
+                    .describe(
+                      "Truncated outer HTML of the element in the scanned page",
+                    ),
+                  failureSummary: zod
+                    .string()
+                    .optional()
+                    .describe(
+                      "Axe human-readable reason this node failed the check",
+                    ),
+                  elementScreenshot: zod
+                    .string()
+                    .optional()
+                    .describe(
+                      "JPEG data URL of the node's rendered bounds (Playwright engine only; omitted when capture fails).\n",
+                    ),
+                  checkDetails: zod
+                    .array(zod.string())
+                    .optional()
+                    .describe(
+                      "Messages from axe check results attached to this node (`any` \/ `all` \/ `none`).",
+                    ),
+                })
+                .describe(
+                  "One DOM node axe flagged for this rule (up to 3 per violation on new audits)",
+                ),
+            )
+            .optional()
+            .describe(
+              "Up to 3 affected nodes with selector, HTML, failure text, optional element screenshot, and axe check messages.\nOmitted on legacy audits. Remote scans do not include original source file line numbers; use DevTools with the selector.\n",
+            ),
+          detectedInViewports: zod
+            .array(zod.string())
+            .optional()
+            .describe(
+              "Breakpoint labels when this finding was merged from a multi-viewport scan.",
+            ),
+          en301549Clause: zod
+            .string()
+            .optional()
+            .describe(
+              "EN 301 549 clause reference (BITV 2.0 \/ BFSG mapping).",
+            ),
+          bitvSection: zod
+            .string()
+            .optional()
+            .describe("BITV 2.0 section label."),
+          titleDe: zod
+            .string()
+            .optional()
+            .describe("German title for compliance reporting."),
         }),
       ),
-      runtimeDiagnostics: zod
+      passedChecks: zod.number(),
+      totalChecks: zod.number(),
+      scanEngine: zod
+        .enum(["playwright", "static_fallback", "unknown"])
+        .describe(
+          "Engine used for this audit: `playwright` is headless Chromium with axe (full JS\/DOM).\n`static_fallback` is HTML fetched into JSDOM when the browser engine fails (no client-side JS).\n`unknown` is stored for legacy rows before this field existed.\n",
+        ),
+      pageScreenshot: zod
+        .string()
+        .optional()
+        .describe(
+          "Viewport JPEG data URL of the page after the axe run (Playwright only). Omitted for static fallback, legacy rows, or when capture failed.\n",
+        ),
+      scanMetadata: zod
         .object({
-          consoleErrors: zod.array(
+          profile: zod.enum(["default", "strict"]),
+          multiViewport: zod.boolean(),
+          viewportsUsed: zod.array(
             zod.object({
-              type: zod.string(),
-              text: zod.string(),
+              width: zod.number(),
+              height: zod.number(),
+              label: zod.string(),
             }),
           ),
-          failedRequests: zod
+          runtimeDiagnostics: zod
+            .object({
+              consoleErrors: zod.array(
+                zod.object({
+                  type: zod.string(),
+                  text: zod.string(),
+                }),
+              ),
+              failedRequests: zod
+                .array(
+                  zod.object({
+                    url: zod.string(),
+                    errorText: zod.string().optional(),
+                  }),
+                )
+                .optional(),
+            })
+            .optional(),
+          complianceReport: zod
+            .object({
+              framework: zod.string(),
+              frameworkVersion: zod.string(),
+              legalContextDe: zod.string(),
+              legalContextEn: zod.string(),
+              overallStatus: zod.enum([
+                "conformant",
+                "non_conformant",
+                "needs_manual_review",
+              ]),
+              wcagLevel: zod.string(),
+              clauseFindings: zod.array(
+                zod.object({
+                  en301549Clause: zod.string(),
+                  bitvSection: zod.string(),
+                  wcagCriterion: zod.string().optional(),
+                  titleDe: zod.string(),
+                  titleEn: zod.string(),
+                  status: zod.enum([
+                    "conformant",
+                    "non_conformant",
+                    "needs_manual_review",
+                  ]),
+                  violationCount: zod.number(),
+                  relatedRuleIds: zod.array(zod.string()),
+                }),
+              ),
+              supplementalFindings: zod.array(
+                zod.object({
+                  id: zod.string(),
+                  titleDe: zod.string(),
+                  titleEn: zod.string(),
+                  status: zod.enum(["pass", "fail", "warning"]),
+                  description: zod.string(),
+                  impact: zod.enum([
+                    "minor",
+                    "moderate",
+                    "serious",
+                    "critical",
+                  ]),
+                  en301549Clause: zod.string().optional(),
+                  bitvSection: zod.string().optional(),
+                }),
+              ),
+              manualReviewRequired: zod.array(zod.string()),
+              summaryDe: zod.string(),
+              summaryEn: zod.string(),
+            })
+            .optional(),
+          supplementalFindings: zod
             .array(
               zod.object({
-                url: zod.string(),
-                errorText: zod.string().optional(),
+                id: zod.string(),
+                titleDe: zod.string(),
+                titleEn: zod.string(),
+                status: zod.enum(["pass", "fail", "warning"]),
+                description: zod.string(),
+                impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+                en301549Clause: zod.string().optional(),
+                bitvSection: zod.string().optional(),
               }),
             )
             .optional(),
+          discoverySource: zod
+            .enum(["sitemap", "links", "single"])
+            .optional()
+            .describe("How whole-site URLs were discovered."),
         })
-        .optional(),
+        .optional()
+        .describe(
+          "Scan options, viewports used, and optional runtime diagnostics (Playwright). Omitted on legacy rows.",
+        ),
       complianceReport: zod
         .object({
           framework: zod.string(),
@@ -241,93 +344,20 @@ export const CreateAuditResponse = zod.object({
           summaryDe: zod.string(),
           summaryEn: zod.string(),
         })
-        .optional(),
-      supplementalFindings: zod
-        .array(
-          zod.object({
-            id: zod.string(),
-            titleDe: zod.string(),
-            titleEn: zod.string(),
-            status: zod.enum(["pass", "fail", "warning"]),
-            description: zod.string(),
-            impact: zod.enum(["minor", "moderate", "serious", "critical"]),
-            en301549Clause: zod.string().optional(),
-            bitvSection: zod.string().optional(),
-          }),
-        )
-        .optional(),
-      discoverySource: zod
-        .enum(["sitemap", "links", "single"])
         .optional()
-        .describe("How whole-site URLs were discovered."),
+        .describe(
+          "BITV 2.0 \/ BFSG (EN 301 549) compliance assessment. Also available in scanMetadata when present.",
+        ),
     })
-    .optional()
-    .describe(
-      "Scan options, viewports used, and optional runtime diagnostics (Playwright). Omitted on legacy rows.",
-    ),
-  complianceReport: zod
-    .object({
-      framework: zod.string(),
-      frameworkVersion: zod.string(),
-      legalContextDe: zod.string(),
-      legalContextEn: zod.string(),
-      overallStatus: zod.enum([
-        "conformant",
-        "non_conformant",
-        "needs_manual_review",
-      ]),
-      wcagLevel: zod.string(),
-      clauseFindings: zod.array(
-        zod.object({
-          en301549Clause: zod.string(),
-          bitvSection: zod.string(),
-          wcagCriterion: zod.string().optional(),
-          titleDe: zod.string(),
-          titleEn: zod.string(),
-          status: zod.enum([
-            "conformant",
-            "non_conformant",
-            "needs_manual_review",
-          ]),
-          violationCount: zod.number(),
-          relatedRuleIds: zod.array(zod.string()),
-        }),
-      ),
-      supplementalFindings: zod.array(
-        zod.object({
-          id: zod.string(),
-          titleDe: zod.string(),
-          titleEn: zod.string(),
-          status: zod.enum(["pass", "fail", "warning"]),
-          description: zod.string(),
-          impact: zod.enum(["minor", "moderate", "serious", "critical"]),
-          en301549Clause: zod.string().optional(),
-          bitvSection: zod.string().optional(),
-        }),
-      ),
-      manualReviewRequired: zod.array(zod.string()),
-      summaryDe: zod.string(),
-      summaryEn: zod.string(),
-    })
-    .optional()
-    .describe(
-      "BITV 2.0 \/ BFSG (EN 301 549) compliance assessment. Also available in scanMetadata when present.",
-    ),
+    .optional(),
 });
 
 /**
- * Scans up to 10 URLs serially (one browser, one URL at a time) using Server-Sent Events (SSE).
-The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
-with a `type` field:
-- `{ type: "scanning", url, index }`: fired when a URL scan begins
-- `{ type: "page", index, url, status, score, level, auditId, error? }`: fired when a URL scan finishes, or when a URL is skipped (e.g. client disconnected before Playwright started)
-- `{ type: "complete", siteScore, siteLevel, pages[], crossPageViolations[], scannedAt }`: final aggregated result (omitted if the client has already closed the stream)
-- `{ type: "error", message }`: emitted if processing fails
-Validation errors (bad URLs etc.) return a 400 JSON response before streaming begins.
-The site-wide score is a `totalChecks`-weighted average of **successful** page scores only (failed or client-skipped pages are excluded).
-`crossPageViolations` deduplicates axe rule ids across successful pages only, then sorts by impact (critical first), then page count, then total affected elements.
+ * Queues a batch scan job and returns `202 Accepted` with a `batchJobId`.
+Poll `GET /audit/batch/jobs/{batchJobId}` for per-URL progress and the final aggregated result.
+The site-wide score is a `totalChecks`-weighted average of **successful** page scores only.
 
- * @summary Batch audit up to 10 URLs: streams SSE progress events
+ * @summary Batch audit up to 10 URLs (async job)
  */
 export const createBatchAuditBodyUrlsMax = 10;
 
@@ -353,6 +383,108 @@ export const CreateBatchAuditBody = zod.object({
     .boolean()
     .optional()
     .describe("Run mobile + desktop axe passes and merge results."),
+});
+
+/**
+ * @summary Get batch audit job status
+ */
+export const GetBatchAuditJobParams = zod.object({
+  batchJobId: zod.coerce.string(),
+});
+
+export const getBatchAuditJobResponseResultSiteScoreMin = 0;
+export const getBatchAuditJobResponseResultSiteScoreMax = 100;
+
+export const getBatchAuditJobResponseResultPagesItemScoreMin = 0;
+export const getBatchAuditJobResponseResultPagesItemScoreMax = 100;
+
+export const GetBatchAuditJobResponse = zod.object({
+  batchJobId: zod.string(),
+  status: zod.enum(["pending", "running", "completed", "failed"]),
+  error: zod.string().optional(),
+  progress: zod.object({
+    discoverySource: zod.enum(["sitemap", "links", "single"]).optional(),
+    discovering: zod.boolean(),
+    urlStates: zod.array(
+      zod.object({
+        url: zod.string(),
+        status: zod.enum(["queued", "scanning", "done", "error"]),
+        score: zod.number().optional(),
+        level: zod.string().optional(),
+        auditId: zod.string().optional(),
+        error: zod.string().optional(),
+      }),
+    ),
+  }),
+  result: zod
+    .object({
+      siteScore: zod
+        .number()
+        .min(getBatchAuditJobResponseResultSiteScoreMin)
+        .max(getBatchAuditJobResponseResultSiteScoreMax)
+        .describe(
+          "Weighted average score across successful pages only; each page weighted by axe totalChecks",
+        ),
+      siteLevel: zod.enum([
+        "critical",
+        "poor",
+        "moderate",
+        "good",
+        "excellent",
+      ]),
+      pages: zod.array(
+        zod.object({
+          auditId: zod.string(),
+          url: zod.string(),
+          score: zod
+            .number()
+            .min(getBatchAuditJobResponseResultPagesItemScoreMin)
+            .max(getBatchAuditJobResponseResultPagesItemScoreMax),
+          level: zod.enum([
+            "critical",
+            "poor",
+            "moderate",
+            "good",
+            "excellent",
+          ]),
+          totalViolations: zod.number(),
+          criticalViolations: zod.number(),
+          seriousViolations: zod.number(),
+          passedChecks: zod.number(),
+          totalChecks: zod.number(),
+          scannedAt: zod.coerce.date(),
+          status: zod.enum(["success", "error"]),
+          error: zod.string().nullish(),
+          scanEngine: zod
+            .enum(["playwright", "static_fallback", "unknown"])
+            .nullish()
+            .describe(
+              "Present when status is success: which engine produced the page result",
+            ),
+        }),
+      ),
+      crossPageViolations: zod
+        .array(
+          zod.object({
+            id: zod.string(),
+            wcagCriteria: zod.string(),
+            description: zod.string(),
+            impact: zod.enum(["minor", "moderate", "serious", "critical"]),
+            pageCount: zod
+              .number()
+              .describe("Number of pages this violation appears on"),
+            totalAffectedElements: zod
+              .number()
+              .describe("Total affected elements across all pages"),
+            affectedUrls: zod.array(zod.string()),
+          }),
+        )
+        .describe(
+          "Violations from successful pages only, deduplicated by axe rule id; sorted by impact severity, then page count, then total affected elements",
+        ),
+      scannedAt: zod.coerce.date(),
+    })
+    .optional(),
 });
 
 /**

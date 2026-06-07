@@ -1,0 +1,7 @@
+import { Suspense } from "react";
+
+import GuideKeyboardPage from "@/views/resources/guides/keyboard-accessibility";
+
+export default function Page() {
+  return <GuideKeyboardPage />;
+}

@@ -1,6 +1,5 @@
 "use client";
 
-import { appBasePath } from "@/lib/app-base";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
@@ -61,7 +60,7 @@ function TypeLegendChips() {
     >
       {(Object.keys(TYPE_MARKER_DOT) as ElementType[]).map((t) => (
         <li key={t}>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border/55 bg-linear-to-b from-white to-[hsl(40_18%_97%)] px-3.5 py-1.5 text-xs font-semibold font-sans text-foreground shadow-sm ring-1 ring-black/4">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3.5 py-1.5 text-xs font-semibold font-sans text-foreground">
             <span
               className="size-2.5 shrink-0 rounded-full shadow-sm ring-2 ring-white"
               style={{ background: TYPE_MARKER_DOT[t] }}
@@ -78,7 +77,7 @@ function TypeLegendChips() {
 const SVG_MARKER_R = 12;
 const SVG_FONT_SIZE = 11;
 
-const BASE_URL = appBasePath();
+import { apiUrl } from "@/lib/api-base";
 
 function buildAnnotatedCanvas(
   img: HTMLImageElement,
@@ -119,7 +118,8 @@ function buildAnnotatedCanvas(
 }
 
 export default function FocusOrderVisualizer() {
-  const searchParams = useSearchParams();
+  const searchParamsHook = useSearchParams();
+  const search = searchParamsHook?.toString() ?? "";
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<FocusOrderResult | null>(null);
@@ -129,9 +129,10 @@ export default function FocusOrderVisualizer() {
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    const u = searchParams.get("url");
+    const q = new URLSearchParams(search);
+    const u = q.get("url");
     if (u?.trim()) setUrl(decodeURIComponent(u.trim()));
-  }, [searchParams]);
+  }, [search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,9 +145,11 @@ export default function FocusOrderVisualizer() {
     setFilter("all");
     setHoveredIndex(null);
     try {
-      const resp = await fetch(`${BASE_URL}/api/focus-order?url=${encodeURIComponent(target)}`);
+      const resp = await fetch(`${apiUrl("/api/focus-order")}?url=${encodeURIComponent(target)}`);
       if (!resp.ok) {
-        const data = (await resp.json().catch(() => ({}))) as { message?: string };
+        const data = (await resp.json().catch(() => ({}))) as {
+          message?: string;
+        };
         throw new Error(data.message || "Could not analyse focus order.");
       }
       const data: FocusOrderResult = await resp.json();

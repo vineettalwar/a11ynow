@@ -19,8 +19,8 @@ export class ScanGateDO extends DurableObject {
   private readonly queue: QueueEntry[] = [];
   private maxConcurrent = 2;
 
-  constructor(state: DurableObjectState, env: Env) {
-    super(state, env);
+  constructor(state: DurableObjectState, env: CloudflareEnv) {
+    super(state, env as never);
     const raw = env.SCAN_MAX_CONCURRENT;
     if (raw) {
       const n = Number.parseInt(raw, 10);

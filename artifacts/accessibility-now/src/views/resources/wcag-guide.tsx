@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import gsap from "gsap";
+import { useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
+import { useBtnGsapHover } from "@/hooks/use-btn-gsap-hover";
 
 const POUR = [
   {
@@ -295,20 +295,7 @@ export default function WcagGuide() {
   const pourRef = useSectionReveal<HTMLElement>();
   const pageRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const el = pageRef.current;
-    if (!el) return;
-    const buttons = el.querySelectorAll<HTMLElement>(".btn-gsap");
-    const cleanups: (() => void)[] = [];
-    buttons.forEach((btn) => {
-      const enter = () => gsap.to(btn, { scale: 1.04, duration: 0.18, ease: "power2.out" });
-      const leave = () => gsap.to(btn, { scale: 1, duration: 0.18, ease: "power2.out" });
-      btn.addEventListener("mouseenter", enter);
-      btn.addEventListener("mouseleave", leave);
-      cleanups.push(() => { btn.removeEventListener("mouseenter", enter); btn.removeEventListener("mouseleave", leave); });
-    });
-    return () => cleanups.forEach((fn) => fn());
-  }, []);
+  useBtnGsapHover(pageRef, 0.18);
 
   return (
     <div ref={pageRef} className="flex flex-col w-full">
@@ -407,7 +394,7 @@ export default function WcagGuide() {
       ))}
 
       {/* CTA */}
-      <section className="py-24 px-4 hero-gradient text-center">
+      <section className="py-24 px-4 warm-section text-center">
         <div className="container mx-auto max-w-2xl">
           <h2 className="text-display-md font-extrabold mb-5">
             Ready to check<br />

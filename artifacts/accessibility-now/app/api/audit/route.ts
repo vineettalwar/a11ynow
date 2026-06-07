@@ -1,52 +1,11 @@
 import { randomUUID } from "crypto";
 import { CreateAuditBody } from "@workspace/api-zod";
 import { auditsTable } from "@workspace/db";
-import { logger } from "@/server/logger";
-import {
-  runAccessibilityScan,
-  validateScanUrl,
-  ScanGateShutdownError,
-  type ScanMetadata,
-} from "@/server/scan";
+import { enqueueJob } from "@/server/artifacts/storage";
 import { jsonErr, jsonOk, prepareRequestDb, readJson, requestDb } from "@/server/http";
-
-interface AuditViolationInstanceData {
-  selector: string;
-  htmlSnippet: string;
-  failureSummary?: string;
-  elementScreenshot?: string;
-  checkDetails?: string[];
-}
-
-interface AuditViolationData {
-  id: string;
-  wcagCriteria: string;
-  description: string;
-  impact: "minor" | "moderate" | "serious" | "critical";
-  affectedElements: number;
-  topSelectors: string[];
-  help?: string;
-  helpUrl?: string;
-  instanceDetails?: AuditViolationInstanceData[];
-  detectedInViewports?: string[];
-}
-
-interface AuditResultData {
-  auditId: string;
-  url: string;
-  scannedAt: string;
-  score: number;
-  level: "critical" | "poor" | "moderate" | "good" | "excellent";
-  totalViolations: number;
-  criticalViolations: number;
-  seriousViolations: number;
-  violations: AuditViolationData[];
-  passedChecks: number;
-  totalChecks: number;
-  scanEngine: "playwright" | "static_fallback" | "unknown";
-  pageScreenshot?: string | null;
-  scanMetadata?: ScanMetadata | null;
-}
+import { logger } from "@/server/logger";
+import { createScanJob } from "@/server/jobs/scan-job-store";
+import { validateScanUrl, type ScanMetadata } from "@/server/scan";
 
 export async function POST(req: Request) {
   prepareRequestDb();
@@ -69,63 +28,76 @@ export async function POST(req: Request) {
   }
 
   const { url } = validation;
-  logger.info({ url }, "Running accessibility audit");
+  const profile = parsed.data.profile === "strict" ? "strict" : "default";
+  const multiViewport = parsed.data.multiViewport === true;
+  const auditId = randomUUID();
+  const jobId = auditId;
+  const scannedAt = new Date();
+
+  const pendingMetadata: ScanMetadata = {
+    profile,
+    multiViewport,
+    viewportsUsed: [],
+    pending: true,
+  };
+
+  logger.info({ url, auditId, jobId }, "Queueing accessibility audit job");
 
   try {
-    const result = await runAccessibilityScan(url, {
-      profile: parsed.data.profile === "strict" ? "strict" : "default",
-      multiViewport: parsed.data.multiViewport === true,
-    });
-    const auditId = randomUUID();
-    const scannedAt = new Date();
-
     await db.insert(auditsTable).values({
       auditId,
       url,
       scannedAt,
-      score: result.score,
-      level: result.level,
-      totalViolations: result.totalViolations,
-      criticalViolations: result.criticalViolations,
-      seriousViolations: result.seriousViolations,
-      violations: result.violations,
-      passedChecks: result.passedChecks,
-      totalChecks: result.totalChecks,
-      scanEngine: result.scanEngine,
-      pageScreenshot: result.pageScreenshot ?? null,
-      scanMetadata: result.scanMetadata ?? null,
+      score: 0,
+      level: "moderate",
+      totalViolations: 0,
+      criticalViolations: 0,
+      seriousViolations: 0,
+      violations: [],
+      passedChecks: 0,
+      totalChecks: 0,
+      scanEngine: "unknown",
+      pageScreenshot: null,
+      scanMetadata: pendingMetadata,
     });
 
-    return jsonOk({
-      auditId,
-      url,
-      scannedAt: scannedAt.toISOString(),
-      score: result.score,
-      level: result.level,
-      totalViolations: result.totalViolations,
-      criticalViolations: result.criticalViolations,
-      seriousViolations: result.seriousViolations,
-      violations: result.violations,
-      passedChecks: result.passedChecks,
-      totalChecks: result.totalChecks,
-      scanEngine: result.scanEngine,
-      ...(result.pageScreenshot ? { pageScreenshot: result.pageScreenshot } : {}),
-      ...(result.scanMetadata ? { scanMetadata: result.scanMetadata } : {}),
-    } satisfies AuditResultData);
+    await createScanJob({ jobId, auditId, url, profile, multiViewport });
   } catch (err) {
-    if (err instanceof ScanGateShutdownError) {
-      logger.warn({ url }, "Audit rejected: scan engine shutting down");
-      return jsonErr(
-        503,
-        "scan_unavailable",
-        "The scan engine is restarting. Please try again in a moment.",
-      );
-    }
-    logger.error({ err, url }, "Audit failed");
+    logger.error({ err, url, auditId }, "Failed to create pending audit row");
     return jsonErr(
       500,
       "audit_failed",
-      "The accessibility audit could not be completed. Please try again.",
+      "The accessibility audit could not be started. Please try again.",
     );
   }
+
+  await enqueueJob({
+    type: "audit",
+    jobId,
+    auditId,
+    url,
+    profile,
+    multiViewport,
+  });
+
+  return jsonOk(
+    {
+      jobId,
+      auditId,
+      status: "pending",
+      url,
+      scannedAt: scannedAt.toISOString(),
+      score: 0,
+      level: "moderate",
+      totalViolations: 0,
+      criticalViolations: 0,
+      seriousViolations: 0,
+      violations: [],
+      passedChecks: 0,
+      totalChecks: 0,
+      scanEngine: "unknown",
+      scanMetadata: pendingMetadata,
+    },
+    202,
+  );
 }

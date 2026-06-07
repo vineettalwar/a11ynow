@@ -1,0 +1,7 @@
+import { Suspense } from "react";
+
+import AccessibilityStatementPage from "@/views/legal/accessibility";
+
+export default function Page() {
+  return <AccessibilityStatementPage />;
+}

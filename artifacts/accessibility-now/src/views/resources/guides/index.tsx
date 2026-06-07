@@ -10,6 +10,8 @@ const ITEMS = [
   { href: "/resources/guides/aria", icon: Code2, title: "ARIA without breaking things", description: "When to use ARIA, when not to, and the patterns that actually work." },
   { href: "/resources/guides/keyboard-accessibility", icon: Keyboard, title: "Keyboard accessibility", description: "Focus management, indicators, traps, and the new WCAG 2.2 focus appearance rules." },
   { href: "/resources/guides/screen-readers", icon: Volume2, title: "Screen readers", description: "How NVDA, JAWS, VoiceOver, and TalkBack actually consume your pages." },
+  { href: "/resources/guides/alt-text", icon: BookOpen, title: "Alt text", description: "When to write alt, when to leave it empty, and how to avoid keyword stuffing." },
+  { href: "/resources/guides/forms", icon: Keyboard, title: "Accessible forms", description: "Labels, error identification, validation announcements, and autocomplete." },
 ];
 
 export default function GuidesIndex() {

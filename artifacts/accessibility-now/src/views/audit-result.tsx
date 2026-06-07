@@ -1,6 +1,5 @@
 "use client";
 
-import { appBasePath } from "@/lib/app-base";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,8 +38,18 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { appBasePath } from "@/lib/app-base";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format-datetime";
 import { AuditPendingScanFrame } from "@/components/audit-pending-scan-frame";
+import { AuditScanElapsed } from "@/components/audit-scan-elapsed";
+import { AuditScanProgressList } from "@/components/audit-scan-progress-list";
+import { AuditScanTarget } from "@/components/audit-scan-target";
+import { saveBatchAuditResult } from "@/lib/batch-audit-storage";
+import {
+  runBatchScan,
+  type BatchScanProgress,
+} from "@/lib/batch-scan-sse";
 import {
   useAuditHeroEntrance,
   useAuditMetricsEntrance,
@@ -48,6 +57,13 @@ import {
   useViolationCardsEntrance,
   useViolationNavPulse,
 } from "@/hooks/use-audit-result-gsap";
+import {
+  auditRefetchIntervalMs,
+  auditRowIsFailed,
+  auditRowIsPending,
+  auditRowLooksUsable,
+  mergeAuditRow,
+} from "@/lib/audit-row-status";
 
 /** Match audit rows to the URL the user asked to scan (same origin as API normalisation). */
 function normalizeUrlForCompare(raw: string): string {
@@ -83,48 +99,6 @@ function urlsMatchForAudit(a: string, b: string): boolean {
   } catch {
     return normalizeUrlForCompare(a) === normalizeUrlForCompare(b);
   }
-}
-
-/**
- * True when the API row looks like a real scan (not an empty shell from a race, parse glitch, or bad cache).
- */
-function auditRowLooksUsable(row: AuditResult | null | undefined): boolean {
-  if (!row || typeof row.auditId !== "string" || !row.auditId) return false;
-  if (typeof row.url !== "string" || !row.url.trim()) return false;
-  if (typeof row.scannedAt !== "string") return false;
-  const scannedMs = Date.parse(row.scannedAt);
-  if (Number.isNaN(scannedMs) || scannedMs <= 0) return false;
-
-  const totalChecks = typeof row.totalChecks === "number" ? row.totalChecks : 0;
-  const passed = typeof row.passedChecks === "number" ? row.passedChecks : 0;
-  const violationCount = Array.isArray(row.violations) ? row.violations.length : 0;
-  const totalV = typeof row.totalViolations === "number" ? row.totalViolations : 0;
-
-  return totalChecks > 0 || passed > 0 || violationCount > 0 || totalV > 0;
-}
-
-/**
- * Prefer a complete GET row when available; never let an empty/partial GET override the mutation response
- * for the same auditId (fixes all-zero / epoch UI after a successful scan).
- */
-function mergeAuditRow(
-  auditId: string,
-  fromGet: AuditResult | undefined,
-  fromPost: AuditResult | undefined,
-): AuditResult | undefined {
-  if (!auditId) return fromPost;
-
-  const getIdMatch = fromGet?.auditId === auditId;
-  const postIdMatch = fromPost?.auditId === auditId;
-
-  const getUsable = Boolean(getIdMatch && auditRowLooksUsable(fromGet));
-  const postUsable = Boolean(postIdMatch && auditRowLooksUsable(fromPost));
-
-  if (getUsable) return fromGet;
-  if (postUsable) return fromPost;
-  if (postIdMatch) return fromPost;
-  if (getIdMatch) return fromGet;
-  return undefined;
 }
 
 /** API / cache should always send full rows; this prevents broken layout if anything is missing. */
@@ -169,7 +143,7 @@ function buildScannedCaption(scannedAt: string): string {
   if (Number.isNaN(t) || t <= 0) {
     return "Scan date not recorded";
   }
-  return `Scanned ${new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`;
+  return `Scanned ${formatDateTime(t)}`;
 }
 
 /** Single neutral card; sections inside use spacing and light fills only. */
@@ -579,45 +553,20 @@ function LeadCaptureForm({ auditId }: { auditId: string }) {
   );
 }
 
-const BASE = appBasePath();
+import { openPrintReport } from "@/lib/print-report";
 
 function useDownloadPdf(auditId: string) {
-  const [isPending, setIsPending] = useState(false);
-  const { toast } = useToast();
-
-  async function download() {
-    setIsPending(true);
-    try {
-      const resp = await fetch(`${BASE}/api/audit/${auditId}/pdf`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const disposition = resp.headers.get("Content-Disposition") ?? "";
-      const match = disposition.match(/filename="([^"]+)"/);
-      a.download = match?.[1] ?? "accessibility-report.pdf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast({
-        title: "Report generation failed",
-        description: "Could not generate the PDF report. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsPending(false);
-    }
+  function download() {
+    openPrintReport("audit", auditId);
   }
 
-  return { download, isPending };
+  return { download, isPending: false };
 }
 
 export default function AuditResult() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const sp = useSearchParams();
+  const searchParams = new URLSearchParams(sp?.toString() ?? "");
   const urlParam = searchParams.get("url") || "";
   const auditIdParam = searchParams.get("auditId") || "";
   /** Each home submit sends a new nonce so we clear the mutation and POST again instead of reusing the last scan. */
@@ -625,18 +574,31 @@ export default function AuditResult() {
   const profileParam = searchParams.get("profile") === "strict" ? "strict" : "default";
   const multiViewportParam =
     searchParams.get("multiViewport") === "1" || searchParams.get("multiViewport") === "true";
+  const wholeSiteParam =
+    searchParams.get("wholeSite") === "1" || searchParams.get("wholeSite") === "true";
 
   const queryClient = useQueryClient();
   const createAudit = useCreateAudit();
   const { mutate: createAuditMutate, reset: resetCreateAudit } = createAudit;
 
   const lastScanIntentKey = useRef<string | null>(null);
+  const lastBatchIntentKey = useRef<string | null>(null);
+
+  const [batchScanning, setBatchScanning] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<BatchScanProgress>({
+    discovering: true,
+    urlStates: [],
+  });
+  const [batchError, setBatchError] = useState<string | null>(null);
 
   const existingAudit = useQuery({
     queryKey: getGetAuditQueryKey(auditIdParam),
     queryFn: () => getAudit(auditIdParam),
     enabled: !!auditIdParam,
     retry: false,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchInterval: (query) => auditRefetchIntervalMs(query.state.data),
   });
 
   useEffect(() => {
@@ -651,6 +613,7 @@ export default function AuditResult() {
       return;
     }
     if (!urlParam) return;
+    if (createAudit.isPending) return;
     const fp = normalizeUrlForCompare(urlParam);
     const intentKey = rescanParam
       ? `rescan:${rescanParam}:${fp}:p${profileParam}:mv${multiViewportParam ? "1" : "0"}`
@@ -658,17 +621,7 @@ export default function AuditResult() {
     if (lastScanIntentKey.current === intentKey) return;
     lastScanIntentKey.current = intentKey;
     resetCreateAudit();
-  }, [auditIdParam, rescanParam, resetCreateAudit, urlParam, profileParam, multiViewportParam]);
-
-  useEffect(() => {
-    if (!urlParam || auditIdParam) return;
-    if (createAudit.isPending) return;
-    const post = createAudit.data;
-    if (!post?.url) return;
-    if (!urlsMatchForAudit(post.url, urlParam)) {
-      resetCreateAudit();
-    }
-  }, [auditIdParam, createAudit.data, createAudit.isPending, resetCreateAudit, urlParam]);
+  }, [auditIdParam, rescanParam, resetCreateAudit, urlParam, profileParam, multiViewportParam, createAudit.isPending]);
 
   useEffect(() => {
     if (!urlParam || auditIdParam) return;
@@ -687,7 +640,14 @@ export default function AuditResult() {
   ]);
 
   useEffect(() => {
-    if (!urlParam || auditIdParam) return;
+    if (!auditIdParam) return;
+    if (createAudit.data?.auditId === auditIdParam) {
+      resetCreateAudit();
+    }
+  }, [auditIdParam, createAudit.data?.auditId, resetCreateAudit]);
+
+  useEffect(() => {
+    if (!urlParam || auditIdParam || wholeSiteParam) return;
     if (createAudit.isPending || createAudit.data || createAudit.isError) return;
     createAuditMutate({
       data: {
@@ -705,6 +665,64 @@ export default function AuditResult() {
     urlParam,
     profileParam,
     multiViewportParam,
+    wholeSiteParam,
+  ]);
+
+  useEffect(() => {
+    if (!wholeSiteParam || !urlParam || auditIdParam) return;
+    if (batchScanning) return;
+
+    const fp = normalizeUrlForCompare(urlParam);
+    const intentKey = rescanParam
+      ? `batch:${rescanParam}:${fp}:p${profileParam}:mv${multiViewportParam ? "1" : "0"}`
+      : `batch:${fp}:p${profileParam}:mv${multiViewportParam ? "1" : "0"}`;
+    if (lastBatchIntentKey.current === intentKey) return;
+    lastBatchIntentKey.current = intentKey;
+
+    let cancelled = false;
+    setBatchError(null);
+    setBatchScanning(true);
+    setBatchProgress({ discovering: true, urlStates: [] });
+
+    (async () => {
+      try {
+        const result = await runBatchScan(
+          {
+            url: urlParam,
+            wholeSite: true,
+            profile: profileParam,
+            multiViewport: multiViewportParam,
+          },
+          (progress) => {
+            if (!cancelled) setBatchProgress(progress);
+          },
+        );
+        if (cancelled) return;
+
+        saveBatchAuditResult(result);
+        await new Promise((r) => setTimeout(r, 700));
+        router.replace("/batch-result");
+      } catch (err) {
+        if (!cancelled) {
+          setBatchError(err instanceof Error ? err.message : "Batch scan failed. Please try again.");
+          setBatchScanning(false);
+          setBatchProgress({ discovering: false, urlStates: [] });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    auditIdParam,
+    batchScanning,
+    multiViewportParam,
+    profileParam,
+    rescanParam,
+    router,
+    urlParam,
+    wholeSiteParam,
   ]);
 
   if (!urlParam && !auditIdParam) {
@@ -724,29 +742,63 @@ export default function AuditResult() {
     !!auditIdParam &&
     mergedRaw === undefined &&
     (existingAudit.isPending || existingAudit.isFetching);
-  const isPending = createAudit.isPending || waitingForSavedAudit;
+  const scanStillRunning = auditRowIsPending(mergedRaw);
+  const isPending =
+    wholeSiteParam
+      ? batchScanning
+      : createAudit.isPending || waitingForSavedAudit || scanStillRunning;
   const isError =
-    createAudit.isError ||
-    (!!auditIdParam &&
-      existingAudit.isError &&
-      !(createAudit.data?.auditId === auditIdParam));
-  const displayUrl = mergedRaw?.url || urlParam;
+    wholeSiteParam
+      ? !!batchError
+      : createAudit.isError ||
+        auditRowIsFailed(mergedRaw) ||
+        auditRowIsFailed(existingAudit.data) ||
+        (!!auditIdParam &&
+          existingAudit.isError &&
+          !(createAudit.data?.auditId === auditIdParam));
+  const activeBatchUrl =
+    batchProgress.urlStates.find((s) => s.status === "scanning")?.url ??
+    batchProgress.urlStates.find((s) => s.status === "queued")?.url;
+  const displayUrl =
+    wholeSiteParam && activeBatchUrl ? activeBatchUrl : mergedRaw?.url || urlParam;
 
   if (isPending) {
+    const pageEstimate = wholeSiteParam
+      ? `${Math.max(batchProgress.urlStates.length, 1)} pages × ${multiViewportParam ? "35–55" : "15–40"}s each`
+      : multiViewportParam
+        ? "35–55"
+        : "15–40";
+
     return (
       <div className="hero-gradient min-h-[80vh] flex flex-col items-center justify-center gap-8 px-4 py-12 sm:py-16">
-        <div className="sr-only" role="status" aria-live="polite">
-          Scanning {displayUrl}. Automated WCAG checks in progress.
-        </div>
-        <Loader2 className="w-9 h-9 text-primary animate-spin shrink-0" aria-hidden />
-        <div className="text-center max-w-xl w-full space-y-3">
-          <h1 className="text-display-md font-extrabold">
-            Scanning<br />
-            <span className="heading-accent">your site.</span>
-          </h1>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            Chromium scrolls the full page, then axe analyzes: typically 15–40 seconds.
-          </p>
+        <div role="status" aria-live="polite" className="flex flex-col items-center gap-6 w-full max-w-xl">
+          <Loader2 className="w-9 h-9 text-primary animate-spin shrink-0" aria-hidden />
+          <div className="text-center w-full space-y-3">
+            <h1 className="text-display-md font-extrabold">
+              {wholeSiteParam ? (
+                <>
+                  Scanning<br />
+                  <span className="heading-accent">your site.</span>
+                </>
+              ) : (
+                <>
+                  Scanning<br />
+                  <span className="heading-accent">your page.</span>
+                </>
+              )}
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Chromium scrolls each page, then axe analyzes
+              {multiViewportParam ? " across mobile and desktop" : ""}: typically {pageEstimate}
+              {wholeSiteParam ? "" : " seconds"}.
+            </p>
+            <AuditScanElapsed active />
+          </div>
+          {wholeSiteParam ? (
+            <AuditScanProgressList progress={batchProgress} />
+          ) : (
+            <AuditScanTarget pageUrl={displayUrl} />
+          )}
         </div>
 
         <AuditPendingScanFrame displayUrl={displayUrl} />
@@ -770,6 +822,7 @@ export default function AuditResult() {
   }
 
   if (isError) {
+    const errorMessage = wholeSiteParam && batchError ? batchError : null;
     return (
       <div className="hero-gradient min-h-[80vh] flex items-center justify-center px-4">
         <div className="text-center max-w-lg">
@@ -778,9 +831,13 @@ export default function AuditResult() {
             Scan <span className="heading-accent">failed.</span>
           </h1>
           <p className="text-muted-foreground text-sm mb-8">
-            We couldn't complete the scan for{" "}
-            <span className="font-mono text-foreground">{displayUrl}</span>.
-            The site might be blocking our scanner, requires authentication, or is unreachable.
+            {errorMessage ?? (
+              <>
+                We couldn't complete the scan for{" "}
+                <span className="font-mono text-foreground">{displayUrl}</span>.
+                The site might be blocking our scanner, requires authentication, or is unreachable.
+              </>
+            )}
           </p>
           <Button asChild>
             <Link href="/">Try another URL</Link>
@@ -966,7 +1023,7 @@ function MonitorSetupCard({ url, auditId }: { url: string; auditId: string }) {
     setIsPending(true);
     setError(null);
     try {
-      const res = await fetch(`${BASE}/api/monitor`, {
+      const res = await fetch(`${appBasePath}/api/monitor`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, email: email.trim(), frequency, auditId }),
@@ -986,7 +1043,7 @@ function MonitorSetupCard({ url, auditId }: { url: string; auditId: string }) {
     }
   }
 
-  const monitorUrl = token ? `${window.location.origin}${BASE}/monitor/${token}` : null;
+  const monitorUrl = token ? `${window.location.origin}${appBasePath}/monitor/${token}` : null;
 
   if (token && monitorUrl) {
     return (
@@ -1071,7 +1128,7 @@ function AuditResultView({
   result,
   scannedCaption,
 }: {
-  result: NonNullable<ReturnType<typeof useCreateAudit>["data"]>;
+  result: AuditResult;
   scannedCaption: string;
 }) {
   const { download, isPending: pdfPending } = useDownloadPdf(result.auditId);
@@ -1082,6 +1139,7 @@ function AuditResultView({
   const violationArticleRefs = useRef<Array<HTMLElement | null>>([]);
   const scoreRingRef = useRef<SVGCircleElement | null>(null);
   const metricsRef = useRef<HTMLDivElement | null>(null);
+  const violationsSectionRef = useRef<HTMLDivElement | null>(null);
   const violationsListRef = useRef<HTMLDivElement | null>(null);
   const violationsToolbarRef = useRef<HTMLDivElement | null>(null);
   const screenshotRef = useRef<HTMLDivElement | null>(null);
@@ -1118,6 +1176,7 @@ function AuditResultView({
     violationFingerprint,
     violationCount: violations.length,
     reducedMotion,
+    violationsSectionRef,
     violationsListRef,
     violationsToolbarRef,
   });
@@ -1184,9 +1243,9 @@ function AuditResultView({
                 className="h-11 px-5 text-sm font-semibold border-foreground/20 bg-white/80 hover:bg-white gap-2 shadow-sm transition-shadow hover:shadow-md motion-reduce:transition-none"
               >
                 {pdfPending ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Opening…</>
                 ) : (
-                  <><FileDown className="w-4 h-4" /> Download Report</>
+                  <><FileDown className="w-4 h-4" /> Save as PDF</>
                 )}
               </Button>
             </div>
@@ -1277,6 +1336,85 @@ function AuditResultView({
           )}
 
           <div className="space-y-6 mb-12">
+              {(result.complianceReport ?? result.scanMetadata?.complianceReport) ? (
+                <Card className="border-2 border-primary/20 shadow-none">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-bold font-sans">BITV 2.0 / BFSG (EN 301 549)</h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-2xl">
+                          {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.summaryDe}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={
+                          (result.complianceReport ?? result.scanMetadata?.complianceReport)!.overallStatus ===
+                          "non_conformant"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
+                        {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.overallStatus ===
+                        "non_conformant"
+                          ? "Nicht konform (automatisiert)"
+                          : "Manuelle Prüfung erforderlich"}
+                      </Badge>
+                    </div>
+
+                    {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.clauseFindings.length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          EN 301 549 / BITV-Klauseln
+                        </p>
+                        <ul className="space-y-2 text-xs">
+                          {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.clauseFindings
+                            .slice(0, 8)
+                            .map((c) => (
+                              <li
+                                key={`${c.en301549Clause}-${c.bitvSection}`}
+                                className="flex flex-wrap gap-x-2 gap-y-1 rounded-lg border border-border/60 bg-background/60 px-3 py-2"
+                              >
+                                <span className="font-mono text-primary">{c.en301549Clause}</span>
+                                <span className="text-muted-foreground">·</span>
+                                <span className="font-semibold">{c.titleDe}</span>
+                                <span className="text-muted-foreground ml-auto">
+                                  {c.violationCount} {c.violationCount === 1 ? "Mangel" : "Mängel"}
+                                </span>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.supplementalFindings
+                      .filter((s) => s.status !== "pass")
+                      .length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          Zusatzprüfungen (über axe-core hinaus)
+                        </p>
+                        <ul className="space-y-1.5 text-xs text-muted-foreground">
+                          {(result.complianceReport ?? result.scanMetadata?.complianceReport)!.supplementalFindings
+                            .filter((s) => s.status !== "pass")
+                            .map((s) => (
+                              <li key={s.id} className="flex gap-2">
+                                <span
+                                  className={
+                                    s.status === "fail" ? "text-destructive font-semibold" : "text-amber-700 font-semibold"
+                                  }
+                                >
+                                  {s.status === "fail" ? "Fehler" : "Hinweis"}
+                                </span>
+                                <span>{s.titleDe}: {s.description}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              ) : null}
+
               {result.scanMetadata ? (
                 <Card className="border-2 border-primary/15 shadow-none">
                   <CardContent className="p-6 space-y-3">
@@ -1398,6 +1536,7 @@ function AuditResultView({
           </div>
 
           {/* Violations */}
+          <div ref={violationsSectionRef}>
           <div
             ref={violationsToolbarRef}
             className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between mb-4"
@@ -1579,6 +1718,7 @@ function AuditResultView({
                 );
               })
             )}
+          </div>
           </div>
 
           {/* Lead Capture */}

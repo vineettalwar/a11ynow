@@ -108,7 +108,7 @@ export default function Work() {
         </div>
       </section>
 
-      <section className="py-24 px-4 hero-gradient text-center">
+      <section className="py-24 px-4 warm-section text-center">
         <div className="container mx-auto max-w-2xl">
           <h2 className="text-display-md font-extrabold mb-5">
             Your product<br />

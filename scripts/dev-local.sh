@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-command local dev: Docker Postgres + migrations + Vite + API (scans work).
+# One-command local dev: Docker Postgres + migrations + Next.js (scans work).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -12,8 +12,8 @@ if [[ -f "${ROOT}/.env" ]]; then
   set +a
 fi
 
-# dev-db-up migrates using the local Docker URL (ignore any remote DATABASE_URL in .env)
 unset DATABASE_URL
+unset PORT
 
 echo "==> Ensuring local database (Docker)…"
 bash "${ROOT}/scripts/dev-db-up.sh"
@@ -31,9 +31,14 @@ DB_PASS="${A11YNOW_DB_PASSWORD:-a11ynow_local_dev_only}"
 DB_PORT="${A11YNOW_DB_PORT:-5432}"
 export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:${DB_PORT}/${DB_NAME}"
 
-# API audits use Playwright Chromium + @axe-core/playwright (artifacts/api-server/src/lib/scan.ts).
-# `pnpm install` pulls the npm packages; this pulls the browser binary Playwright launches.
 echo "==> Ensuring Playwright Chromium browser (headless WCAG scans via axe)…"
-pnpm --filter @workspace/api-server exec playwright install chromium
+pnpm --filter @workspace/accessibility-now exec playwright install chromium
 
-bash "${ROOT}/scripts/dev-app-servers.sh"
+bash "${ROOT}/scripts/stop-stale-next-dev.sh"
+
+echo "==> Starting Next.js (web + API route handlers)…"
+echo "    Press Ctrl+C to stop."
+echo ""
+
+export ENABLE_LOCAL_SCHEDULER=1
+exec pnpm --filter @workspace/accessibility-now run dev

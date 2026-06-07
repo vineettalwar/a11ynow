@@ -38,10 +38,13 @@ function saveState(state: State) {
 
 type Action =
   | { type: "SET"; id: string; status: WcagStatus }
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | { type: "HYDRATE"; state: State };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case "HYDRATE":
+      return action.state;
     case "SET": {
       const next = { ...state, [action.id]: action.status };
       saveState(next);
@@ -86,9 +89,13 @@ function StatusIcon({ status }: { status: WcagStatus }) {
 }
 
 export default function WcagChecklist() {
-  const [state, dispatch] = useReducer(reducer, {}, loadState);
+  const [state, dispatch] = useReducer(reducer, {});
   const [openGuidelines, setOpenGuidelines] = useState<Record<string, boolean>>({});
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    dispatch({ type: "HYDRATE", state: loadState() });
+  }, []);
 
   const total = WCAG_CRITERIA.length;
   const reviewed = WCAG_CRITERIA.filter((c) => state[c.id] && state[c.id] !== "untouched").length;

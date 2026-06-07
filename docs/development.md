@@ -8,8 +8,7 @@ This document is for engineers working in the repo day to day. For first-time ma
 
 | Package | Path | Role |
 | --- | --- | --- |
-| **Frontend** | `artifacts/accessibility-now` | React 19 + Vite 7 + Tailwind v4 + wouter. Ships static assets; talks to the API over `/api/*`. |
-| **API** | `artifacts/api-server` | Express 5. Mounts routes under `/api` (see `src/app.ts`). Playwright + axe for scans; Drizzle for persistence. |
+| **App** | `artifacts/accessibility-now` | Next.js 15 App Router + Tailwind v4. Full-stack: UI and `/api/*` route handlers in one process. Deployed to Cloudflare Workers via OpenNext. |
 | **OpenAPI** | `lib/api-spec` | `openapi.yaml` is the HTTP contract. Orval generates the client and Zod output. |
 | **Generated client** | `lib/api-client-react` | TanStack Query hooks and fetch helpers. **Do not edit by hand.** |
 | **Generated Zod** | `lib/api-zod` | Request/response schemas for the server. **Do not edit by hand.** |
@@ -41,36 +40,36 @@ From the repo root:
 pnpm dev
 ```
 
-This runs `scripts/dev-local.sh`: starts Docker Postgres (if needed), applies migrations, installs Playwright Chromium when needed, then starts Vite and the API together.
+This runs `scripts/dev-local.sh`: starts Docker Postgres (if needed), applies migrations, ensures Playwright Chromium is installed, then starts **Next.js** (`pnpm --filter @workspace/accessibility-now dev`).
 
-- Vite defaults to port **5180** (or `PORT` if you set it for the frontend only).
-- The API port is **chosen automatically** unless you set `A11YNOW_API_PORT`. The script exports `VITE_DEV_API_PROXY` so Vite’s `/api` proxy targets the same API instance.
+- Next.js defaults to port **3000** (or `PORT` if set).
+- API routes live at `/api/*` in the same Next.js process (no separate Express server).
+- Set `ENABLE_LOCAL_SCHEDULER=1` (enabled by dev scripts) for hourly monitoring scans locally. Production uses Cloudflare Cron → `/api/cron/monitoring`.
 
-### Web + API without Docker Postgres
+### Web without Docker Postgres
 
-Use this when you already have `DATABASE_URL` in `.env` (local install, cloud host, or you are only hitting routes that do not need the DB):
+Use this when you already have `DATABASE_URL` in `.env`:
 
 ```bash
 pnpm run dev:no-db
 ```
 
-This sources the repo `.env` then runs `scripts/dev-app-servers.sh` (free API port + `VITE_DEV_API_PROXY`). It does **not** start Docker or run migrations; apply those yourself when the schema changes.
+This sources `.env` and runs `scripts/dev-app-servers.sh` (Next.js only).
 
-### Running servers separately
+### Cloudflare preview / deploy
 
-Useful when you want stable ports or attach debuggers to one process:
+From `artifacts/accessibility-now`:
 
 ```bash
-# Terminal 1 — API (default 8080 if PORT unset in your environment; package README uses 8080)
-pnpm --filter @workspace/api-server run dev
-
-# Terminal 2 — frontend; point proxy at the API if not on 8080
-VITE_DEV_API_PROXY=http://127.0.0.1:8080 pnpm --filter @workspace/accessibility-now run dev
+pnpm preview   # OpenNext build + local Workers runtime
+pnpm deploy    # Deploy to Cloudflare
 ```
 
-Vite proxies **`/api` → `VITE_DEV_API_PROXY`** (default `http://127.0.0.1:8080`). See `artifacts/accessibility-now/vite.config.ts`.
+Configure `wrangler.jsonc` (Hyperdrive ID, browser binding) before first deploy.
 
-**Port gotcha:** both stacks can read `PORT`. If you export one `PORT` for everything, the API and Vite may collide. Prefer separate terminals with explicit values, or use `pnpm dev` which unsets `PORT` for Vite and pins the API via `A11YNOW_API_PORT` / free port (see `scripts/dev-app-servers.sh`).
+### Legacy note
+
+The former Express `artifacts/api-server` and Vite SPA have been removed. Server logic lives in `artifacts/accessibility-now/src/server/`; HTTP handlers in `app/api/`.
 
 ### Next.js migration runtime (Phase 0+)
 
@@ -135,7 +134,7 @@ pnpm --filter @workspace/accessibility-now run d1:migrate:remote
 
    This refreshes `lib/api-client-react` and `lib/api-zod` and runs `pnpm -w run typecheck:libs`.
 
-3. Implement the route in **`artifacts/api-server/src/routes`** (or a dedicated module imported from there). Validate inputs with schemas from `@workspace/api-zod` where appropriate.
+3. Implement the route in **`artifacts/accessibility-now/app/api/`** (or a module under `src/server/` imported from there). Validate inputs with schemas from `@workspace/api-zod` where appropriate.
 4. Wire the UI with hooks from **`@workspace/api-client-react`** (generated names follow the OpenAPI operation IDs).
 
 Never hand-edit generated files under `lib/api-client-react/src/generated` or `lib/api-zod/src/generated`; the next codegen run will overwrite them. For historical context on Orval **single-file** mode and name collisions with Drizzle types, see [memory.md](memory.md).
@@ -163,7 +162,7 @@ Avoid `drizzle-kit push` against shared or production databases; it can drop con
 
 ## Scan engine (audits and tools)
 
-Server-side accessibility scans live mainly in **`artifacts/api-server/src/lib/scan.ts`**, with concurrency controlled by **`scan-gate.ts`**.
+Server-side accessibility scans live mainly in **`artifacts/accessibility-now/src/server/scan.ts`**, with concurrency controlled by **`scan-gate.ts`** (local) or **`ScanGateDO`** Durable Object (Cloudflare).
 
 - **Primary path:** Playwright Chromium + `@axe-core/playwright` (full DOM, scripts, visibility).
 - **Fallback:** JSDOM + axe when Playwright cannot run (missing browser, hard failures). Results are less representative for layout and focus.
@@ -184,7 +183,7 @@ SCAN_INTEGRATION=1 pnpm --filter @workspace/api-server run test
 
 ## Frontend conventions
 
-- **Routing:** wouter; pages under `artifacts/accessibility-now/src/pages`.
+- **Routing:** Next.js App Router under `artifacts/accessibility-now/app/`; view components in `src/views/`.
 - **Styling:** Tailwind v4 with CSS-first config; brand tokens and GSAP patterns are described in [design.md](design.md).
 - **Motion:** GSAP hooks must follow the rules in [memory.md](memory.md) (e.g. `useSectionReveal` only at component top level, not inside `.map()`).
 

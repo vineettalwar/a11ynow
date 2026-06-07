@@ -4,141 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChevronDown, BookOpen, CheckSquare, BookMarked, ShieldCheck, Layers, FileText, Search, Code, Activity } from "lucide-react";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { Menu, X, ChevronDown } from "lucide-react";
 import gsap from "gsap";
-
-type SimpleLink = { href: string; label: string };
-
-const NAV_LINKS: SimpleLink[] = [
-  { href: "/pricing", label: "Pricing" },
-  { href: "/tools", label: "Tools" },
-];
-
-const SERVICES_COLUMNS: {
-  href: string;
-  title: string;
-  description: string;
-  icon: typeof BookOpen;
-  items: SimpleLink[];
-}[] = [
-  {
-    href: "/services/audits",
-    title: "Audits",
-    description: "Manual + automated.",
-    icon: Search,
-    items: [
-      { href: "/services/audits", label: "WCAG 2.2 conformance audit" },
-      { href: "/eaa", label: "EAA / BFSG compliance audit" },
-      { href: "/services/audits", label: "Mobile app audit" },
-      { href: "/resources/compliance/section-508", label: "VPAT / ACR for procurement" },
-    ],
-  },
-  {
-    href: "/services/remediation",
-    title: "Remediation",
-    description: "Engineers paired with yours.",
-    icon: Code,
-    items: [
-      { href: "/services/remediation", label: "Sprint-based engineering" },
-      { href: "/services/remediation", label: "Pull request delivery" },
-      { href: "/services/remediation", label: "Component library fixes" },
-      { href: "/services/remediation", label: "Design system advisory" },
-    ],
-  },
-  {
-    href: "/services/monitoring",
-    title: "Monitoring",
-    description: "Continuous compliance.",
-    icon: Activity,
-    items: [
-      { href: "/services/monitoring", label: "Monthly automated scans" },
-      { href: "/services/monitoring", label: "Regression alerts" },
-      { href: "/services/monitoring", label: "Compliance dashboard" },
-      { href: "/services/monitoring", label: "Annual conformance review" },
-    ],
-  },
-];
-
-const RESOURCES_COLUMNS: {
-  href: string;
-  title: string;
-  description: string;
-  icon: typeof BookOpen;
-  items: SimpleLink[];
-}[] = [
-  {
-    href: "/resources/guides",
-    title: "Guides",
-    description: "Engineering-grade walkthroughs.",
-    icon: BookOpen,
-    items: [
-      { href: "/resources/wcag-guide", label: "WCAG 2.2" },
-      { href: "/resources/guides/aria", label: "ARIA" },
-      { href: "/resources/guides/keyboard-accessibility", label: "Keyboard accessibility" },
-      { href: "/resources/guides/screen-readers", label: "Screen readers" },
-    ],
-  },
-  {
-    href: "/resources/checklists",
-    title: "Checklists",
-    description: "Interactive, exportable.",
-    icon: CheckSquare,
-    items: [
-      { href: "/resources/eaa-checklist", label: "EAA Checklist" },
-      { href: "/tools/wcag-checklist", label: "WCAG 2.1 AA" },
-      { href: "/tools/mobile-checklist", label: "Mobile" },
-    ],
-  },
-  {
-    href: "/resources/glossary",
-    title: "Glossary",
-    description: "Acronyms decoded.",
-    icon: BookMarked,
-    items: [
-      { href: "/resources/glossary#letter-E", label: "EAA, EN 301 549" },
-      { href: "/resources/glossary#letter-W", label: "WCAG, WAI-ARIA" },
-      { href: "/resources/glossary#letter-V", label: "VPAT, ACR" },
-    ],
-  },
-  {
-    href: "/resources/compliance",
-    title: "Compliance",
-    description: "Laws by region.",
-    icon: ShieldCheck,
-    items: [
-      { href: "/eaa", label: "European Accessibility Act" },
-      { href: "/resources/compliance/en-301-549", label: "EN 301 549" },
-      { href: "/resources/compliance/ada", label: "ADA" },
-      { href: "/resources/compliance/section-508", label: "Section 508" },
-      { href: "/resources/compliance/aoda", label: "AODA" },
-    ],
-  },
-  {
-    href: "/resources/technologies",
-    title: "Technologies",
-    description: "Platform-specific.",
-    icon: Layers,
-    items: [
-      { href: "/resources/technologies/wordpress", label: "WordPress" },
-      { href: "/resources/technologies/typo3", label: "TYPO3" },
-      { href: "/resources/technologies/drupal", label: "Drupal" },
-      { href: "/resources/technologies/shopify", label: "Shopify" },
-      { href: "/resources/technologies/react", label: "React" },
-      { href: "/resources/technologies/nextjs", label: "Next.js" },
-    ],
-  },
-  {
-    href: "/resources/blog",
-    title: "Blog",
-    description: "Engineering deep-dives.",
-    icon: FileText,
-    items: [
-      { href: "/resources/blog/eaa-enforcement", label: "EAA enforcement" },
-      { href: "/resources/blog/wcag-ecommerce", label: "WCAG for e-commerce" },
-      { href: "/resources/blog/automated-vs-manual", label: "Automated vs manual" },
-    ],
-  },
-];
+import { localeFromPathname, localizedPath } from "@/lib/i18n/locale";
+import { getSiteMessages } from "@/lib/i18n/site-messages";
+import {
+  getFooterLinks,
+  getNavLinks,
+  getResourcesColumns,
+  getServicesColumns,
+} from "@/lib/i18n/site-navigation";
 
 export function SiteLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -152,7 +28,18 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
   const servicesMegaRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const servicesCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const location = usePathname();
+  const pathname = usePathname();
+  const locale = localeFromPathname(pathname);
+  const messages = getSiteMessages(locale);
+  const navLinks = getNavLinks(locale);
+  const servicesColumns = getServicesColumns(locale);
+  const resourcesColumns = getResourcesColumns(locale);
+  const footerLinks = getFooterLinks(locale);
+
+  const pathWithoutLocale = pathname.replace(/^\/de(?=\/|$)/, "") || "/";
+  if (pathWithoutLocale.startsWith("/reports/")) {
+    return <>{children}</>;
+  }
 
   // Close mega menu and mobile menu on route change
   useEffect(() => {
@@ -161,7 +48,7 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
     setMobileOpen(false);
     setMobileResourcesOpen(false);
     setMobileServicesOpen(false);
-  }, [location]);
+  }, [pathname]);
 
   useEffect(() => {
     const header = headerRef.current;
@@ -232,14 +119,14 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <Link
-            href="/"
+            href={localizedPath("/", locale)}
             className="font-extrabold text-base tracking-tight text-foreground"
             onClick={() => setMobileOpen(false)}
           >
             accessibility.now
           </Link>
 
-          <nav className="hidden md:flex items-center gap-7 text-sm font-medium" aria-label="Main navigation">
+          <nav className="hidden md:flex items-center gap-7 text-sm font-medium" aria-label={messages.nav.main}>
             {/* Services mega menu trigger */}
             <div
               className="relative"
@@ -254,12 +141,12 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
                 onFocus={openServices}
                 className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors duration-150"
               >
-                Services
+                {messages.nav.services}
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${servicesOpen ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
             </div>
 
-            {NAV_LINKS.map(({ href, label }) => (
+            {navLinks.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
@@ -283,30 +170,33 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
                 onFocus={openResources}
                 className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors duration-150"
               >
-                Resources
+                {messages.nav.resources}
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${resourcesOpen ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
             </div>
 
             <Link
-              href="/about"
+              href={localizedPath("/about", locale)}
               className="text-muted-foreground hover:text-foreground transition-colors duration-150"
             >
-              About
+              {messages.nav.about}
             </Link>
           </nav>
 
           <div className="flex items-center gap-2">
+            <LanguageSwitcher className="hidden md:flex" />
             <Button variant="ghost" className="hidden md:flex text-sm [box-shadow:none]" asChild>
-              <Link href="/contact">Contact</Link>
+              <Link href={localizedPath("/contact", locale)}>{messages.nav.contact}</Link>
             </Button>
             <Button className="hidden md:flex h-9 px-5 text-sm font-semibold" asChild>
-              <Link href="/contact" ref={ctaButtonRef as React.Ref<HTMLAnchorElement>}>Get an audit →</Link>
+              <Link href={localizedPath("/contact", locale)} ref={ctaButtonRef as React.Ref<HTMLAnchorElement>}>
+                {messages.nav.getAudit}
+              </Link>
             </Button>
 
             <button
               className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
-              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-label={mobileOpen ? messages.nav.closeMenu : messages.nav.openMenu}
               aria-expanded={mobileOpen}
               onClick={() => setMobileOpen((o) => !o)}
             >
@@ -325,7 +215,7 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
           >
             <div className="container mx-auto px-4 py-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {SERVICES_COLUMNS.map(({ href, title, description, icon: Icon, items }) => (
+                {servicesColumns.map(({ href, title, description, icon: Icon, items }) => (
                   <div key={title} className="min-w-0">
                     <Link
                       href={href}
@@ -353,15 +243,13 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
                 ))}
               </div>
               <div className="mt-7 pt-5 border-t flex items-center justify-between">
-                <p className="text-xs text-muted-foreground font-mono">
-                  EAA-ready engineering. Senior team, fixed scope, sprint cadence.
-                </p>
+                <p className="text-xs text-muted-foreground font-mono">{messages.services.tagline}</p>
                 <div className="flex items-center gap-5">
-                  <Link href="/services" className="text-xs font-semibold text-primary hover:underline">
-                    All services →
+                  <Link href={localizedPath("/services", locale)} className="text-xs font-semibold text-primary hover:underline">
+                    {messages.nav.allServices}
                   </Link>
-                  <Link href="/pricing" className="text-xs font-semibold text-primary hover:underline">
-                    Pricing →
+                  <Link href={localizedPath("/pricing", locale)} className="text-xs font-semibold text-primary hover:underline">
+                    {messages.nav.pricing} →
                   </Link>
                 </div>
               </div>
@@ -379,7 +267,7 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
           >
             <div className="container mx-auto px-4 py-8">
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-8">
-                {RESOURCES_COLUMNS.map(({ href, title, description, icon: Icon, items }) => (
+                {resourcesColumns.map(({ href, title, description, icon: Icon, items }) => (
                   <div key={title} className="min-w-0">
                     <Link
                       href={href}
@@ -407,14 +295,12 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
                 ))}
               </div>
               <div className="mt-7 pt-5 border-t flex items-center justify-between">
-                <p className="text-xs text-muted-foreground font-mono">
-                  All resources · written by engineers, free to use.
-                </p>
+                <p className="text-xs text-muted-foreground font-mono">{messages.resources.tagline}</p>
                 <Link
-                  href="/resources"
+                  href={localizedPath("/resources", locale)}
                   className="text-xs font-semibold text-primary hover:underline"
                 >
-                  Browse all resources →
+                  {messages.nav.browseResources}
                 </Link>
               </div>
             </div>
@@ -424,7 +310,9 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden border-t bg-background px-4 py-6 flex flex-col gap-3 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
-            {NAV_LINKS.map(({ href, label }) => (
+            <LanguageSwitcher className="self-start mb-1" />
+
+            {navLinks.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
@@ -443,12 +331,12 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
                 aria-expanded={mobileServicesOpen}
                 onClick={() => setMobileServicesOpen((o) => !o)}
               >
-                Services
+                {messages.nav.services}
                 <ChevronDown className={`w-4 h-4 transition-transform ${mobileServicesOpen ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
               {mobileServicesOpen && (
                 <div className="mt-3 pl-3 border-l-2 border-border space-y-4">
-                  {SERVICES_COLUMNS.map(({ href, title, items }) => (
+                  {servicesColumns.map(({ href, title, items }) => (
                     <div key={title}>
                       <Link
                         href={href}
@@ -473,11 +361,11 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
                     </div>
                   ))}
                   <Link
-                    href="/services"
+                    href={localizedPath("/services", locale)}
                     className="block text-xs font-semibold text-primary"
                     onClick={() => setMobileOpen(false)}
                   >
-                    All services →
+                    {messages.nav.allServices}
                   </Link>
                 </div>
               )}
@@ -491,12 +379,12 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
                 aria-expanded={mobileResourcesOpen}
                 onClick={() => setMobileResourcesOpen((o) => !o)}
               >
-                Resources
+                {messages.nav.resources}
                 <ChevronDown className={`w-4 h-4 transition-transform ${mobileResourcesOpen ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
               {mobileResourcesOpen && (
                 <div className="mt-3 pl-3 border-l-2 border-border space-y-4">
-                  {RESOURCES_COLUMNS.map(({ href, title, items }) => (
+                  {resourcesColumns.map(({ href, title, items }) => (
                     <div key={title}>
                       <Link
                         href={href}
@@ -525,19 +413,23 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <Link
-              href="/about"
+              href={localizedPath("/about", locale)}
               className="text-base font-medium text-foreground hover:text-primary transition-colors py-1"
               onClick={() => setMobileOpen(false)}
             >
-              About
+              {messages.nav.about}
             </Link>
 
             <div className="pt-4 border-t flex flex-col gap-3">
               <Button variant="outline" className="w-full [box-shadow:none]" asChild>
-                <Link href="/contact" onClick={() => setMobileOpen(false)}>Contact</Link>
+                <Link href={localizedPath("/contact", locale)} onClick={() => setMobileOpen(false)}>
+                  {messages.nav.contact}
+                </Link>
               </Button>
               <Button className="w-full font-semibold" asChild>
-                <Link href="/contact" onClick={() => setMobileOpen(false)}>Get an audit →</Link>
+                <Link href={localizedPath("/contact", locale)} onClick={() => setMobileOpen(false)}>
+                  {messages.nav.getAudit}
+                </Link>
               </Button>
             </div>
           </div>
@@ -550,37 +442,48 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-5 gap-10">
           <div className="md:col-span-2">
             <h3 className="font-extrabold text-base mb-3 font-sans">accessibility.now</h3>
-            <p className="text-xs text-muted-foreground mb-3 leading-relaxed max-w-xs">
-              A11y agency: WCAG audits, remediation, and monitoring, focused on teams shipping in the EU.
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed max-w-xs">
+              {messages.footer.tagline}
             </p>
+            <div>
+              <h4 className="font-semibold text-sm mb-2 font-sans">{messages.footer.language}</h4>
+              <LanguageSwitcher variant="footer" />
+            </div>
           </div>
           <div>
-            <h4 className="font-semibold text-sm mb-4 font-sans">Services</h4>
+            <h4 className="font-semibold text-sm mb-4 font-sans">{messages.footer.services}</h4>
             <ul className="space-y-2 text-xs text-muted-foreground">
-              <li><Link href="/services/audits" className="hover:text-foreground transition-colors">Audits</Link></li>
-              <li><Link href="/services/remediation" className="hover:text-foreground transition-colors">Remediation</Link></li>
-              <li><Link href="/services/monitoring" className="hover:text-foreground transition-colors">Monitoring</Link></li>
-              <li><Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
+              {footerLinks.services.map(({ href, label }) => (
+                <li key={href}>
+                  <Link href={href} className="hover:text-foreground transition-colors">
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold text-sm mb-4 font-sans">Resources</h4>
+            <h4 className="font-semibold text-sm mb-4 font-sans">{messages.footer.resources}</h4>
             <ul className="space-y-2 text-xs text-muted-foreground">
-              <li><Link href="/resources/guides" className="hover:text-foreground transition-colors">Guides</Link></li>
-              <li><Link href="/resources/checklists" className="hover:text-foreground transition-colors">Checklists</Link></li>
-              <li><Link href="/resources/glossary" className="hover:text-foreground transition-colors">Glossary</Link></li>
-              <li><Link href="/resources/compliance" className="hover:text-foreground transition-colors">Compliance</Link></li>
-              <li><Link href="/resources/technologies" className="hover:text-foreground transition-colors">Technologies</Link></li>
-              <li><Link href="/resources/blog" className="hover:text-foreground transition-colors">Blog</Link></li>
+              {footerLinks.resources.map(({ href, label }) => (
+                <li key={href}>
+                  <Link href={href} className="hover:text-foreground transition-colors">
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold text-sm mb-4 font-sans">Tools &amp; Legal</h4>
+            <h4 className="font-semibold text-sm mb-4 font-sans">{messages.footer.toolsLegal}</h4>
             <ul className="space-y-2 text-xs text-muted-foreground">
-              <li><Link href="/tools" className="hover:text-foreground transition-colors">All tools</Link></li>
-              <li><Link href="/eaa" className="hover:text-foreground transition-colors">EAA Guide</Link></li>
-              <li><Link href="/legal/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/legal/accessibility" className="hover:text-foreground transition-colors">Accessibility Statement</Link></li>
+              {footerLinks.toolsLegal.map(({ href, label }) => (
+                <li key={href}>
+                  <Link href={href} className="hover:text-foreground transition-colors">
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

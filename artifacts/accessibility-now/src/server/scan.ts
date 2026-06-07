@@ -1,16 +1,25 @@
 import AxeBuilder from "@axe-core/playwright";
+import { getAxeSource } from "./axe-source";
 import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
+import {
+  buildComplianceReport,
+  enrichViolationsWithCompliance,
+  type ComplianceReport,
+  type SupplementalFinding,
+} from "./compliance/bitv-bfsg";
 import { logger } from "./logger";
-import { launchChromiumWithRetry } from "./playwright-chromium";
+import { getSharedAuditBrowser, launchChromiumForAudit } from "./playwright-chromium";
 import { screenshotFriendlyContextOptions, stablePlaywrightScreenshotProps } from "./playwright-screenshot";
+import { cloudflareScanEnabled, runCloudflareScan } from "./cloudflare-scan";
+import { runSupplementalChecksFromHtml, runSupplementalChecksInPage } from "./supplemental-checks";
 import { withScanSlot } from "./scan-gate";
 
 const dnsLookupAsync = promisify(dnsLookup);
 
 /** Follow HTTP redirects with per-hop SSRF checks before Playwright / fetch scan (apex → www, trailing paths, etc.). */
 const MAX_SCAN_REDIRECT_HOPS = 15;
-const REDIRECT_RESOLVE_FETCH_TIMEOUT_MS = 20000;
+const REDIRECT_RESOLVE_FETCH_TIMEOUT_MS = 8_000;
 
 const SCAN_FETCH_USER_AGENT =
   "accessibility.now/1.0 Compliance Scanner (+https://accessibility.now)" as const;
@@ -115,16 +124,17 @@ export const PRIVATE_IP_RE =
 const PRIVATE_HOSTNAME_RE = /^(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)$/i;
 
 const DEFAULT_AUDIT_TIMEOUT_MS = 45_000;
-const NETWORK_IDLE_AFTER_LOAD_MS = 8_000;
-const HYDRATION_SETTLE_MS = 800;
+/** Cap wait for late-loading assets; networkidle is avoided (too slow on analytics-heavy sites). */
+const PAGE_LOAD_SETTLE_MS = 2_500;
+const HYDRATION_SETTLE_MS = 450;
 /** After scrolling the page to wake lazy content, pause before axe runs (bounded; keeps total scan under budget). */
-const POST_SCROLL_SETTLE_MS = 400;
-const SCROLL_STEP_PX = 420;
-const SCROLL_STEP_DELAY_MS = 120;
-const DEFAULT_SCROLL_MAX_MS = 12_000;
-const SCROLL_MAX_STEPS = 40;
-const MIN_BUDGET_FOR_EXTRA_VIEWPORT_MS = 15_000;
-const MIN_BUDGET_FOR_ELEMENT_SCREENSHOTS_MS = 8_000;
+const POST_SCROLL_SETTLE_MS = 200;
+const SCROLL_STEP_PX = 560;
+const SCROLL_STEP_DELAY_MS = 70;
+const DEFAULT_SCROLL_MAX_MS = 7_000;
+const SCROLL_MAX_STEPS = 28;
+const MIN_BUDGET_FOR_EXTRA_VIEWPORT_MS = 12_000;
+const MIN_BUDGET_FOR_ELEMENT_SCREENSHOTS_MS = 6_000;
 
 export class ScanTimeoutError extends Error {
   constructor(message: string) {
@@ -177,9 +187,9 @@ export class ScanBudget {
     return Math.min(DEFAULT_AUDIT_TIMEOUT_MS, Math.floor(this.remainingMs() * 0.45));
   }
 
-  networkIdleTimeoutMs(): number {
-    if (this.remainingMs() < 10_000) return 0;
-    return Math.min(4_000, NETWORK_IDLE_AFTER_LOAD_MS);
+  pageLoadSettleTimeoutMs(): number {
+    if (this.remainingMs() < 8_000) return 0;
+    return Math.min(PAGE_LOAD_SETTLE_MS, Math.floor(this.remainingMs() * 0.08));
   }
 
   skipElementScreenshots(): boolean {
@@ -261,6 +271,12 @@ export interface AuditViolation {
   instanceDetails?: AuditViolationInstance[];
   /** When merged across viewport runs, which breakpoints reported this rule. */
   detectedInViewports?: string[];
+  /** EN 301 549 clause reference (BITV 2.0 / BFSG mapping). */
+  en301549Clause?: string;
+  /** BITV 2.0 section label. */
+  bitvSection?: string;
+  /** German title for compliance reporting. */
+  titleDe?: string;
 }
 
 export type ScanProfile = "default" | "strict";
@@ -280,11 +296,21 @@ export interface ScanMetadata {
   profile: ScanProfile;
   multiViewport: boolean;
   viewportsUsed: ScanViewport[];
+  /** True while a background audit job is still running. */
+  pending?: boolean;
+  /** True when the background audit job failed after the row was created. */
+  failed?: boolean;
   runtimeDiagnostics?: RuntimeDiagnostics;
   /** True when element JPEG captures were skipped to stay within scan budget. */
   elementScreenshotsSkipped?: boolean;
   /** True when additional viewport passes were skipped due to budget pressure. */
   viewportsSkipped?: boolean;
+  /** BITV 2.0 / BFSG (EN 301 549) compliance assessment. */
+  complianceReport?: ComplianceReport;
+  /** Supplemental checks beyond axe-core. */
+  supplementalFindings?: SupplementalFinding[];
+  /** How whole-site URLs were discovered (when applicable). */
+  discoverySource?: "sitemap" | "links" | "single";
 }
 
 export interface ScanResult {
@@ -301,6 +327,8 @@ export interface ScanResult {
   pageScreenshot?: string;
   /** Present for Playwright scans when diagnostics or multi-viewport ran. */
   scanMetadata?: ScanMetadata;
+  /** BITV 2.0 / BFSG compliance report (also in scanMetadata when present). */
+  complianceReport?: ComplianceReport;
 }
 
 export function scoreToLevel(
@@ -392,6 +420,24 @@ function mergeViolationsAcrossViewports(
   return [...map.values()];
 }
 
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  if (items.length === 0) return;
+  let index = 0;
+  const limit = Math.max(1, Math.min(concurrency, items.length));
+  await Promise.all(
+    Array.from({ length: limit }, async () => {
+      while (index < items.length) {
+        const current = items[index++]!;
+        await worker(current);
+      }
+    }),
+  );
+}
+
 async function attachElementScreenshotsMerged(
   page: import("playwright").Page,
   merged: AuditViolation[],
@@ -416,19 +462,22 @@ async function attachElementScreenshotsMerged(
   });
 
   let budget = MAX_ELEMENT_SCREENSHOTS;
+  const shotTasks: Array<{ mv: AuditViolation; j: number; target: unknown }> = [];
   for (const mv of sorted) {
-    if (budget <= 0) break;
     const nodes = byRuleId.get(mv.id);
     if (!nodes?.length || !mv.instanceDetails?.length) continue;
     for (let j = 0; j < mv.instanceDetails.length && budget > 0; j++) {
-      const target = nodes[j]?.target ?? nodes[0]?.target;
-      const shot = await tryElementScreenshot(page, target);
-      if (shot) {
-        mv.instanceDetails[j] = { ...mv.instanceDetails[j]!, elementScreenshot: shot };
-        budget--;
-      }
+      shotTasks.push({ mv, j, target: nodes[j]?.target ?? nodes[0]?.target });
+      budget--;
     }
   }
+
+  await runWithConcurrency(shotTasks, ELEMENT_SCREENSHOT_CONCURRENCY, async ({ mv, j, target }) => {
+    const shot = await tryElementScreenshot(page, target);
+    if (shot && mv.instanceDetails?.[j]) {
+      mv.instanceDetails[j] = { ...mv.instanceDetails[j]!, elementScreenshot: shot };
+    }
+  });
 }
 
 function capDiagText(s: string, max: number): string {
@@ -444,7 +493,8 @@ function setSyntheticFailureMetrics(violationCount: number): { passedChecks: num
 
 const HTML_SNIPPET_MAX = 520;
 /** Bound total element JPEG captures so scans stay within timeout and response size stays reasonable. */
-const MAX_ELEMENT_SCREENSHOTS = 18;
+const MAX_ELEMENT_SCREENSHOTS = 12;
+const ELEMENT_SCREENSHOT_CONCURRENCY = 6;
 const PAGE_SCREENSHOT_JPEG_QUALITY = 68;
 const ELEMENT_SCREENSHOT_JPEG_QUALITY = 70;
 
@@ -515,8 +565,8 @@ async function tryElementScreenshot(
   if (!locatorStr) return undefined;
   try {
     const loc = page.locator(locatorStr).first();
-    await loc.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => undefined);
-    await loc.waitFor({ state: "visible", timeout: 1200 }).catch(() => undefined);
+    await loc.scrollIntoViewIfNeeded({ timeout: 1200 }).catch(() => undefined);
+    await loc.waitFor({ state: "visible", timeout: 800 }).catch(() => undefined);
     const buf = await loc.screenshot({
       type: "jpeg",
       quality: ELEMENT_SCREENSHOT_JPEG_QUALITY,
@@ -546,6 +596,7 @@ async function attachElementScreenshots(
     });
 
   let budget = MAX_ELEMENT_SCREENSHOTS;
+  const shotTasks: Array<{ idx: number; j: number; target: unknown }> = [];
   for (const idx of order) {
     if (budget <= 0) break;
     const v = violations[idx];
@@ -554,13 +605,20 @@ async function attachElementScreenshots(
     if (!v || !inst || !nodes?.length) continue;
 
     for (let j = 0; j < inst.length && budget > 0; j++) {
-      const shot = await tryElementScreenshot(page, nodes[j]?.target);
-      if (shot) {
-        inst[j] = { ...inst[j]!, elementScreenshot: shot };
-        budget--;
-      }
+      shotTasks.push({ idx, j, target: nodes[j]?.target });
+      budget--;
     }
   }
+
+  await runWithConcurrency(shotTasks, ELEMENT_SCREENSHOT_CONCURRENCY, async ({ idx, j, target }) => {
+    const v = violations[idx];
+    const inst = v?.instanceDetails;
+    if (!inst) return;
+    const shot = await tryElementScreenshot(page, target);
+    if (shot) {
+      inst[j] = { ...inst[j]!, elementScreenshot: shot };
+    }
+  });
 }
 
 /**
@@ -588,6 +646,9 @@ async function scrollDocumentForLazyContent(
         const started = Date.now();
         const root = document.scrollingElement ?? document.documentElement;
         const maxY = Math.max(0, root.scrollHeight - window.innerHeight);
+        if (maxY <= stepPx) {
+          return;
+        }
         let steps = 0;
         for (let y = 0; y <= maxY; y += stepPx) {
           if (Date.now() - started >= maxMs || steps >= maxSteps) break;
@@ -667,6 +728,7 @@ async function runPlaywrightScan(
   viewportsUsed: ScanViewport[];
   elementScreenshotsSkipped: boolean;
   viewportsSkipped: boolean;
+  supplementalFindings: SupplementalFinding[];
 }> {
   const tags = [...axeTagsForProfile(engineOpts.profile)];
   const multiVp = engineOpts.viewports.length > 1;
@@ -784,17 +846,19 @@ async function runPlaywrightScan(
       } else {
         await reloadWithRetry(page, navTimeout);
       }
-      const networkIdleMs = budget.networkIdleTimeoutMs();
-      if (networkIdleMs > 0) {
-        await page.waitForLoadState("networkidle", { timeout: networkIdleMs }).catch(() => undefined);
+      const loadSettleMs = budget.pageLoadSettleTimeoutMs();
+      if (loadSettleMs > 0) {
+        await page.waitForLoadState("load", { timeout: loadSettleMs }).catch(() => undefined);
       }
       await new Promise<void>((r) => setTimeout(r, HYDRATION_SETTLE_MS));
-      await scrollDocumentForLazyContent(page, scrollMaxMs);
+      const scrollBudgetMs =
+        vi === 0 ? scrollMaxMs : Math.min(scrollMaxMs, Math.max(2_500, Math.floor(scrollMaxMs * 0.35)));
+      await scrollDocumentForLazyContent(page, scrollBudgetMs);
       await new Promise<void>((r) => setTimeout(r, POST_SCROLL_SETTLE_MS));
 
       budget.assertRemaining("axe");
 
-      const axeResults = await new AxeBuilder({ page })
+      const axeResults = await new AxeBuilder({ page, axeSource: getAxeSource() })
         .withTags(tags)
         .options({
           iframes: true,
@@ -829,8 +893,21 @@ async function runPlaywrightScan(
       );
     }
 
+    let supplementalFindings: SupplementalFinding[] = [];
+    const supplemental = await runSupplementalChecksInPage(page).catch(() => null);
+    if (supplemental) {
+      supplementalFindings = supplemental.findings;
+      const existingIds = new Set(violations.map((v) => v.id));
+      for (const sv of supplemental.violations) {
+        if (!existingIds.has(sv.id)) {
+          violations.push(sv);
+          existingIds.add(sv.id);
+        }
+      }
+    }
+
     await page.evaluate(() => window.scrollTo(0, 0)).catch(() => undefined);
-    await new Promise<void>((r) => setTimeout(r, 200));
+    await new Promise<void>((r) => setTimeout(r, 100));
 
     let pageScreenshot: string | undefined;
     try {
@@ -866,6 +943,7 @@ async function runPlaywrightScan(
       viewportsUsed: perRunResults.map((_, idx) => engineOpts.viewports[idx]!),
       elementScreenshotsSkipped: skipElementShots,
       viewportsSkipped,
+      supplementalFindings,
       ...(runtimeDiagnostics ? { runtimeDiagnostics } : {}),
     };
   } finally {
@@ -873,10 +951,7 @@ async function runPlaywrightScan(
   }
 }
 
-/** Shared Chromium launch for audits (single scans and batch workers). */
-export async function launchChromiumForAudit(): Promise<import("playwright").Browser> {
-  return launchChromiumWithRetry();
-}
+export { launchChromiumForAudit } from "./playwright-chromium";
 
 export interface RunAccessibilityScanOptions {
   /**
@@ -909,6 +984,24 @@ async function runAccessibilityScanInner(
   const allowPrivateTargets = scanAllowsPrivateTargets();
   const scanProfile: ScanProfile = options?.profile === "strict" ? "strict" : "default";
   const multiViewport = Boolean(options?.multiViewport);
+
+  if (cloudflareScanEnabled() && !options?.browser) {
+    const cfResult = await runCloudflareScan(url, { profile: scanProfile, multiViewport });
+    return {
+      score: cfResult.score,
+      level: cfResult.level,
+      totalViolations: cfResult.totalViolations,
+      criticalViolations: cfResult.criticalViolations,
+      seriousViolations: cfResult.seriousViolations,
+      violations: cfResult.violations,
+      passedChecks: cfResult.passedChecks,
+      totalChecks: cfResult.totalChecks,
+      scanEngine: cfResult.scanEngine,
+      ...(cfResult.pageScreenshot ? { pageScreenshot: cfResult.pageScreenshot } : {}),
+      ...(cfResult.scanMetadata ? { scanMetadata: cfResult.scanMetadata } : {}),
+      complianceReport: cfResult.complianceReport,
+    };
+  }
   const collectRuntimeDiagnostics = options?.collectRuntimeDiagnostics !== false;
   const viewports: ScanViewport[] = multiViewport ? [...MULTI_VIEWPORTS] : [DEFAULT_VIEWPORT_DESKTOP];
 
@@ -933,11 +1026,12 @@ async function runAccessibilityScanInner(
   let playwrightViewportsUsed: ScanViewport[] | undefined;
   let elementScreenshotsSkipped = false;
   let viewportsSkipped = false;
+  let supplementalFindings: SupplementalFinding[] = [];
   let failurePhase: string | undefined;
   let errorClass: string | undefined;
 
-  const reuseBrowser = options?.browser;
-  let browser: import("playwright").Browser | undefined = reuseBrowser;
+  let reuseBrowser = Boolean(options?.browser);
+  let browser: import("playwright").Browser | undefined = options?.browser;
   let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
   let activeScanContext: import("playwright").BrowserContext | undefined;
 
@@ -946,7 +1040,8 @@ async function runAccessibilityScanInner(
 
   try {
     if (!browser) {
-      browser = await launchChromiumForAudit();
+      browser = await getSharedAuditBrowser();
+      reuseBrowser = true;
     }
 
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -981,6 +1076,7 @@ async function runAccessibilityScanInner(
     playwrightViewportsUsed = result.viewportsUsed;
     elementScreenshotsSkipped = result.elementScreenshotsSkipped;
     viewportsSkipped = result.viewportsSkipped;
+    supplementalFindings = result.supplementalFindings;
   } catch (err) {
     errorClass = err instanceof Error ? err.name : "Error";
     if (err instanceof ScanTimeoutError) {
@@ -1070,6 +1166,16 @@ async function runAccessibilityScanInner(
               ...(instanceDetails && instanceDetails.length > 0 ? { instanceDetails } : {}),
             };
           });
+
+          const supplemental = runSupplementalChecksFromHtml(html, navigationUrl);
+          supplementalFindings = supplemental.findings;
+          const existingIds = new Set(violations.map((v) => v.id));
+          for (const sv of supplemental.violations) {
+            if (!existingIds.has(sv.id)) {
+              violations.push(sv);
+              existingIds.add(sv.id);
+            }
+          }
         } else {
           violations = [
             {
@@ -1106,6 +1212,9 @@ async function runAccessibilityScanInner(
     }
   }
 
+  violations = enrichViolationsWithCompliance(violations);
+  const complianceReport = buildComplianceReport(violations, supplementalFindings);
+
   const criticalViolations = violations.filter((v) => v.impact === "critical").length;
   const seriousViolations = violations.filter((v) => v.impact === "serious").length;
   const totalViolations = violations.length;
@@ -1122,6 +1231,8 @@ async function runAccessibilityScanInner(
         profile: scanProfile,
         multiViewport,
         viewportsUsed: playwrightViewportsUsed ?? viewports.map((v) => ({ ...v })),
+        complianceReport,
+        supplementalFindings,
         ...(playwrightRuntimeDiagnostics ? { runtimeDiagnostics: playwrightRuntimeDiagnostics } : {}),
         ...(elementScreenshotsSkipped ? { elementScreenshotsSkipped: true } : {}),
         ...(viewportsSkipped ? { viewportsSkipped: true } : {}),
@@ -1131,6 +1242,8 @@ async function runAccessibilityScanInner(
           profile: scanProfile,
           multiViewport: false,
           viewportsUsed: [],
+          complianceReport,
+          supplementalFindings,
         }
       : undefined;
 
@@ -1162,6 +1275,7 @@ async function runAccessibilityScanInner(
     scanEngine,
     ...(pageScreenshot && pageScreenshot.length > 0 ? { pageScreenshot } : {}),
     ...(scanMetadata ? { scanMetadata } : {}),
+    complianceReport,
   };
 }
 

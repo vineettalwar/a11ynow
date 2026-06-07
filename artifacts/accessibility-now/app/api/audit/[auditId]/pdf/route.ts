@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import { eq } from "drizzle-orm";
 import { auditsTable } from "@workspace/db";
+import { dbRowToAuditResult } from "@/server/audit-mapper";
 import { logger } from "@/server/logger";
 import { jsonErr, prepareRequestDb, requestDb } from "@/server/http";
 
@@ -422,7 +423,8 @@ export async function GET(
     const row = rows[0];
     logger.info({ auditId }, "Generating PDF report");
 
-    const pdfBuffer = await buildPdf(row);
+    const audit = await dbRowToAuditResult(row);
+    const pdfBuffer = await buildPdf({ ...row, violations: audit.violations });
     const safeHost = row.url.replace(/[^a-z0-9]/gi, "_").slice(0, 60);
     const filename = `accessibility-report-${safeHost}.pdf`;
 

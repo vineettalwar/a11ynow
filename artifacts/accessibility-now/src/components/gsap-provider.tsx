@@ -1,18 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { registerScrollTrigger } from "@/lib/register-scroll-trigger";
 
-let registered = false;
+registerScrollTrigger();
 
 export function GsapProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    if (!registered) {
-      gsap.registerPlugin(ScrollTrigger);
-      registered = true;
-    }
-  }, []);
-
   return children;
 }

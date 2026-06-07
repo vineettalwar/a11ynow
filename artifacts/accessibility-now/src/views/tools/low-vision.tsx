@@ -1,6 +1,5 @@
 "use client";
 
-import { appBasePath } from "@/lib/app-base";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
@@ -8,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
 import { Loader2, Download, Glasses } from "lucide-react";
-
-const BASE_URL = appBasePath();
+import { apiUrl } from "@/lib/api-base";
 
 interface VisionMode {
   id: string;
@@ -65,7 +63,7 @@ const MODES: VisionMode[] = [
 type ImgState = "idle" | "loading" | "loaded" | "error";
 
 function screenshotSrc(url: string) {
-  return `${BASE_URL}/api/page-screenshot?url=${encodeURIComponent(url)}`;
+  return `${apiUrl("/api/page-screenshot")}?url=${encodeURIComponent(url)}`;
 }
 
 async function downloadLowVision(
@@ -141,7 +139,8 @@ async function downloadLowVision(
 }
 
 export default function LowVision() {
-  const searchParams = useSearchParams();
+  const searchParamsHook = useSearchParams();
+  const search = searchParamsHook?.toString() ?? "";
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
   const [screenshotSrcUrl, setScreenshotSrcUrl] = useState("");
@@ -152,9 +151,10 @@ export default function LowVision() {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    const u = searchParams.get("url");
+    const q = new URLSearchParams(search);
+    const u = q.get("url");
     if (u?.trim()) setUrl(decodeURIComponent(u.trim()));
-  }, [searchParams]);
+  }, [search]);
 
   const mode = MODES.find((m) => m.id === activeMode)!;
   const blur = blurOverride ?? mode.blur;

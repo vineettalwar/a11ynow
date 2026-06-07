@@ -10,7 +10,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @workspace/db run push-force
 
 # Ensure Playwright Chromium browser is present (needed by page-screenshot endpoint)
-pnpm --filter @workspace/api-server exec playwright install chromium
+pnpm --filter @workspace/accessibility-now exec playwright install chromium
 
 # ── GitHub sync ──────────────────────────────────────────────────────────────
 if [ -n "$GITHUB_PAT" ] && [ -n "$GITHUB_REPO" ]; then

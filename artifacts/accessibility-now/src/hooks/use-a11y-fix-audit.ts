@@ -1,8 +1,14 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCreateAudit, getAudit, getGetAuditQueryKey } from "@workspace/api-client-react";
-import type { AuditResult } from "@workspace/api-client-react";
+import {
+  auditRefetchIntervalMs,
+  auditRowIsFailed,
+  auditRowIsPending,
+  auditRowLooksUsable,
+  mergeAuditRow,
+} from "@/lib/audit-row-status";
 
 function normalizeUrlForCompare(raw: string): string {
   const t = raw.trim();
@@ -34,28 +40,6 @@ function urlsMatchForAudit(a: string, b: string): boolean {
   }
 }
 
-function auditRowLooksUsable(row: AuditResult | null | undefined): boolean {
-  if (!row?.auditId || !row.url?.trim() || !row.scannedAt) return false;
-  const scannedMs = Date.parse(row.scannedAt);
-  if (Number.isNaN(scannedMs) || scannedMs <= 0) return false;
-  const violationCount = row.violations?.length ?? 0;
-  return row.totalChecks > 0 || row.passedChecks > 0 || violationCount > 0 || row.totalViolations > 0;
-}
-
-function mergeAuditRow(
-  auditId: string,
-  fromGet: AuditResult | undefined,
-  fromPost: AuditResult | undefined,
-): AuditResult | undefined {
-  const getUsable = fromGet?.auditId === auditId && auditRowLooksUsable(fromGet);
-  const postUsable = fromPost?.auditId === auditId && auditRowLooksUsable(fromPost);
-  if (getUsable) return fromGet;
-  if (postUsable) return fromPost;
-  if (fromPost?.auditId === auditId) return fromPost;
-  if (fromGet?.auditId === auditId) return fromGet;
-  return undefined;
-}
-
 export interface UseA11yFixAuditOptions {
   urlParam: string;
   auditIdParam: string;
@@ -72,7 +56,7 @@ export function useA11yFixAudit({
   intent,
   allowScan = true,
 }: UseA11yFixAuditOptions) {
-  const [, navigate] = useLocation();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const createAudit = useCreateAudit();
   const { mutate: createAuditMutate, reset: resetCreateAudit } = createAudit;
@@ -83,6 +67,9 @@ export function useA11yFixAudit({
     queryFn: () => getAudit(auditIdParam),
     enabled: !!auditIdParam,
     retry: false,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchInterval: (query) => auditRefetchIntervalMs(query.state.data),
   });
 
   useEffect(() => {
@@ -122,8 +109,15 @@ export function useA11yFixAudit({
       url: post.url,
       intent,
     });
-    navigate(`/a11y-fix/result?${params.toString()}`, { replace: true });
-  }, [allowScan, auditIdParam, createAudit.data, createAudit.isPending, intent, navigate, urlParam]);
+    router.replace(`/a11y-fix/result?${params.toString()}`);
+  }, [allowScan, auditIdParam, createAudit.data, createAudit.isPending, intent, router, urlParam]);
+
+  useEffect(() => {
+    if (!auditIdParam) return;
+    if (createAudit.data?.auditId === auditIdParam) {
+      resetCreateAudit();
+    }
+  }, [auditIdParam, createAudit.data?.auditId, resetCreateAudit]);
 
   useEffect(() => {
     if (!allowScan || !urlParam || auditIdParam) return;
@@ -143,14 +137,25 @@ export function useA11yFixAudit({
 
   const audit = mergeAuditRow(auditIdParam, existingAudit.data, createAudit.data);
 
+  const waitingForSavedAudit =
+    !!auditIdParam &&
+    audit === undefined &&
+    (existingAudit.isPending || existingAudit.isFetching);
+  const scanStillRunning = auditRowIsPending(audit);
+
   const isLoading =
-    (!!auditIdParam && existingAudit.isLoading) ||
-    (allowScan && !!urlParam && !auditIdParam && (createAudit.isPending || !audit)) ||
+    createAudit.isPending ||
+    waitingForSavedAudit ||
+    scanStillRunning ||
     (allowScan && !!urlParam && !auditIdParam && !createAudit.isError && !audit);
 
   const isError =
-    (!!auditIdParam && existingAudit.isError) ||
-    (allowScan && !!urlParam && !auditIdParam && createAudit.isError);
+    createAudit.isError ||
+    auditRowIsFailed(audit) ||
+    auditRowIsFailed(existingAudit.data) ||
+    (!!auditIdParam &&
+      existingAudit.isError &&
+      !(createAudit.data?.auditId === auditIdParam));
 
   return {
     audit,

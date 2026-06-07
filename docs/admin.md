@@ -143,13 +143,13 @@ By default the app runs in no-op mode (emails logged, not sent). To enable real 
 
 Deployment is host-specific. In general:
 
-1. Build the frontend (`pnpm --filter @workspace/accessibility-now run build`) and API (`pnpm --filter @workspace/api-server run build` if applicable).
+1. Build the app: `pnpm --filter @workspace/accessibility-now run build` (or `pnpm deploy` for Cloudflare).
 2. Run `pnpm --filter @workspace/db run migrate` against production `DATABASE_URL` before or as part of the release.
 3. **Install Playwright Chromium** on the API host (required for full browser scans; without it audits fall back to static HTML only):
    ```bash
-   pnpm --filter @workspace/api-server exec playwright install chromium
+   pnpm --filter @workspace/accessibility-now exec playwright install chromium
    # Linux servers often also need:
-   pnpm --filter @workspace/api-server exec playwright install-deps chromium
+   pnpm --filter @workspace/accessibility-now exec playwright install-deps chromium
    ```
 4. Ensure all required environment variables from `.env.example` are set in production.
 5. Optionally run `scripts/post-merge.sh` after merges for install, migrate, and GitHub sync (see script for behavior).

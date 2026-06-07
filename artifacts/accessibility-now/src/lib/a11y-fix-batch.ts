@@ -1,4 +1,6 @@
 import { getAppBasePath } from "@/lib/api-base";
+import { openPrintReport } from "@/lib/print-report";
+import { runBatchScan, type BatchScanProgress } from "@/lib/batch-scan-sse";
 
 const API_BASE = getAppBasePath();
 
@@ -42,84 +44,26 @@ export interface A11yFixBatchResult {
 export async function runA11yFixBatchScan(
   url: string,
   intent: string,
-  onProgress?: (pages: Array<{ url: string; status: string; score?: number }>) => void,
+  onProgress?: (progress: BatchScanProgress) => void,
 ): Promise<A11yFixBatchResult> {
-  const res = await fetch(`${API_BASE}/api/audit/batch`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const batchResult = await runBatchScan(
+    {
       url,
       wholeSite: true,
       profile: "strict",
       multiViewport: true,
-    }),
-  });
+    },
+    onProgress,
+  );
 
-  if (!res.ok || res.headers.get("content-type")?.includes("application/json")) {
-    const body = (await res.json().catch(() => ({}))) as { message?: string };
-    throw new Error(body.message ?? `HTTP ${res.status}`);
-  }
-
-  const reader = res.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let batchResult: Omit<A11yFixBatchResult, "intent"> | null = null;
-  const progress: Array<{ url: string; status: string; score?: number }> = [];
-
-  outer: while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const frames = buffer.split("\n\n");
-    buffer = frames.pop() ?? "";
-
-    for (const frame of frames) {
-      for (const line of frame.split("\n")) {
-        if (!line.startsWith("data: ")) continue;
-        const data = JSON.parse(line.slice(6)) as {
-          type: string;
-          url?: string;
-          index?: number;
-          status?: "success" | "error";
-          score?: number;
-          message?: string;
-          siteScore?: number;
-          siteLevel?: string;
-          pages?: A11yFixBatchPage[];
-          crossPageViolations?: A11yFixCrossPageViolation[];
-          scannedAt?: string;
-        };
-
-        if (data.type === "scanning" && data.url) {
-          const existing = progress.find((p) => p.url === data.url);
-          if (existing) existing.status = "scanning";
-          else progress.push({ url: data.url, status: "scanning" });
-          onProgress?.([...progress]);
-        } else if (data.type === "page" && data.url) {
-          const entry = progress.find((p) => p.url === data.url) ?? { url: data.url, status: "queued" };
-          entry.status = data.status === "success" ? "done" : "error";
-          entry.score = data.score;
-          if (!progress.find((p) => p.url === data.url)) progress.push(entry);
-          onProgress?.([...progress]);
-        } else if (data.type === "complete") {
-          batchResult = {
-            siteScore: data.siteScore ?? 0,
-            siteLevel: data.siteLevel ?? "moderate",
-            scannedAt: data.scannedAt ?? new Date().toISOString(),
-            pages: data.pages ?? [],
-            crossPageViolations: data.crossPageViolations ?? [],
-          };
-          break outer;
-        } else if (data.type === "error") {
-          throw new Error(data.message ?? "Batch scan failed.");
-        }
-      }
-    }
-  }
-
-  if (!batchResult) throw new Error("Batch scan did not return a result.");
-
-  return { ...batchResult, intent };
+  return {
+    siteScore: batchResult.siteScore,
+    siteLevel: batchResult.siteLevel,
+    scannedAt: batchResult.scannedAt,
+    pages: batchResult.pages,
+    crossPageViolations: batchResult.crossPageViolations as A11yFixCrossPageViolation[],
+    intent,
+  };
 }
 
 export function saveA11yFixBatchResult(result: A11yFixBatchResult): void {
@@ -150,5 +94,9 @@ export function loadA11yFixBatchResult(): A11yFixBatchResult | null {
 }
 
 export function a11yFixPdfUrl(auditId: string): string {
-  return `${API_BASE}/api/audit/${auditId}/a11y-fix-pdf`;
+  return `${API_BASE}/reports/a11y-fix/${encodeURIComponent(auditId)}?print=1`;
+}
+
+export function openA11yFixPrintReport(auditId: string): void {
+  openPrintReport("a11y-fix", auditId);
 }

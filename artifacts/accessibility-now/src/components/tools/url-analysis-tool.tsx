@@ -1,6 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
-import { useSearch } from "wouter";
+import { useSearchParams } from "next/navigation";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +43,7 @@ const TYPE_LABELS: Record<AnalysisItemType, string> = {
 };
 
 export function UrlAnalysisTool({ config }: { config: UrlAnalysisToolConfig }) {
-  const search = useSearch();
+  const searchParams = useSearchParams();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PreviewResult | null>(null);
@@ -49,10 +51,9 @@ export function UrlAnalysisTool({ config }: { config: UrlAnalysisToolConfig }) {
   const [showFailsOnly, setShowFailsOnly] = useState(false);
 
   useEffect(() => {
-    const q = new URLSearchParams(search);
-    const u = q.get("url");
+    const u = searchParams.get("url");
     if (u?.trim()) setUrl(decodeURIComponent(u.trim()));
-  }, [search]);
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,7 +182,7 @@ export function UrlAnalysisTool({ config }: { config: UrlAnalysisToolConfig }) {
                         H{item.level}{" "}
                       </span>
                     )}
-                    <p className="text-sm font-medium break-words">{item.text || "(empty)"}</p>
+                    <p className="text-sm font-medium wrap-break-word">{item.text || "(empty)"}</p>
                     {item.issue && (
                       <p className="text-xs text-destructive mt-1">{item.issue}</p>
                     )}

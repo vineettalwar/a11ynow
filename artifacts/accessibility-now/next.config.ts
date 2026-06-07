@@ -1,8 +1,11 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 void initOpenNextCloudflareForDev();
 
+const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const basePath = process.env.BASE_PATH ?? process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const nextConfig: NextConfig = {
@@ -13,6 +16,8 @@ const nextConfig: NextConfig = {
   trailingSlash: false,
   transpilePackages: ["@workspace/api-client-react"],
   serverExternalPackages: [
+    "@axe-core/playwright",
+    "axe-core",
     "@cloudflare/playwright",
     "playwright",
     "pdfkit",
@@ -20,7 +25,15 @@ const nextConfig: NextConfig = {
     "pino",
     "jsdom",
     "cheerio",
+    "lightningcss",
+    "lightningcss-darwin-arm64",
+    "lightningcss-darwin-x64",
+    "@tailwindcss/oxide",
+    "@tailwindcss/oxide-darwin-arm64",
   ],
+  turbopack: {
+    root: monorepoRoot,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",

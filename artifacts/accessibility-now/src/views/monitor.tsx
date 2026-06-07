@@ -1,6 +1,5 @@
 "use client";
 
-import { appBasePath } from "@/lib/app-base";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -19,7 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Loader2, AlertOctagon, TrendingUp, Calendar, Globe } from "lucide-react";
 import Link from "next/link";
 import type { AuditViolation } from "@workspace/api-client-react";
+import { appBasePath } from "@/lib/app-base";
 import { getHumanContextForViolation } from "@/lib/violation-human-context";
+import { formatDateShort, formatDateTime } from "@/lib/format-datetime";
 
 const BASE = appBasePath();
 
@@ -82,14 +83,11 @@ function scoreColor(score: number) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return formatDateShort(iso);
 }
 
 function formatFull(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatDateTime(iso);
 }
 
 interface CustomTooltipProps {
@@ -113,7 +111,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
 export default function MonitorPage() {
   const params = useParams<{ token: string }>();
-  const token = params.token;
+  const token = params?.token;
 
   const { data, isLoading, isError } = useQuery<MonitorData>({
     queryKey: ["monitor", token],

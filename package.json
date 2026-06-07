@@ -12,7 +12,7 @@
     "db:up": "bash scripts/dev-db-up.sh",
     "db:down": "bash scripts/dev-db-down.sh",
     "db:backup": "bash scripts/dev-db-backup.sh",
-    "db:migrate": "pnpm --filter @workspace/db run migrate",
+    "db:migrate": "bash scripts/dev-db-migrate.sh",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"

@@ -5,6 +5,11 @@ export const CHROMIUM_HEADLESS_LAUNCH_ARGS = [
   "--no-sandbox",
   "--disable-setuid-sandbox",
   "--disable-dev-shm-usage",
+  "--disable-extensions",
+  "--disable-background-networking",
+  "--disable-sync",
+  "--disable-translate",
+  "--mute-audio",
 ] as const;
 
 export const CHROMIUM_INSTALL_COMMAND =
@@ -104,7 +109,43 @@ export async function launchChromiumHeadless(): Promise<Browser> {
   return launchChromiumWithRetry();
 }
 
-/** @deprecated Use launchChromiumWithRetry — batch scans share one browser instance. */
+let sharedAuditBrowser: Browser | null = null;
+let sharedAuditBrowserLaunch: Promise<Browser> | null = null;
+
+/** Reuse one Chromium instance across single-page audits to avoid cold-start latency. */
+export async function getSharedAuditBrowser(): Promise<Browser> {
+  if (sharedAuditBrowser?.isConnected()) {
+    return sharedAuditBrowser;
+  }
+  if (sharedAuditBrowserLaunch) {
+    return sharedAuditBrowserLaunch;
+  }
+  sharedAuditBrowserLaunch = launchChromiumWithRetry()
+    .then((browser) => {
+      sharedAuditBrowser = browser;
+      sharedAuditBrowserLaunch = null;
+      browser.on("disconnected", () => {
+        if (sharedAuditBrowser === browser) {
+          sharedAuditBrowser = null;
+        }
+      });
+      return browser;
+    })
+    .catch((err) => {
+      sharedAuditBrowserLaunch = null;
+      throw err;
+    });
+  return sharedAuditBrowserLaunch;
+}
+
+export async function closeSharedAuditBrowser(): Promise<void> {
+  const browser = sharedAuditBrowser;
+  sharedAuditBrowser = null;
+  sharedAuditBrowserLaunch = null;
+  await browser?.close().catch(() => undefined);
+}
+
+/** Dedicated browser for batch workers — caller must close when finished. */
 export async function launchChromiumForAudit(): Promise<Browser> {
   return launchChromiumWithRetry();
 }

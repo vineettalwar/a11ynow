@@ -1,6 +1,5 @@
 "use client";
 
-import { appBasePath } from "@/lib/app-base";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
 import { CheckCircle2, XCircle, Loader2, Mic } from "lucide-react";
+import { apiUrl } from "@/lib/api-base";
 
 type ItemType = "title" | "landmark" | "heading" | "link" | "button" | "image" | "form-label";
 
@@ -23,6 +23,7 @@ interface ScreenReaderItem {
 interface PreviewResult {
   url: string;
   items: ScreenReaderItem[];
+  engine?: string;
 }
 
 const TYPE_LABELS: Record<ItemType, string> = {
@@ -38,10 +39,9 @@ const TYPE_LABELS: Record<ItemType, string> = {
 const TYPE_BADGE_CLASS =
   "bg-muted/80 text-foreground border border-border/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]";
 
-const BASE_URL = appBasePath();
-
 export default function ScreenReaderPreview() {
-  const searchParams = useSearchParams();
+  const searchParamsHook = useSearchParams();
+  const search = searchParamsHook?.toString() ?? "";
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PreviewResult | null>(null);
@@ -49,9 +49,10 @@ export default function ScreenReaderPreview() {
   const [filter, setFilter] = useState<ItemType | "all">("all");
 
   useEffect(() => {
-    const u = searchParams.get("url");
+    const q = new URLSearchParams(search);
+    const u = q.get("url");
     if (u?.trim()) setUrl(decodeURIComponent(u.trim()));
-  }, [searchParams]);
+  }, [search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,9 +63,11 @@ export default function ScreenReaderPreview() {
     setError(null);
     setResult(null);
     try {
-      const resp = await fetch(`${BASE_URL}/api/screen-reader-preview?url=${encodeURIComponent(target)}`);
+      const resp = await fetch(`${apiUrl("/api/screen-reader-preview")}?url=${encodeURIComponent(target)}`);
       if (!resp.ok) {
-        const data = (await resp.json().catch(() => ({}))) as { message?: string };
+        const data = (await resp.json().catch(() => ({}))) as {
+          message?: string;
+        };
         throw new Error(data.message || "Could not fetch screen reader preview.");
       }
       const data: PreviewResult = await resp.json();

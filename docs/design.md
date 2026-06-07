@@ -141,3 +141,36 @@ All Radix primitives are styled with Tailwind utility classes; no separate CSS c
 </main>
 <Footer />       : dark (#1A1A1A) bg, orange accent links
 ```
+
+---
+
+## Avoid (anti-patterns)
+
+These patterns make the UI read as generic AI-generated SaaS. Do not add them to new pages.
+
+### Visual
+
+- **Stacked gradients** — one soft radial per hero max; no triple radial + linear combos
+- **Shine pseudo-elements** — no `::after` gloss overlays on cards
+- **Particle / sparkle effects** — no animated background particles
+- **Card-in-card nesting** — tinted section + bordered card inside; use one `Card` on flat background
+- **Decorative numbered badges** — no `01`–`12` labels on tool cards
+- **Pulsing dots** on hero badges — static pills only
+
+### Icons
+
+- No `Sparkles`, `Brain`, or `Zap` for non-AI features
+- Use semantic icons from `src/lib/product-icons.ts`: `ClipboardList` (A11y Fix), `BookOpen` (Understandable), `Radar` (free scan)
+
+### Copy
+
+- Hero subtitle: max 2 lines; disclaimers: max 1 line
+- Tool descriptions: one sentence (~12–18 words)
+- Avoid generic CTAs: "Get started", "Let's get you compliant"
+- Prefer action-specific: "Run a free scan", "Book a scope call"
+
+### Components
+
+- Use shadcn `Badge` instead of ad-hoc `rounded-full border px-*` spans
+- One `hero-gradient` per page; CTA sections use `warm-section` or flat `bg-background`
+- Reuse `Card`, `Button`, `Badge` — avoid long inline shadow/gradient class strings

@@ -1,0 +1,5 @@
+import ComplianceUkEqualityAct from "@/views/resources/compliance/uk-equality-act";
+
+export default function Page() {
+  return <ComplianceUkEqualityAct />;
+}

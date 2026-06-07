@@ -1,6 +1,5 @@
 "use client";
 
-import { appBasePath } from "@/lib/app-base";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
@@ -8,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
 import { Loader2, Columns2, MonitorPlay, Download, Eye } from "lucide-react";
-
-const BASE_URL = appBasePath();
+import { apiUrl } from "@/lib/api-base";
 
 interface VisionType {
   id: string;
@@ -70,7 +68,7 @@ type ViewMode = "single" | "side-by-side";
 type ImgState = "idle" | "loading" | "loaded" | "error";
 
 function screenshotSrc(url: string) {
-  return `${BASE_URL}/api/page-screenshot?url=${encodeURIComponent(url)}`;
+  return `${apiUrl("/api/page-screenshot")}?url=${encodeURIComponent(url)}`;
 }
 
 function clamp(v: number): number {
@@ -153,7 +151,8 @@ function SimImage({ src, filter, label, onLoad, onError }: SimImageProps) {
 }
 
 export default function ColourBlindness() {
-  const searchParams = useSearchParams();
+  const searchParamsHook = useSearchParams();
+  const search = searchParamsHook?.toString() ?? "";
   const [url, setUrl] = useState("");
   const [loadedUrl, setLoadedUrl] = useState("");
   const [screenshotSrcUrl, setScreenshotSrcUrl] = useState("");
@@ -163,9 +162,10 @@ export default function ColourBlindness() {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    const u = searchParams.get("url");
+    const q = new URLSearchParams(search);
+    const u = q.get("url");
     if (u?.trim()) setUrl(decodeURIComponent(u.trim()));
-  }, [searchParams]);
+  }, [search]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSectionReveal } from "@/hooks/use-section-reveal";

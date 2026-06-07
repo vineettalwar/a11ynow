@@ -284,6 +284,218 @@ export interface AuditResult {
   complianceReport?: ComplianceReport;
 }
 
+export type AuditJobAcceptedStatus =
+  (typeof AuditJobAcceptedStatus)[keyof typeof AuditJobAcceptedStatus];
+
+export const AuditJobAcceptedStatus = {
+  pending: "pending",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+export type AuditJobAccepted = AuditResult & {
+  jobId: string;
+  status: AuditJobAcceptedStatus;
+};
+
+export type AuditJobStatusStatus =
+  (typeof AuditJobStatusStatus)[keyof typeof AuditJobStatusStatus];
+
+export const AuditJobStatusStatus = {
+  pending: "pending",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+export interface AuditJobStatus {
+  jobId: string;
+  auditId: string;
+  status: AuditJobStatusStatus;
+  url: string;
+  error?: string;
+  result?: AuditResult;
+}
+
+export type BatchJobAcceptedStatus =
+  (typeof BatchJobAcceptedStatus)[keyof typeof BatchJobAcceptedStatus];
+
+export const BatchJobAcceptedStatus = {
+  pending: "pending",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+export type BatchJobAcceptedDiscoverySource =
+  (typeof BatchJobAcceptedDiscoverySource)[keyof typeof BatchJobAcceptedDiscoverySource];
+
+export const BatchJobAcceptedDiscoverySource = {
+  sitemap: "sitemap",
+  links: "links",
+  single: "single",
+} as const;
+
+export interface BatchJobAccepted {
+  batchJobId: string;
+  status: BatchJobAcceptedStatus;
+  discoverySource?: BatchJobAcceptedDiscoverySource;
+  urlCount: number;
+}
+
+export type BatchJobProgressDiscoverySource =
+  (typeof BatchJobProgressDiscoverySource)[keyof typeof BatchJobProgressDiscoverySource];
+
+export const BatchJobProgressDiscoverySource = {
+  sitemap: "sitemap",
+  links: "links",
+  single: "single",
+} as const;
+
+export type BatchUrlScanStateStatus =
+  (typeof BatchUrlScanStateStatus)[keyof typeof BatchUrlScanStateStatus];
+
+export const BatchUrlScanStateStatus = {
+  queued: "queued",
+  scanning: "scanning",
+  done: "done",
+  error: "error",
+} as const;
+
+export interface BatchUrlScanState {
+  url: string;
+  status: BatchUrlScanStateStatus;
+  score?: number;
+  level?: string;
+  auditId?: string;
+  error?: string;
+}
+
+export interface BatchJobProgress {
+  discoverySource?: BatchJobProgressDiscoverySource;
+  discovering: boolean;
+  urlStates: BatchUrlScanState[];
+}
+
+export type BatchJobStatusStatus =
+  (typeof BatchJobStatusStatus)[keyof typeof BatchJobStatusStatus];
+
+export const BatchJobStatusStatus = {
+  pending: "pending",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+export type BatchAuditResultSiteLevel =
+  (typeof BatchAuditResultSiteLevel)[keyof typeof BatchAuditResultSiteLevel];
+
+export const BatchAuditResultSiteLevel = {
+  critical: "critical",
+  poor: "poor",
+  moderate: "moderate",
+  good: "good",
+  excellent: "excellent",
+} as const;
+
+export type BatchPageResultLevel =
+  (typeof BatchPageResultLevel)[keyof typeof BatchPageResultLevel];
+
+export const BatchPageResultLevel = {
+  critical: "critical",
+  poor: "poor",
+  moderate: "moderate",
+  good: "good",
+  excellent: "excellent",
+} as const;
+
+export type BatchPageResultStatus =
+  (typeof BatchPageResultStatus)[keyof typeof BatchPageResultStatus];
+
+export const BatchPageResultStatus = {
+  success: "success",
+  error: "error",
+} as const;
+
+/**
+ * Present when status is success: which engine produced the page result
+ */
+export type BatchPageResultScanEngine =
+  | (typeof BatchPageResultScanEngine)[keyof typeof BatchPageResultScanEngine]
+  | null;
+
+export const BatchPageResultScanEngine = {
+  playwright: "playwright",
+  static_fallback: "static_fallback",
+  unknown: "unknown",
+} as const;
+
+export interface BatchPageResult {
+  auditId: string;
+  url: string;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  score: number;
+  level: BatchPageResultLevel;
+  totalViolations: number;
+  criticalViolations: number;
+  seriousViolations: number;
+  passedChecks: number;
+  totalChecks: number;
+  scannedAt: string;
+  status: BatchPageResultStatus;
+  error?: string | null;
+  /** Present when status is success: which engine produced the page result */
+  scanEngine?: BatchPageResultScanEngine;
+}
+
+export type CrossPageViolationImpact =
+  (typeof CrossPageViolationImpact)[keyof typeof CrossPageViolationImpact];
+
+export const CrossPageViolationImpact = {
+  minor: "minor",
+  moderate: "moderate",
+  serious: "serious",
+  critical: "critical",
+} as const;
+
+export interface CrossPageViolation {
+  id: string;
+  wcagCriteria: string;
+  description: string;
+  impact: CrossPageViolationImpact;
+  /** Number of pages this violation appears on */
+  pageCount: number;
+  /** Total affected elements across all pages */
+  totalAffectedElements: number;
+  affectedUrls: string[];
+}
+
+export interface BatchAuditResult {
+  /**
+   * Weighted average score across successful pages only; each page weighted by axe totalChecks
+   * @minimum 0
+   * @maximum 100
+   */
+  siteScore: number;
+  siteLevel: BatchAuditResultSiteLevel;
+  pages: BatchPageResult[];
+  /** Violations from successful pages only, deduplicated by axe rule id; sorted by impact severity, then page count, then total affected elements */
+  crossPageViolations: CrossPageViolation[];
+  scannedAt: string;
+}
+
+export interface BatchJobStatus {
+  batchJobId: string;
+  status: BatchJobStatusStatus;
+  error?: string;
+  progress: BatchJobProgress;
+  result?: BatchAuditResult;
+}
+
 export interface CreateLeadBody {
   /** Visitor's full name */
   name: string;
@@ -451,106 +663,6 @@ export interface CreateBatchAuditPdfBody {
    * @minItems 1
    */
   auditIds: string[];
-}
-
-export type BatchPageResultLevel =
-  (typeof BatchPageResultLevel)[keyof typeof BatchPageResultLevel];
-
-export const BatchPageResultLevel = {
-  critical: "critical",
-  poor: "poor",
-  moderate: "moderate",
-  good: "good",
-  excellent: "excellent",
-} as const;
-
-export type BatchPageResultStatus =
-  (typeof BatchPageResultStatus)[keyof typeof BatchPageResultStatus];
-
-export const BatchPageResultStatus = {
-  success: "success",
-  error: "error",
-} as const;
-
-/**
- * Present when status is success: which engine produced the page result
- */
-export type BatchPageResultScanEngine =
-  | (typeof BatchPageResultScanEngine)[keyof typeof BatchPageResultScanEngine]
-  | null;
-
-export const BatchPageResultScanEngine = {
-  playwright: "playwright",
-  static_fallback: "static_fallback",
-  unknown: "unknown",
-} as const;
-
-export interface BatchPageResult {
-  auditId: string;
-  url: string;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
-  score: number;
-  level: BatchPageResultLevel;
-  totalViolations: number;
-  criticalViolations: number;
-  seriousViolations: number;
-  passedChecks: number;
-  totalChecks: number;
-  scannedAt: string;
-  status: BatchPageResultStatus;
-  error?: string | null;
-  /** Present when status is success: which engine produced the page result */
-  scanEngine?: BatchPageResultScanEngine;
-}
-
-export type CrossPageViolationImpact =
-  (typeof CrossPageViolationImpact)[keyof typeof CrossPageViolationImpact];
-
-export const CrossPageViolationImpact = {
-  minor: "minor",
-  moderate: "moderate",
-  serious: "serious",
-  critical: "critical",
-} as const;
-
-export interface CrossPageViolation {
-  id: string;
-  wcagCriteria: string;
-  description: string;
-  impact: CrossPageViolationImpact;
-  /** Number of pages this violation appears on */
-  pageCount: number;
-  /** Total affected elements across all pages */
-  totalAffectedElements: number;
-  affectedUrls: string[];
-}
-
-export type BatchAuditResultSiteLevel =
-  (typeof BatchAuditResultSiteLevel)[keyof typeof BatchAuditResultSiteLevel];
-
-export const BatchAuditResultSiteLevel = {
-  critical: "critical",
-  poor: "poor",
-  moderate: "moderate",
-  good: "good",
-  excellent: "excellent",
-} as const;
-
-export interface BatchAuditResult {
-  /**
-   * Weighted average score across successful pages only; each page weighted by axe totalChecks
-   * @minimum 0
-   * @maximum 100
-   */
-  siteScore: number;
-  siteLevel: BatchAuditResultSiteLevel;
-  pages: BatchPageResult[];
-  /** Violations from successful pages only, deduplicated by axe rule id; sorted by impact severity, then page count, then total affected elements */
-  crossPageViolations: CrossPageViolation[];
-  scannedAt: string;
 }
 
 export interface ErrorResponse {

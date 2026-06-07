@@ -1,0 +1,5 @@
+import TechVue from "@/views/resources/technologies/vue";
+
+export default function Page() {
+  return <TechVue />;
+}

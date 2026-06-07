@@ -113,11 +113,15 @@ function getScanGateStub(): DurableObjectStub | null {
 export async function withScanSlot<T>(fn: () => Promise<T>): Promise<T> {
   const stub = getScanGateStub();
   if (stub) {
-    await acquireRemote(stub);
     try {
-      return await fn();
-    } finally {
-      await doFetch(stub, "release", { method: "POST" });
+      await acquireRemote(stub);
+      try {
+        return await fn();
+      } finally {
+        await doFetch(stub, "release", { method: "POST" }).catch(() => undefined);
+      }
+    } catch {
+      // OpenNext dev exposes DO bindings that are not functional locally.
     }
   }
 
@@ -151,14 +155,18 @@ export async function getScanGateStatsAsync(): Promise<{
 }> {
   const stub = getScanGateStub();
   if (stub) {
-    const res = await doFetch(stub, "stats");
-    if (res.ok) {
-      return (await res.json()) as {
-        active: number;
-        queued: number;
-        maxConcurrent: number;
-        shuttingDown: boolean;
-      };
+    try {
+      const res = await doFetch(stub, "stats");
+      if (res.ok) {
+        return (await res.json()) as {
+          active: number;
+          queued: number;
+          maxConcurrent: number;
+          shuttingDown: boolean;
+        };
+      }
+    } catch {
+      // OpenNext dev exposes DO bindings that are not functional locally.
     }
   }
   return getScanGateStats();

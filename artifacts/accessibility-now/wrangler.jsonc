@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "accessibility-now-next",
-  "main": ".open-next/worker.js",
+  "main": "worker.ts",
   "compatibility_date": "2026-06-07",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
@@ -39,6 +39,34 @@
       "migrations_dir": "./migrations"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "ARTIFACTS",
+      "bucket_name": "accessibility-now-artifacts"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "JOB_CACHE",
+      "id": "00000000-0000-0000-0000-000000000002"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "SCAN_QUEUE",
+        "queue": "accessibility-now-scan-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "accessibility-now-scan-jobs",
+        "max_batch_size": 1,
+        "max_batch_timeout": 30,
+        "max_retries": 3
+      }
+    ]
+  },
   "triggers": {
     "crons": ["0 * * * *"]
   },

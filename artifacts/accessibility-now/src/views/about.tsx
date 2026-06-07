@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import gsap from "gsap";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
+import { useBtnGsapHover } from "@/hooks/use-btn-gsap-hover";
 
 const STATS = [
   { value: "8+", label: "Years operating" },
@@ -42,23 +42,7 @@ export default function About() {
   const ctaRef = useSectionReveal<HTMLElement>();
   const pageRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const el = pageRef.current;
-    if (!el) return;
-    const buttons = el.querySelectorAll<HTMLElement>(".btn-gsap");
-    const cleanups: (() => void)[] = [];
-    buttons.forEach((btn) => {
-      const enter = () => gsap.to(btn, { scale: 1.04, duration: 0.18, ease: "power2.out" });
-      const leave = () => gsap.to(btn, { scale: 1, duration: 0.18, ease: "power2.out" });
-      btn.addEventListener("mouseenter", enter);
-      btn.addEventListener("mouseleave", leave);
-      cleanups.push(() => {
-        btn.removeEventListener("mouseenter", enter);
-        btn.removeEventListener("mouseleave", leave);
-      });
-    });
-    return () => cleanups.forEach((fn) => fn());
-  }, []);
+  useBtnGsapHover(pageRef, 0.18);
 
   return (
     <div ref={pageRef} className="flex flex-col w-full">
@@ -124,7 +108,16 @@ export default function About() {
                   className="text-lg text-[#1A1A1A] leading-relaxed"
                   style={{ fontFamily: "var(--app-font-mono)" }}
                 >
-                  accessibility.now is a digital accessibility agency with the same senior team from first scope call through audit, remediation, and monitoring.
+                  accessibility.now is a digital accessibility agency — a product of{" "}
+                  <a
+                    href="https://sometech.work"
+                    className="text-[#FF4D1C] hover:underline font-semibold"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    SomeTech.work
+                  </a>
+                  . Same senior team from first scope call through audit, remediation, and monitoring.
                 </p>
               </div>
               <Button
@@ -210,7 +203,7 @@ export default function About() {
         </div>
       </section>
 
-      <section ref={ctaRef} className="py-24 px-6 hero-gradient text-center">
+      <section ref={ctaRef} className="py-24 px-6 warm-section text-center">
         <div className="container mx-auto max-w-2xl">
           <p
             className="text-2xl font-extrabold mb-8 reveal-body"

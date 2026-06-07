@@ -1,32 +1,35 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import gsap from "gsap";
 import { Button } from "@/components/ui/button";
 import { FaqAccordion } from "@/components/faq-accordion";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
-import { Check, Zap, Search, ShieldCheck, ArrowRight, Minus } from "lucide-react";
+import { useBtnGsapHover } from "@/hooks/use-btn-gsap-hover";
+import { Check, Search, ShieldCheck, ArrowRight, Minus, Clock3, MessageSquareMore } from "lucide-react";
+import { SnapshotScanIcon } from "@/lib/product-icons";
+import { PricingLeadForm } from "@/components/leads/pricing-lead-form";
+import type { LeadServiceValue } from "@/lib/lead-form";
 
 const TIERS = [
   {
     id: "snapshot",
-    icon: Zap,
+    icon: SnapshotScanIcon,
     name: "Snapshot Audit",
     tagline: "Free automated scan",
     price: "Free",
     priceNote: "No account required",
     description:
-      "Run an instant WCAG 2.1 automated scan on any public URL. Get a scored report in seconds - the fastest way to understand your baseline.",
+      "Run a WCAG 2.1 automated scan on any public URL and get a scored report in seconds.",
     features: [
       "Automated WCAG 2.1 scan",
+      "A11y Fix POUR-grouped fix plan",
+      "BITV 2.0 / BFSG strict profile",
       "Accessibility score 0–100",
-      "Violation count by severity",
       "Downloadable PDF report",
-      "Batch scan up to 10 pages",
       "No registration needed",
     ],
-    cta: { label: "Run a free scan →", href: "/" },
+    cta: { label: "Try A11y Fix →", href: "/solutions/a11y-fix" },
     highlighted: false,
     badge: null,
   },
@@ -49,7 +52,7 @@ const TIERS = [
       "VPAT / ACR statement draft",
       "12-month audit certificate",
     ],
-    cta: { label: "Book a scoping call →", href: "/contact" },
+    cta: { label: "Book a scoping call →", service: "audit" as LeadServiceValue },
     highlighted: true,
     badge: "Most popular",
   },
@@ -61,7 +64,7 @@ const TIERS = [
     price: "from €890",
     priceNote: "per month",
     description:
-      "Stay compliant as you ship. Monthly re-scans, CI/CD pipeline integration, and instant regression alerts mean you catch issues before your users - or regulators - do.",
+      "Monthly re-scans, CI integration, and regression alerts as you ship new features.",
     features: [
       "Monthly automated re-scans",
       "CI/CD integration & PR checks",
@@ -71,7 +74,7 @@ const TIERS = [
       "Dedicated Slack channel",
       "Annual full re-audit included",
     ],
-    cta: { label: "Discuss a retainer →", href: "/contact" },
+    cta: { label: "Discuss a retainer →", service: "monitoring" as LeadServiceValue },
     highlighted: false,
     badge: null,
   },
@@ -116,27 +119,23 @@ export default function Pricing() {
   const heroRef = useSectionReveal<HTMLElement>();
   const cardsRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const comparisonRef = useSectionReveal<HTMLElement>();
+  const contactRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const faqRef = useSectionReveal<HTMLElement>();
   const ctaRef = useSectionReveal<HTMLElement>();
   const pageRef = useRef<HTMLDivElement>(null);
+  const [requestedService, setRequestedService] = useState<LeadServiceValue>("audit");
 
-  useEffect(() => {
-    const el = pageRef.current;
-    if (!el) return;
-    const buttons = el.querySelectorAll<HTMLElement>(".btn-gsap");
-    const cleanups: (() => void)[] = [];
-    buttons.forEach((btn) => {
-      const enter = () => gsap.to(btn, { scale: 1.04, duration: 0.18, ease: "power2.out" });
-      const leave = () => gsap.to(btn, { scale: 1, duration: 0.18, ease: "power2.out" });
-      btn.addEventListener("mouseenter", enter);
-      btn.addEventListener("mouseleave", leave);
-      cleanups.push(() => {
-        btn.removeEventListener("mouseenter", enter);
-        btn.removeEventListener("mouseleave", leave);
-      });
-    });
-    return () => cleanups.forEach((fn) => fn());
-  }, []);
+  useBtnGsapHover(pageRef, 0.18);
+
+  function openPricingLeadForm(service: LeadServiceValue) {
+    setRequestedService(service);
+    const target = document.getElementById("pricing-contact");
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <div ref={pageRef} className="flex flex-col w-full">
@@ -200,13 +199,28 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <Button
-                  asChild
-                  variant={highlighted ? "default" : "outline"}
-                  className={["btn-gsap w-full font-semibold", highlighted ? "" : "[box-shadow:none]"].join(" ")}
-                >
-                  <Link href={cta.href}>{cta.label}</Link>
-                </Button>
+                {cta.href ? (
+                  <Button
+                    asChild
+                    variant={highlighted ? "default" : "outline"}
+                    className={["btn-gsap w-full font-semibold", highlighted ? "" : "[box-shadow:none]"].join(" ")}
+                  >
+                    <Link href={cta.href}>{cta.label}</Link>
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant={highlighted ? "default" : "outline"}
+                    className={["btn-gsap w-full font-semibold", highlighted ? "" : "[box-shadow:none]"].join(" ")}
+                    onClick={() => {
+                      if (cta.service) {
+                        openPricingLeadForm(cta.service);
+                      }
+                    }}
+                  >
+                    {cta.label}
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -218,8 +232,13 @@ export default function Pricing() {
                 Enterprise multi-site packages, procurement framework support, and fully managed EAA compliance programmes are available. Let's scope it together.
               </p>
             </div>
-            <Button asChild variant="outline" className="btn-gsap shrink-0 [box-shadow:none]">
-              <Link href="/contact">Talk to us <ArrowRight className="w-4 h-4 ml-1" /></Link>
+            <Button
+              type="button"
+              variant="outline"
+              className="btn-gsap shrink-0 [box-shadow:none]"
+              onClick={() => openPricingLeadForm("audit")}
+            >
+              Talk to us <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>
@@ -277,6 +296,60 @@ export default function Pricing() {
         </div>
       </section>
 
+      <section
+        id="pricing-contact"
+        ref={contactRef}
+        className="py-20 px-4 bg-white border-t border-border"
+      >
+        <div className="container mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-5 gap-10">
+          <div className="reveal-child lg:col-span-2">
+            <p className="section-label text-xs font-semibold text-primary uppercase tracking-widest mb-3">
+              Talk to an expert
+            </p>
+            <h2 className="text-display-md font-extrabold mb-4">
+              Get the right <span className="heading-accent">scope, first time.</span>
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
+              Tell us what you are shipping and where the risk sits. We will recommend the
+              right audit or monitoring path without forcing you into a longer engagement than
+              you need.
+            </p>
+
+            <div className="mt-8 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                  <Clock3 className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold font-sans">Fast response</p>
+                  <p className="text-xs text-muted-foreground">
+                    We typically reply within one business day.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                  <MessageSquareMore className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold font-sans">Concrete scope advice</p>
+                  <p className="text-xs text-muted-foreground">
+                    We help you choose between a one-off audit, remediation support, or ongoing monitoring.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="reveal-child lg:col-span-3">
+            <PricingLeadForm
+              key={requestedService}
+              requestedService={requestedService}
+            />
+          </div>
+        </div>
+      </section>
+
       <section ref={faqRef} className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-3xl">
           <h2 className="text-display-md font-extrabold mb-10">
@@ -286,7 +359,7 @@ export default function Pricing() {
         </div>
       </section>
 
-      <section ref={ctaRef} className="py-24 px-4 hero-gradient text-center">
+      <section ref={ctaRef} className="py-24 px-4 warm-section text-center">
         <div className="container mx-auto max-w-2xl">
           <h2 className="text-display-md font-extrabold mb-5">
             Start in<br />
@@ -299,8 +372,13 @@ export default function Pricing() {
             <Button asChild className="btn-gsap h-12 px-8 text-sm font-semibold">
               <Link href="/">Run free scan →</Link>
             </Button>
-            <Button asChild variant="outline" className="btn-gsap h-12 px-8 text-sm [box-shadow:none]">
-              <Link href="/contact">Book a call</Link>
+            <Button
+              type="button"
+              variant="outline"
+              className="btn-gsap h-12 px-8 text-sm [box-shadow:none]"
+              onClick={() => openPricingLeadForm("audit")}
+            >
+              Book a call
             </Button>
           </div>
         </div>

@@ -14,6 +14,7 @@ export const monitoringScansTable = pgTable("monitoring_scans", {
   criticalViolations: integer("critical_violations").notNull(),
   seriousViolations: integer("serious_violations").notNull(),
   violations: jsonb("violations").notNull(),
+  violationsRef: text("violations_ref"),
   passedChecks: integer("passed_checks").notNull(),
   totalChecks: integer("total_checks").notNull(),
   scannedAt: timestamp("scanned_at", { withTimezone: true }).notNull(),

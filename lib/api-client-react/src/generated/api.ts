@@ -17,7 +17,11 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AuditJobAccepted,
+  AuditJobStatus,
   AuditResult,
+  BatchJobAccepted,
+  BatchJobStatus,
   CreateAuditBody,
   CreateBatchAuditBody,
   CreateBatchAuditPdfBody,
@@ -116,8 +120,10 @@ export function useHealthCheck<
 }
 
 /**
- * Runs an automated accessibility audit on the provided URL and returns a compliance snapshot
- * @summary Submit URL for accessibility audit
+ * Creates an async scan job and returns `202 Accepted` with a pending audit snapshot.
+Poll `GET /audit/jobs/{jobId}` or `GET /audit/{auditId}` until the scan completes.
+
+ * @summary Submit URL for accessibility audit (async job)
  */
 export const getCreateAuditUrl = () => {
   return `/api/audit`;
@@ -126,8 +132,8 @@ export const getCreateAuditUrl = () => {
 export const createAudit = async (
   createAuditBody: CreateAuditBody,
   options?: RequestInit,
-): Promise<AuditResult> => {
-  return customFetch<AuditResult>(getCreateAuditUrl(), {
+): Promise<AuditJobAccepted> => {
+  return customFetch<AuditJobAccepted>(getCreateAuditUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -180,7 +186,7 @@ export type CreateAuditMutationBody = BodyType<CreateAuditBody>;
 export type CreateAuditMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Submit URL for accessibility audit
+ * @summary Submit URL for accessibility audit (async job)
  */
 export const useCreateAudit = <
   TError = ErrorType<ErrorResponse>,
@@ -203,18 +209,99 @@ export const useCreateAudit = <
 };
 
 /**
- * Scans up to 10 URLs serially (one browser, one URL at a time) using Server-Sent Events (SSE).
-The response is a `text/event-stream` stream. Each `data:` frame contains a JSON object
-with a `type` field:
-- `{ type: "scanning", url, index }`: fired when a URL scan begins
-- `{ type: "page", index, url, status, score, level, auditId, error? }`: fired when a URL scan finishes, or when a URL is skipped (e.g. client disconnected before Playwright started)
-- `{ type: "complete", siteScore, siteLevel, pages[], crossPageViolations[], scannedAt }`: final aggregated result (omitted if the client has already closed the stream)
-- `{ type: "error", message }`: emitted if processing fails
-Validation errors (bad URLs etc.) return a 400 JSON response before streaming begins.
-The site-wide score is a `totalChecks`-weighted average of **successful** page scores only (failed or client-skipped pages are excluded).
-`crossPageViolations` deduplicates axe rule ids across successful pages only, then sorts by impact (critical first), then page count, then total affected elements.
+ * Returns job status and the current audit snapshot (pending or completed).
+ * @summary Get audit job status
+ */
+export const getGetAuditJobUrl = (jobId: string) => {
+  return `/api/audit/jobs/${jobId}`;
+};
 
- * @summary Batch audit up to 10 URLs: streams SSE progress events
+export const getAuditJob = async (
+  jobId: string,
+  options?: RequestInit,
+): Promise<AuditJobStatus> => {
+  return customFetch<AuditJobStatus>(getGetAuditJobUrl(jobId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAuditJobQueryKey = (jobId: string) => {
+  return [`/api/audit/jobs/${jobId}`] as const;
+};
+
+export const getGetAuditJobQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAuditJob>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  jobId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAuditJob>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAuditJobQueryKey(jobId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuditJob>>> = ({
+    signal,
+  }) => getAuditJob(jobId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!jobId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAuditJob>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAuditJobQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAuditJob>>
+>;
+export type GetAuditJobQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get audit job status
+ */
+
+export function useGetAuditJob<
+  TData = Awaited<ReturnType<typeof getAuditJob>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  jobId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAuditJob>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAuditJobQueryOptions(jobId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Queues a batch scan job and returns `202 Accepted` with a `batchJobId`.
+Poll `GET /audit/batch/jobs/{batchJobId}` for per-URL progress and the final aggregated result.
+The site-wide score is a `totalChecks`-weighted average of **successful** page scores only.
+
+ * @summary Batch audit up to 10 URLs (async job)
  */
 export const getCreateBatchAuditUrl = () => {
   return `/api/audit/batch`;
@@ -223,8 +310,8 @@ export const getCreateBatchAuditUrl = () => {
 export const createBatchAudit = async (
   createBatchAuditBody: CreateBatchAuditBody,
   options?: RequestInit,
-): Promise<string> => {
-  return customFetch<string>(getCreateBatchAuditUrl(), {
+): Promise<BatchJobAccepted> => {
+  return customFetch<BatchJobAccepted>(getCreateBatchAuditUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -277,7 +364,7 @@ export type CreateBatchAuditMutationBody = BodyType<CreateBatchAuditBody>;
 export type CreateBatchAuditMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Batch audit up to 10 URLs: streams SSE progress events
+ * @summary Batch audit up to 10 URLs (async job)
  */
 export const useCreateBatchAudit = <
   TError = ErrorType<ErrorResponse>,
@@ -298,6 +385,95 @@ export const useCreateBatchAudit = <
 > => {
   return useMutation(getCreateBatchAuditMutationOptions(options));
 };
+
+/**
+ * @summary Get batch audit job status
+ */
+export const getGetBatchAuditJobUrl = (batchJobId: string) => {
+  return `/api/audit/batch/jobs/${batchJobId}`;
+};
+
+export const getBatchAuditJob = async (
+  batchJobId: string,
+  options?: RequestInit,
+): Promise<BatchJobStatus> => {
+  return customFetch<BatchJobStatus>(getGetBatchAuditJobUrl(batchJobId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBatchAuditJobQueryKey = (batchJobId: string) => {
+  return [`/api/audit/batch/jobs/${batchJobId}`] as const;
+};
+
+export const getGetBatchAuditJobQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBatchAuditJob>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  batchJobId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBatchAuditJob>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetBatchAuditJobQueryKey(batchJobId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBatchAuditJob>>
+  > = ({ signal }) =>
+    getBatchAuditJob(batchJobId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!batchJobId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBatchAuditJob>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBatchAuditJobQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBatchAuditJob>>
+>;
+export type GetBatchAuditJobQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get batch audit job status
+ */
+
+export function useGetBatchAuditJob<
+  TData = Awaited<ReturnType<typeof getBatchAuditJob>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  batchJobId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBatchAuditJob>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBatchAuditJobQueryOptions(batchJobId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Accepts an array of auditIds (from a prior batch scan) and generates a branded

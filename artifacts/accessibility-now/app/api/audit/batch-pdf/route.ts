@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import { inArray } from "drizzle-orm";
 import { auditsTable } from "@workspace/db";
 import { computeWeightedSiteScore } from "@/server/batch-report";
+import { dbRowToAuditResult } from "@/server/audit-mapper";
 import { logger } from "@/server/logger";
 import { jsonErr, prepareRequestDb, readJson, requestDb } from "@/server/http";
 
@@ -467,9 +468,16 @@ export async function POST(req: Request) {
       .map((id) => rows.find((r: (typeof rows)[number]) => r.auditId === id))
       .filter((r): r is (typeof rows)[number] => r !== undefined);
 
-    logger.info({ count: ordered.length }, "Generating batch PDF report");
+    const resolvedRows = await Promise.all(
+      ordered.map(async (row) => {
+        const audit = await dbRowToAuditResult(row);
+        return { ...row, violations: audit.violations };
+      }),
+    );
 
-    const pdfBuffer = await buildBatchPdf(ordered);
+    logger.info({ count: resolvedRows.length }, "Generating batch PDF report");
+
+    const pdfBuffer = await buildBatchPdf(resolvedRows);
 
     return new Response(new Uint8Array(pdfBuffer), {
       status: 200,

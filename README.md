@@ -27,10 +27,10 @@
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 19, Vite 7, Tailwind CSS v4, GSAP 3 + ScrollTrigger |
-| API | Express 5, TypeScript |
-| Database | PostgreSQL + Drizzle ORM |
-| Scan engine | Playwright + Chromium + axe-core (JSDOM fallback) |
+| App | Next.js 15 (App Router), React 19, Tailwind CSS v4, GSAP 3 |
+| Deployment | Cloudflare Workers via OpenNext (`@opennextjs/cloudflare`) |
+| Database | PostgreSQL + Drizzle ORM (Hyperdrive in production) |
+| Scan engine | Playwright + Browser Rendering on Cloudflare; local Chromium in dev; axe-core (JSDOM fallback) |
 | Codegen | Orval (OpenAPI → TanStack Query + Zod) |
 | Monorepo | pnpm workspaces |
 | Email | nodemailer (no-op when SMTP vars absent) |
@@ -71,21 +71,25 @@ pnpm --filter @workspace/db run migrate
 ```
 Requires `DATABASE_URL` in `.env`. For the bundled Docker dev database, `pnpm db:up` starts Postgres and applies migrations (including `scan_metadata` / `0003_scan_metadata` when present).
 
-### 5. Install Playwright browser
+### 5. Start development (database + Next.js)
+
 ```bash
-pnpm --filter @workspace/api-server exec playwright install chromium
+pnpm dev
 ```
 
-### 6. Start the dev servers
-```bash
-# In terminal 1: API server (port 8080)
-pnpm --filter @workspace/api-server run dev
+This starts Docker Postgres (if needed), applies migrations, installs Playwright Chromium, and runs Next.js on **http://localhost:3000** (web + `/api/*` in one process).
 
-# In terminal 2: Frontend (optional $PORT, default 5180)
-pnpm --filter @workspace/accessibility-now run dev
+Without Docker:
+
+```bash
+pnpm run dev:no-db
 ```
 
-Open `http://localhost:5180` in your browser.
+Install Chromium manually if scans fail:
+
+```bash
+pnpm --filter @workspace/accessibility-now exec playwright install chromium
+```
 
 ---
 
@@ -96,7 +100,9 @@ See `.env.example` for the full list with comments.
 | Variable | Required | Purpose |
 |---|---|---|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `PORT` | No | API server port (default 8080) |
+| `PORT` | No | Next.js dev port (default 3000) |
+| `CRON_SECRET` | No | Protects `/api/cron/monitoring` in production |
+| `APP_BASE_URL` | No | Public site URL for monitoring emails |
 | `SMTP_HOST` | No* | SMTP server hostname |
 | `SMTP_PORT` | No* | SMTP port (587 or 465) |
 | `SMTP_USER` | No* | SMTP username |
@@ -110,7 +116,9 @@ See `.env.example` for the full list with comments.
 
 *All five SMTP vars must be set together for email delivery. If any are absent, emails are logged but not sent.
 
-**Production checklist:** after deploy, confirm `GET /api/healthz` returns `"scanEngineReady": true`. If false, run `pnpm --filter @workspace/api-server exec playwright install chromium` on the API host.
+**Production checklist:** after Cloudflare deploy, confirm `GET /api/healthz` returns `"scanEngineReady": true`. Configure Browser Rendering binding in `wrangler.jsonc` for edge scans.
+
+**Deploy:** `pnpm --filter @workspace/accessibility-now run deploy` (requires Wrangler auth and Hyperdrive ID).
 
 ---
 
@@ -119,8 +127,7 @@ See `.env.example` for the full list with comments.
 ```
 .
 ├── artifacts/
-│   ├── accessibility-now/    # React + Vite frontend
-│   └── api-server/           # Express 5 REST API
+│   └── accessibility-now/    # Next.js 15 full-stack app (UI + API routes)
 ├── lib/
 │   ├── api-spec/             # OpenAPI YAML spec
 │   ├── api-client-react/     # Generated TanStack Query hooks

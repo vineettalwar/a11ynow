@@ -9,7 +9,7 @@ const ITEMS = [
   { href: "/resources/eaa-checklist", icon: CheckSquare, title: "EAA Checklist", description: "Interactive checklist of the key requirements for EAA / BFSG compliance, including WCAG 2.2 additions.", count: "60+ checks" },
   { href: "/tools/wcag-checklist", icon: ListChecks, title: "WCAG 2.1 AA Checklist", description: "Every Level A and AA success criterion broken down with plain-English testing guidance.", count: "50 SCs" },
   { href: "/tools/mobile-checklist", icon: Smartphone, title: "Mobile Accessibility Checklist", description: "Touch targets, gestures, screen reader rotor, and platform-specific patterns for iOS and Android.", count: "30+ checks" },
-  { href: "/resources/technologies/shopify", icon: ShoppingCart, title: "Shopify EAA Pre-flight", description: "Storefront and theme audit list for merchants approaching the EAA enforcement deadline.", count: "Coming soon" },
+  { href: "/resources/checklists/shopify-eaa", icon: ShoppingCart, title: "Shopify EAA Pre-flight", description: "Storefront and theme audit list for merchants approaching the EAA enforcement deadline.", count: "10 checks" },
 ];
 
 export default function ChecklistsIndex() {

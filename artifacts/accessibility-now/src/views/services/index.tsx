@@ -1,13 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import gsap from "gsap";
+import { useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Search, Code, ShieldCheck, Check, Minus, Cpu, FileCode, BadgeCheck } from "lucide-react";
+import { A11yFixIcon } from "@/lib/product-icons";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
+import { useBtnGsapHover } from "@/hooks/use-btn-gsap-hover";
 
 const journeySteps = [
+  {
+    icon: A11yFixIcon,
+    step: "00",
+    label: "A11y Fix",
+    description: "Free guided scan grouped by POUR. Know what to fix before you buy anything.",
+    href: "/solutions/a11y-fix",
+  },
   {
     icon: Search,
     step: "01",
@@ -69,20 +77,7 @@ export default function Services() {
   const ctaRef = useSectionReveal<HTMLElement>();
   const pageRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const el = pageRef.current;
-    if (!el) return;
-    const buttons = el.querySelectorAll<HTMLElement>(".btn-gsap");
-    const cleanups: (() => void)[] = [];
-    buttons.forEach((btn) => {
-      const enter = () => gsap.to(btn, { scale: 1.04, duration: 0.18, ease: "power2.out" });
-      const leave = () => gsap.to(btn, { scale: 1, duration: 0.18, ease: "power2.out" });
-      btn.addEventListener("mouseenter", enter);
-      btn.addEventListener("mouseleave", leave);
-      cleanups.push(() => { btn.removeEventListener("mouseenter", enter); btn.removeEventListener("mouseleave", leave); });
-    });
-    return () => cleanups.forEach((fn) => fn());
-  }, []);
+  useBtnGsapHover(pageRef, 0.18);
 
   return (
     <div ref={pageRef} className="flex flex-col w-full">
@@ -94,7 +89,7 @@ export default function Services() {
             <span className="heading-accent">Stay compliant.</span>
           </h1>
           <p className="text-muted-foreground text-base max-w-xl reveal-body">
-            Three engagements. The same senior engineering team start to finish. No subcontractors, no overlays, no hand-offs.
+            Start free with A11y Fix, then escalate to audits, remediation, or monitoring. Same senior engineering team throughout — no overlays, no hand-offs.
           </p>
         </div>
       </section>
@@ -202,7 +197,7 @@ export default function Services() {
         <div className="container mx-auto max-w-5xl">
           <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3 font-sans">Why us</p>
           <h2 className="text-display-md font-extrabold mb-12">
-            What "engineering-led" <span className="heading-accent">actually means.</span>
+            How we <span className="heading-accent">work.</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {differentiators.map(({ icon: Icon, title, body }) => (
@@ -218,7 +213,7 @@ export default function Services() {
         </div>
       </section>
 
-      <section ref={ctaRef} className="py-24 px-4 hero-gradient text-center">
+      <section ref={ctaRef} className="py-24 px-4 warm-section text-center">
         <div className="container mx-auto max-w-2xl">
           <h2 className="text-display-md font-extrabold mb-5">
             Not sure where<br />

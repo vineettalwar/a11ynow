@@ -1,0 +1,5 @@
+import TechAngular from "@/views/resources/technologies/angular";
+
+export default function Page() {
+  return <TechAngular />;
+}

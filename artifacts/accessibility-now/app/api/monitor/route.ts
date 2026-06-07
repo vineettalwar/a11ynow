@@ -102,6 +102,7 @@ export async function POST(req: Request) {
             criticalViolations: audit.criticalViolations,
             seriousViolations: audit.seriousViolations,
             violations: audit.violations,
+            violationsRef: audit.violationsRef,
             passedChecks: audit.passedChecks,
             totalChecks: audit.totalChecks,
             scannedAt: audit.scannedAt,

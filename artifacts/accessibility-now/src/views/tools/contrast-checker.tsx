@@ -109,7 +109,13 @@ declare global {
   }
 }
 
-const HAS_EYEDROPPER = typeof window !== "undefined" && "EyeDropper" in window;
+function useHasEyeDropper(): boolean {
+  const [hasEyeDropper, setHasEyeDropper] = useState(false);
+  useEffect(() => {
+    setHasEyeDropper("EyeDropper" in window);
+  }, []);
+  return hasEyeDropper;
+}
 
 interface BadgeProps { label: string; pass: boolean; }
 function Badge({ label, pass }: BadgeProps) {
@@ -128,9 +134,15 @@ interface ColourRowProps {
   onChange: (hex: string) => void;
 }
 
-function ColourRow({ id, label, value, onChange }: ColourRowProps) {
+function ColourRow({
+  id,
+  label,
+  value,
+  onChange,
+  hasEyeDropper,
+}: ColourRowProps & { hasEyeDropper: boolean }) {
   const pickFromScreen = useCallback(async () => {
-    if (!HAS_EYEDROPPER || !window.EyeDropper) return;
+    if (!hasEyeDropper || !window.EyeDropper) return;
     try {
       const dropper = new window.EyeDropper();
       const result = await dropper.open();
@@ -138,7 +150,7 @@ function ColourRow({ id, label, value, onChange }: ColourRowProps) {
     } catch {
       // User cancelled or API unavailable
     }
-  }, [onChange]);
+  }, [hasEyeDropper, onChange]);
 
   return (
     <div>
@@ -163,7 +175,7 @@ function ColourRow({ id, label, value, onChange }: ColourRowProps) {
           className="flex-1 h-12 rounded-xl border border-border bg-input px-4 text-sm font-mono uppercase"
           aria-label={`${label} hex value`}
         />
-        {HAS_EYEDROPPER && (
+        {hasEyeDropper && (
           <button
             type="button"
             onClick={pickFromScreen}
@@ -180,6 +192,7 @@ function ColourRow({ id, label, value, onChange }: ColourRowProps) {
 }
 
 export default function ContrastChecker() {
+  const hasEyeDropper = useHasEyeDropper();
   const [fg, setFg] = useState("#1a1a1a");
   const [bg, setBg] = useState("#f5f2ec");
   const [suggested, setSuggested] = useState<string | null>(null);
@@ -242,7 +255,7 @@ export default function ContrastChecker() {
       description={
         <>
           WCAG 2.1 contrast ratio calculator. Real-time AA and AAA pass/fail with a one-click accessible colour suggestion
-          {HAS_EYEDROPPER ? " and eyedropper screen picker." : "."}
+          {hasEyeDropper ? " and eyedropper screen picker." : "."}
         </>
       }
       mainPy="comfortable"
@@ -254,12 +267,14 @@ export default function ContrastChecker() {
                 id="fg-hex"
                 label="Foreground colour"
                 value={fg}
+                hasEyeDropper={hasEyeDropper}
                 onChange={(v) => { setFg(v); setSuggested(null); }}
               />
               <ColourRow
                 id="bg-hex"
                 label="Background colour"
                 value={bg}
+                hasEyeDropper={hasEyeDropper}
                 onChange={(v) => { setBg(v); setSuggested(null); }}
               />
 

@@ -1,5 +1,7 @@
+"use client";
+
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { usePathname, useSearchParams } from "next/navigation";
 import { resolveSeoMeta, SITE } from "@/lib/seo-config";
 
 function upsertMeta(name: string, content: string, attr: "name" | "property" = "name") {
@@ -34,7 +36,10 @@ function upsertJsonLd(id: string, data: Record<string, unknown>) {
 }
 
 export function SeoHead() {
-  const [location] = useLocation();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const query = searchParams.toString();
+  const location = query ? `${pathname}?${query}` : pathname;
   const meta = resolveSeoMeta(location);
   const canonical = `${SITE.url}${meta.path === "/" ? "" : meta.path}`;
 

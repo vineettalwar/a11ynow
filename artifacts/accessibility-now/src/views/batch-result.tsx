@@ -1,8 +1,8 @@
 "use client";
 
-import { appBasePath } from "@/lib/app-base";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { formatDateTime } from "@/lib/format-datetime";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,8 +29,7 @@ import type { AuditViolation as ApiAuditViolation } from "@workspace/api-client-
 import { useCreateLead } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { getHumanContextForViolation } from "@/lib/violation-human-context";
-
-const BASE = appBasePath();
+import { openPrintReport } from "@/lib/print-report";
 
 interface AuditViolation {
   id: string;
@@ -240,56 +239,26 @@ function LeadCaptureCard({ pages }: { pages: BatchPageResult[] }) {
 }
 
 function DownloadBatchPdf({ pages }: { pages: BatchPageResult[] }) {
-  const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
 
   const successIds = pages.filter((p) => p.status === "success" && p.auditId).map((p) => p.auditId);
 
-  async function download() {
+  function download() {
     if (successIds.length === 0) {
       toast({ title: "No successful scans", description: "No pages were scanned successfully.", variant: "destructive" });
       return;
     }
-    setIsPending(true);
-    try {
-      const resp = await fetch(`${BASE}/api/audit/batch-pdf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ auditIds: successIds }),
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `accessibility-batch-report-${successIds.length}pages.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast({
-        title: "Report generation failed",
-        description: "Could not generate the multi-page PDF. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsPending(false);
-    }
+    openPrintReport("batch");
   }
 
   return (
     <Button
       onClick={download}
-      disabled={isPending || successIds.length === 0}
+      disabled={successIds.length === 0}
       variant="outline"
       className="h-11 px-5 text-sm font-semibold border-foreground/20 bg-white/80 hover:bg-white gap-2"
     >
-      {isPending ? (
-        <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
-      ) : (
-        <><FileDown className="w-4 h-4" /> Download Report</>
-      )}
+      <FileDown className="w-4 h-4" /> Save as PDF
     </Button>
   );
 }
@@ -334,10 +303,7 @@ export default function BatchResult() {
     );
   }
 
-  const scannedDate = new Date(result.scannedAt).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const scannedDate = formatDateTime(result.scannedAt);
 
   const successCount = result.pages.filter((p) => p.status === "success").length;
   const errorCount = result.pages.filter((p) => p.status === "error").length;

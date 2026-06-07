@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import gsap from "gsap";
+import { useRef } from "react";
 import Link from "next/link";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
+import { useBtnGsapHover } from "@/hooks/use-btn-gsap-hover";
 import { ArrowRight, Clock } from "lucide-react";
 
 const ARTICLES = [
@@ -51,20 +51,7 @@ export default function Blog() {
   const articlesRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const pageRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const el = pageRef.current;
-    if (!el) return;
-    const buttons = el.querySelectorAll<HTMLElement>(".btn-gsap");
-    const cleanups: (() => void)[] = [];
-    buttons.forEach((btn) => {
-      const enter = () => gsap.to(btn, { scale: 1.04, duration: 0.18, ease: "power2.out" });
-      const leave = () => gsap.to(btn, { scale: 1, duration: 0.18, ease: "power2.out" });
-      btn.addEventListener("mouseenter", enter);
-      btn.addEventListener("mouseleave", leave);
-      cleanups.push(() => { btn.removeEventListener("mouseenter", enter); btn.removeEventListener("mouseleave", leave); });
-    });
-    return () => cleanups.forEach((fn) => fn());
-  }, []);
+  useBtnGsapHover(pageRef, 0.18);
 
   const featured = ARTICLES.find((a) => a.featured)!;
   const rest = ARTICLES.filter((a) => !a.featured);

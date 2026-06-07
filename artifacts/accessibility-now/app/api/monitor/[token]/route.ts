@@ -1,5 +1,6 @@
 import { eq, asc } from "drizzle-orm";
-import { monitoredUrlsTable, monitoringScansTable } from "@workspace/db";
+import { monitoredUrlsTable, monitoringScansTable, type AuditViolationStored } from "@workspace/db";
+import { resolveStoredViolations } from "@/server/artifacts/storage";
 import { logger } from "@/server/logger";
 import { jsonErr, jsonOk, prepareRequestDb, requestDb } from "@/server/http";
 
@@ -36,6 +37,12 @@ export async function GET(
       .orderBy(asc(monitoringScansTable.scannedAt));
 
     const latest = scans.length > 0 ? scans[scans.length - 1] : null;
+    const latestViolations = latest
+      ? await resolveStoredViolations(
+          latest.violations as AuditViolationStored[],
+          latest.violationsRef,
+        )
+      : null;
 
     return jsonOk({
       url: registration.url,
@@ -60,7 +67,7 @@ export async function GET(
             totalViolations: latest.totalViolations,
             criticalViolations: latest.criticalViolations,
             seriousViolations: latest.seriousViolations,
-            violations: latest.violations,
+            violations: latestViolations ?? [],
             passedChecks: latest.passedChecks,
             totalChecks: latest.totalChecks,
             scannedAt: latest.scannedAt.toISOString(),

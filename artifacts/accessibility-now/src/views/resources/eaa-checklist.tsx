@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import gsap from "gsap";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
-import { Check, AlertTriangle, CalendarClock, FileText, ShieldCheck, MonitorSmartphone, Download, Sparkles } from "lucide-react";
+import { useBtnGsapHover } from "@/hooks/use-btn-gsap-hover";
+import { Check, AlertTriangle, CalendarClock, FileText, ShieldCheck, MonitorSmartphone, Download, ListChecks } from "lucide-react";
 
 const STORAGE_KEY = "eaa-checklist-v2";
 
@@ -274,7 +274,7 @@ const SECTIONS: ChecklistSection[] = [
   {
     id: "wcag22",
     title: "WCAG 2.2 Additions",
-    icon: Sparkles,
+    icon: ListChecks,
     description: "WCAG 2.2 (October 2023) introduced six new criteria at Level A and AA. EN 301 549 v3.2.1 references these, and EAA-scoped audits are increasingly expected to cover them.",
     items: [
       {
@@ -324,10 +324,14 @@ function loadState(): Record<string, boolean> {
 }
 
 export default function EaaChecklist() {
-  const [checked, setChecked] = useState<Record<string, boolean>>(loadState);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
   const heroRef = useSectionReveal<HTMLElement>();
   const timelineRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const pageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setChecked(loadState());
+  }, []);
 
   useEffect(() => {
     try {
@@ -349,20 +353,7 @@ export default function EaaChecklist() {
 
   const handlePrint = () => window.print();
 
-  useEffect(() => {
-    const el = pageRef.current;
-    if (!el) return;
-    const buttons = el.querySelectorAll<HTMLElement>(".btn-gsap");
-    const cleanups: (() => void)[] = [];
-    buttons.forEach((btn) => {
-      const enter = () => gsap.to(btn, { scale: 1.04, duration: 0.18, ease: "power2.out" });
-      const leave = () => gsap.to(btn, { scale: 1, duration: 0.18, ease: "power2.out" });
-      btn.addEventListener("mouseenter", enter);
-      btn.addEventListener("mouseleave", leave);
-      cleanups.push(() => { btn.removeEventListener("mouseenter", enter); btn.removeEventListener("mouseleave", leave); });
-    });
-    return () => cleanups.forEach((fn) => fn());
-  }, []);
+  useBtnGsapHover(pageRef, 0.18);
 
   return (
     <div ref={pageRef} className="flex flex-col w-full">

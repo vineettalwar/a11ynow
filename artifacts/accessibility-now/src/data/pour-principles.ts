@@ -1,4 +1,5 @@
-import { Eye, MousePointer2, Brain, Wrench, type LucideIcon } from "lucide-react";
+import { Eye, MousePointer2, Wrench, type LucideIcon } from "lucide-react";
+import { UnderstandableIcon } from "@/lib/product-icons";
 
 export type PourPrincipleName = "Perceivable" | "Operable" | "Understandable" | "Robust";
 
@@ -40,7 +41,7 @@ export const POUR_PRINCIPLES: PourPrincipleMeta[] = [
   {
     letter: "U",
     name: "Understandable",
-    icon: Brain,
+    icon: UnderstandableIcon,
     color: "text-violet-600",
     bg: "bg-violet-50",
     border: "border-violet-200",

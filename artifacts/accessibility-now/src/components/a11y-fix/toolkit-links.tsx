@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export function A11yFixToolkitLinks({ scannedUrl }: { scannedUrl: string }) {

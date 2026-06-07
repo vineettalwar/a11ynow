@@ -12,6 +12,8 @@ export const auditsTable = pgTable("audits", {
   criticalViolations: integer("critical_violations").notNull(),
   seriousViolations: integer("serious_violations").notNull(),
   violations: jsonb("violations").notNull().$type<AuditViolationStored[]>(),
+  /** When set (`r2:…`), full violations JSON lives in R2; `violations` is `[]`. */
+  violationsRef: text("violations_ref"),
   passedChecks: integer("passed_checks").notNull(),
   totalChecks: integer("total_checks").notNull(),
   /** playwright | static_fallback | unknown (legacy rows) */
@@ -56,6 +58,8 @@ export interface StoredScanMetadata {
   runtimeDiagnostics?: StoredRuntimeDiagnostics;
   elementScreenshotsSkipped?: boolean;
   viewportsSkipped?: boolean;
+  pending?: boolean;
+  failed?: boolean;
 }
 
 export const insertAuditSchema = createInsertSchema(auditsTable);

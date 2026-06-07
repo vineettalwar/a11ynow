@@ -3,6 +3,10 @@ export interface CloudflareBindings {
   HYPERDRIVE?: { connectionString: string };
   SCAN_GATE?: DurableObjectNamespace;
   SCAN_MAX_CONCURRENT?: string;
+  DB?: D1Database;
+  ARTIFACTS?: R2Bucket;
+  SCAN_QUEUE?: Queue<import("./jobs/types").QueueMessage>;
+  JOB_CACHE?: KVNamespace;
 }
 
 export function getBindings(): CloudflareBindings {
