@@ -152,7 +152,7 @@ function HeroScanForm() {
 
       const states: UrlScanState[] = [{ url: trimmed, status: "queued" }];
 
-      const ensureIndex = (index: number, pageUrl?: string) => {
+      const initIndex = (index: number, pageUrl?: string) => {
         while (states.length <= index) {
           states.push({ url: pageUrl ?? `Page ${states.length + 1}`, status: "queued" });
         }
@@ -161,7 +161,7 @@ function HeroScanForm() {
 
       const patchIndex = (index: number, patch: Partial<UrlScanState>, pageUrl?: string) => {
         if (index < 0) return;
-        ensureIndex(index, pageUrl);
+        initIndex(index, pageUrl);
         states[index] = { ...states[index]!, ...patch };
         setUrlStates([...states]);
       };

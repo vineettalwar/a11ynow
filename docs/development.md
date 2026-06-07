@@ -41,7 +41,7 @@ From the repo root:
 pnpm dev
 ```
 
-This runs `scripts/dev-local.sh`: starts Docker Postgres (if needed), applies migrations, ensures Playwright Chromium is installed, then starts Vite and the API together.
+This runs `scripts/dev-local.sh`: starts Docker Postgres (if needed), applies migrations, installs Playwright Chromium when needed, then starts Vite and the API together.
 
 - Vite defaults to port **5180** (or `PORT` if you set it for the frontend only).
 - The API port is **chosen automatically** unless you set `A11YNOW_API_PORT`. The script exports `VITE_DEV_API_PROXY` so Vite’s `/api` proxy targets the same API instance.

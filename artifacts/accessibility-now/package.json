@@ -8,7 +8,7 @@
     "build": "vite build --config vite.config.ts",
     "dev:next": "next dev --port 5181",
     "build:next": "next build --webpack",
-    "build:opennext": "next build --webpack && node scripts/ensure-next-middleware-manifest.mjs && opennextjs-cloudflare build --skipNextBuild",
+    "build:opennext": "next build --webpack && node scripts/write-next-middleware-manifest.mjs && opennextjs-cloudflare build --skipNextBuild",
     "preview:cf": "pnpm run build:opennext && wrangler dev --config wrangler.jsonc",
     "deploy:cf:staging": "pnpm run build:opennext && opennextjs-cloudflare deploy --config wrangler.jsonc",
     "cf:typegen": "wrangler types --config wrangler.jsonc --env-interface CloudflareEnv cloudflare-env.d.ts",
