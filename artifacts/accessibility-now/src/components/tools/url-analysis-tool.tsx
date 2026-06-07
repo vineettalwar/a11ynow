@@ -67,7 +67,9 @@ export function UrlAnalysisTool({ config }: { config: UrlAnalysisToolConfig }) {
         `${apiUrl("/api/screen-reader-preview")}?url=${encodeURIComponent(target)}`,
       );
       if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
+        const data = (await resp.json().catch(() => ({}))) as {
+          message?: string;
+        };
         throw new Error(data.message || "Could not analyse the page.");
       }
       const data: PreviewResult = await resp.json();

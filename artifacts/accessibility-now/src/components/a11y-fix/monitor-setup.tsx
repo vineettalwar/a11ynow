@@ -3,8 +3,9 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { getAppBasePath } from "@/lib/api-base";
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const BASE = getAppBasePath();
 
 export function A11yFixMonitorSetup({ url, auditId }: { url: string; auditId: string }) {
   const [email, setEmail] = useState("");

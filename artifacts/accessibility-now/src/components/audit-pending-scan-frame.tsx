@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { Globe } from "lucide-react";
+import { getAppBasePath } from "@/lib/api-base";
 
-const APP_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const APP_BASE = getAppBasePath();
 
 function pageScreenshotPreviewSrc(url: string): string {
   return `${APP_BASE}/api/page-screenshot?url=${encodeURIComponent(url)}`;

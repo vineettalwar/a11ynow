@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import gsap from "gsap";
 import { ParticleCanvas } from "@/components/particle-canvas";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
+import { getAppBasePath } from "@/lib/api-base";
 
 
 function useGsapButtonHover(ref: React.RefObject<HTMLElement | null>) {
@@ -32,7 +33,7 @@ function useGsapButtonHover(ref: React.RefObject<HTMLElement | null>) {
 }
 
 const BATCH_STORAGE_KEY = "batch_audit_result";
-const MULTI_SCAN_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const MULTI_SCAN_BASE = getAppBasePath();
 
 type UrlStatus = "queued" | "scanning" | "done" | "error";
 
@@ -151,7 +152,7 @@ function HeroScanForm() {
 
       const states: UrlScanState[] = [{ url: trimmed, status: "queued" }];
 
-      const ensureIndex = (index: number, pageUrl?: string) => {
+      const initIndex = (index: number, pageUrl?: string) => {
         while (states.length <= index) {
           states.push({ url: pageUrl ?? `Page ${states.length + 1}`, status: "queued" });
         }
@@ -160,7 +161,7 @@ function HeroScanForm() {
 
       const patchIndex = (index: number, patch: Partial<UrlScanState>, pageUrl?: string) => {
         if (index < 0) return;
-        ensureIndex(index, pageUrl);
+        initIndex(index, pageUrl);
         states[index] = { ...states[index]!, ...patch };
         setUrlStates([...states]);
       };

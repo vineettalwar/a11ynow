@@ -14,6 +14,7 @@ import {
   type A11yFixBatchResult,
   type A11yFixCrossPageViolation,
 } from "@/lib/a11y-fix-batch";
+import { getAppBasePath } from "@/lib/api-base";
 import { groupViolationsByPour } from "@/lib/pour-mapper";
 import { getFixDifficulty, difficultyBadgeClass, difficultyLabel, intentContactHref } from "@/lib/a11y-fix";
 import { cn } from "@/lib/utils";
@@ -51,7 +52,7 @@ export default function A11yFixBatchResult() {
     if (!ids.length) return;
     setPdfPending(true);
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/audit/batch-pdf`, {
+      const res = await fetch(`${getAppBasePath()}/api/audit/batch-pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ auditIds: ids }),

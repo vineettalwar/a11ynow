@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { useCreateLead } from "@workspace/api-client-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -12,18 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Loader2, Mail, MapPin } from "lucide-react";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
+import {
+  CONTACT_LEAD_FORM_SCHEMA,
+  LEAD_SERVICE_OPTIONS,
+  type ContactLeadFormValues,
+} from "@/lib/lead-form";
 import gsap from "gsap";
-
-const formSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Must be a valid email"),
-  company: z.string().min(2, "Company is required"),
-  url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-  service: z.string().min(1, "Please select a service"),
-  message: z.string().min(10, "Please provide more details"),
-});
-
-const VALID_SERVICES = ["audit", "remediation", "monitoring", "unsure"] as const;
 
 export default function Contact() {
   const { toast } = useToast();
@@ -37,13 +30,25 @@ export default function Contact() {
 
   const params = new URLSearchParams(search);
   const serviceParam = params.get("service") ?? "";
-  const prefilledService = (VALID_SERVICES as readonly string[]).includes(serviceParam) ? serviceParam : "";
+  const prefilledService = LEAD_SERVICE_OPTIONS.some(
+    (option) => option.value === serviceParam,
+  )
+    ? serviceParam
+    : "";
   const prefilledUrl = params.get("url") ?? "";
   const auditIdParam = params.get("auditId") ?? "";
   const fromA11yFix = params.get("source") === "a11y-fix";
   const prefilledMessage = fromA11yFix
     ? `I ran A11y Fix on ${prefilledUrl || "my site"}${auditIdParam ? ` (audit ${auditIdParam})` : ""}. I would like help with the next steps.`
     : "";
+  const defaultValues: ContactLeadFormValues = {
+    name: "",
+    email: "",
+    company: "",
+    url: prefilledUrl,
+    service: prefilledService,
+    message: prefilledMessage,
+  };
 
   useEffect(() => {
     const el = pageRef.current;
@@ -63,19 +68,12 @@ export default function Contact() {
     return () => cleanups.forEach((fn) => fn());
   }, []);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      company: "",
-      url: prefilledUrl,
-      service: prefilledService,
-      message: prefilledMessage,
-    },
+  const form = useForm<ContactLeadFormValues>({
+    resolver: zodResolver(CONTACT_LEAD_FORM_SCHEMA),
+    defaultValues,
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: ContactLeadFormValues) {
     createLead.mutate(
       {
         data: {
@@ -174,7 +172,15 @@ export default function Contact() {
                   <p className="text-sm text-muted-foreground max-w-sm">
                     A member of the team will reply within one business day.
                   </p>
-                  <Button type="button" variant="outline" className="mt-2" onClick={() => setSubmitted(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => {
+                      form.reset(defaultValues);
+                      setSubmitted(false);
+                    }}
+                  >
                     Send another message
                   </Button>
                 </div>
@@ -251,10 +257,11 @@ export default function Contact() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="audit">Full Accessibility Audit</SelectItem>
-                              <SelectItem value="remediation">Remediation & Development</SelectItem>
-                              <SelectItem value="monitoring">Ongoing Monitoring</SelectItem>
-                              <SelectItem value="unsure">Not sure - need a consultation</SelectItem>
+                              {LEAD_SERVICE_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />

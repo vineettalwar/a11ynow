@@ -144,7 +144,9 @@ export default function FocusOrderVisualizer() {
     try {
       const resp = await fetch(`${apiUrl("/api/focus-order")}?url=${encodeURIComponent(target)}`);
       if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
+        const data = (await resp.json().catch(() => ({}))) as {
+          message?: string;
+        };
         throw new Error(data.message || "Could not analyse focus order.");
       }
       const data: FocusOrderResult = await resp.json();

@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { getAppBasePath } from "@/lib/api-base";
+
+const API_BASE = getAppBasePath();
 
 export const A11Y_FIX_BATCH_STORAGE_KEY = "a11y_fix_batch_result";
 

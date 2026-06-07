@@ -1,4 +1,5 @@
-# Cloudflare Pages — accessibility.now frontend
+# Legacy Cloudflare Pages frontend for the Vite SPA.
+# Keep this in place until the Next.js + OpenNext migration cutover is complete.
 # Deploy: cd artifacts/accessibility-now && pnpm build && npx wrangler pages deploy dist/public
 name = "accessibility-now"
 pages_build_output_dir = "dist/public"

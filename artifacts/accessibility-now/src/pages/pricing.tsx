@@ -1,10 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import gsap from "gsap";
 import { Button } from "@/components/ui/button";
 import { FaqAccordion } from "@/components/faq-accordion";
 import { useSectionReveal } from "@/hooks/use-section-reveal";
-import { Check, Zap, Search, ShieldCheck, ArrowRight, Minus } from "lucide-react";
+import { Check, Zap, Search, ShieldCheck, ArrowRight, Minus, Clock3, MessageSquareMore } from "lucide-react";
+import { PricingLeadForm } from "@/components/leads/pricing-lead-form";
+import type { LeadServiceValue } from "@/lib/lead-form";
 
 const TIERS = [
   {
@@ -47,7 +49,7 @@ const TIERS = [
       "VPAT / ACR statement draft",
       "12-month audit certificate",
     ],
-    cta: { label: "Book a scoping call →", href: "/contact" },
+    cta: { label: "Book a scoping call →", service: "audit" as LeadServiceValue },
     highlighted: true,
     badge: "Most popular",
   },
@@ -69,7 +71,7 @@ const TIERS = [
       "Dedicated Slack channel",
       "Annual full re-audit included",
     ],
-    cta: { label: "Discuss a retainer →", href: "/contact" },
+    cta: { label: "Discuss a retainer →", service: "monitoring" as LeadServiceValue },
     highlighted: false,
     badge: null,
   },
@@ -114,9 +116,11 @@ export default function Pricing() {
   const heroRef = useSectionReveal<HTMLElement>();
   const cardsRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const comparisonRef = useSectionReveal<HTMLElement>();
+  const contactRef = useSectionReveal<HTMLElement>({ staggerSelector: ".reveal-child" });
   const faqRef = useSectionReveal<HTMLElement>();
   const ctaRef = useSectionReveal<HTMLElement>();
   const pageRef = useRef<HTMLDivElement>(null);
+  const [requestedService, setRequestedService] = useState<LeadServiceValue>("audit");
 
   useEffect(() => {
     const el = pageRef.current;
@@ -135,6 +139,16 @@ export default function Pricing() {
     });
     return () => cleanups.forEach((fn) => fn());
   }, []);
+
+  function openPricingLeadForm(service: LeadServiceValue) {
+    setRequestedService(service);
+    const target = document.getElementById("pricing-contact");
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <div ref={pageRef} className="flex flex-col w-full">
@@ -198,13 +212,28 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <Button
-                  asChild
-                  variant={highlighted ? "default" : "outline"}
-                  className={["btn-gsap w-full font-semibold", highlighted ? "" : "[box-shadow:none]"].join(" ")}
-                >
-                  <Link href={cta.href}>{cta.label}</Link>
-                </Button>
+                {cta.href ? (
+                  <Button
+                    asChild
+                    variant={highlighted ? "default" : "outline"}
+                    className={["btn-gsap w-full font-semibold", highlighted ? "" : "[box-shadow:none]"].join(" ")}
+                  >
+                    <Link href={cta.href}>{cta.label}</Link>
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant={highlighted ? "default" : "outline"}
+                    className={["btn-gsap w-full font-semibold", highlighted ? "" : "[box-shadow:none]"].join(" ")}
+                    onClick={() => {
+                      if (cta.service) {
+                        openPricingLeadForm(cta.service);
+                      }
+                    }}
+                  >
+                    {cta.label}
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -216,8 +245,13 @@ export default function Pricing() {
                 Enterprise multi-site packages, procurement framework support, and fully managed EAA compliance programmes are available. Let's scope it together.
               </p>
             </div>
-            <Button asChild variant="outline" className="btn-gsap shrink-0 [box-shadow:none]">
-              <Link href="/contact">Talk to us <ArrowRight className="w-4 h-4 ml-1" /></Link>
+            <Button
+              type="button"
+              variant="outline"
+              className="btn-gsap shrink-0 [box-shadow:none]"
+              onClick={() => openPricingLeadForm("audit")}
+            >
+              Talk to us <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </div>
@@ -275,6 +309,60 @@ export default function Pricing() {
         </div>
       </section>
 
+      <section
+        id="pricing-contact"
+        ref={contactRef}
+        className="py-20 px-4 bg-white border-t border-border"
+      >
+        <div className="container mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-5 gap-10">
+          <div className="reveal-child lg:col-span-2">
+            <p className="section-label text-xs font-semibold text-primary uppercase tracking-widest mb-3">
+              Talk to an expert
+            </p>
+            <h2 className="text-display-md font-extrabold mb-4">
+              Get the right <span className="heading-accent">scope, first time.</span>
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
+              Tell us what you are shipping and where the risk sits. We will recommend the
+              right audit or monitoring path without forcing you into a longer engagement than
+              you need.
+            </p>
+
+            <div className="mt-8 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                  <Clock3 className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold font-sans">Fast response</p>
+                  <p className="text-xs text-muted-foreground">
+                    We typically reply within one business day.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                  <MessageSquareMore className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold font-sans">Concrete scope advice</p>
+                  <p className="text-xs text-muted-foreground">
+                    We help you choose between a one-off audit, remediation support, or ongoing monitoring.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="reveal-child lg:col-span-3">
+            <PricingLeadForm
+              key={requestedService}
+              requestedService={requestedService}
+            />
+          </div>
+        </div>
+      </section>
+
       <section ref={faqRef} className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-3xl">
           <h2 className="text-display-md font-extrabold mb-10">
@@ -297,8 +385,13 @@ export default function Pricing() {
             <Button asChild className="btn-gsap h-12 px-8 text-sm font-semibold">
               <Link href="/">Run free scan →</Link>
             </Button>
-            <Button asChild variant="outline" className="btn-gsap h-12 px-8 text-sm [box-shadow:none]">
-              <Link href="/contact">Book a call</Link>
+            <Button
+              type="button"
+              variant="outline"
+              className="btn-gsap h-12 px-8 text-sm [box-shadow:none]"
+              onClick={() => openPricingLeadForm("audit")}
+            >
+              Book a call
             </Button>
           </div>
         </div>

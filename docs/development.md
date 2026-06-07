@@ -41,7 +41,7 @@ From the repo root:
 pnpm dev
 ```
 
-This runs `scripts/dev-local.sh`: starts Docker Postgres (if needed), applies migrations, ensures Playwright Chromium is installed, then starts Vite and the API together.
+This runs `scripts/dev-local.sh`: starts Docker Postgres (if needed), applies migrations, installs Playwright Chromium when needed, then starts Vite and the API together.
 
 - Vite defaults to port **5180** (or `PORT` if you set it for the frontend only).
 - The API port is **chosen automatically** unless you set `A11YNOW_API_PORT`. The script exports `VITE_DEV_API_PROXY` so Vite’s `/api` proxy targets the same API instance.
@@ -71,6 +71,56 @@ VITE_DEV_API_PROXY=http://127.0.0.1:8080 pnpm --filter @workspace/accessibility-
 Vite proxies **`/api` → `VITE_DEV_API_PROXY`** (default `http://127.0.0.1:8080`). See `artifacts/accessibility-now/vite.config.ts`.
 
 **Port gotcha:** both stacks can read `PORT`. If you export one `PORT` for everything, the API and Vite may collide. Prefer separate terminals with explicit values, or use `pnpm dev` which unsets `PORT` for Vite and pins the API via `A11YNOW_API_PORT` / free port (see `scripts/dev-app-servers.sh`).
+
+### Next.js migration runtime (Phase 0+)
+
+The migration to Next.js 16 happens **in-place** inside `artifacts/accessibility-now`. During the migration, both runtimes coexist:
+
+- **Legacy:** Vite SPA on port `5180`
+- **Migration scaffold:** Next.js App Router on port `5181`
+
+Use the new scaffold locally with:
+
+```bash
+pnpm run dev:next
+```
+
+This runs `next dev` only. It does **not** start Docker, Postgres, or the legacy API.
+
+Implementation note: the new App Router scaffold lives in `artifacts/accessibility-now/src/app/` so it can coexist with the legacy `src/pages/` tree while the migration is in progress.
+
+To preview the Cloudflare Worker build locally:
+
+```bash
+pnpm --filter @workspace/accessibility-now run preview:cf
+```
+
+Useful migration commands:
+
+```bash
+pnpm --filter @workspace/accessibility-now run build:next
+pnpm --filter @workspace/accessibility-now run build:opennext
+pnpm --filter @workspace/accessibility-now run cf:typegen
+pnpm --filter @workspace/accessibility-now run d1:migrate:local
+```
+
+See [next-migration-rules](next-migration-rules.md) for runtime boundaries and sequencing rules.
+
+### Phase 1 note: local D1-backed leads
+
+The new `POST /api/leads` route in the Next/OpenNext runtime writes to a local D1 database. Before testing that slice on `dev:next` or `preview:cf`, apply the local migration once:
+
+```bash
+pnpm --filter @workspace/accessibility-now run d1:migrate:local
+```
+
+This uses the D1 binding from `artifacts/accessibility-now/wrangler.jsonc`. The checked-in `database_id` is a local placeholder for development and must be replaced with a real Cloudflare D1 database ID before remote deploys.
+
+When a real Cloudflare D1 database has been provisioned, apply the same migrations remotely with:
+
+```bash
+pnpm --filter @workspace/accessibility-now run d1:migrate:remote
+```
 
 ---
 
