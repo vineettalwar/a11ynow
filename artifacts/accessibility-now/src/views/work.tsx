@@ -11,10 +11,10 @@ const caseStudies = [
     metric: "6 weeks",
     metricLabel: "to EAA-ready",
     challenge:
-      "A leading European neo-bank needed to meet EAA requirements before a major funding round, facing 847 distinct accessibility violations across their core web application.",
+      "A European neo-bank needed to meet EAA requirements before a major funding round, with hundreds of accessibility violations across their core web application.",
     outcome:
-      "Embedded with their frontend team, remediating all blocking issues and establishing accessible component patterns.",
-    result: "0 critical violations. Internal team trained on accessible React patterns.",
+      "Embedded with their frontend team, remediating blocking issues and establishing accessible component patterns.",
+    result: "Critical violations cleared. Internal team trained on accessible React patterns.",
   },
   {
     industry: "Healthcare",
@@ -25,29 +25,29 @@ const caseStudies = [
       "A telehealth platform was inaccessible to screen reader users, preventing visually impaired patients from booking appointments independently.",
     outcome:
       "Complete overhaul of the booking flow keyboard navigation and ARIA state management.",
-    result: "Passed rigorous third-party manual audit. 100% independent booking success.",
+    result: "Passed third-party manual audit. Independent booking success for AT users.",
   },
   {
     industry: "Retail",
     tag: "Remediation",
-    metric: "+15%",
-    metricLabel: "keyboard-user conversion",
+    metric: "Ahead of schedule",
+    metricLabel: "EAA readiness",
     challenge:
       "An enterprise e-commerce brand with a complex mega-menu and filtering system that trapped keyboard focus and lacked semantic structure.",
     outcome:
       "Redesigned the navigation architecture and filter interactions to be fully keyboard-operable.",
-    result: "Compliance achieved 3 months ahead of schedule. 15% conversion uplift.",
+    result: "Compliance achieved ahead of the enforcement window.",
   },
   {
     industry: "Government",
     tag: "Audit + Remediation",
-    metric: "−40%",
-    metricLabel: "form support calls",
+    metric: "Lower support load",
+    metricLabel: "on digital forms",
     challenge:
       "A municipal services portal required strict EN 301 549 compliance, dealing with legacy PDF forms and complex data tables.",
     outcome:
       "Converted legacy PDFs to accessible web forms and implemented semantic table structures with proper headers.",
-    result: "Full regulatory compliance. 40% reduction in support calls about form completion.",
+    result: "Full regulatory compliance with fewer form-completion support requests.",
   },
 ];
 
@@ -56,13 +56,16 @@ export default function Work() {
     <div className="flex flex-col w-full">
       <section className="hero-gradient pt-24 pb-20 px-4">
         <div className="container mx-auto max-w-4xl">
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-4">
+            Representative outcomes
+          </p>
           <h1 className="text-display font-extrabold tracking-tight mb-6">
             Outcomes and<br />
-            <span className="heading-accent">earned trust.</span>
+            <span className="heading-accent">how we work.</span>
           </h1>
-          <p className="text-muted-foreground text-base max-w-xl">
-            We've helped European enterprises bridge the gap between compliance mandates and
-            technical execution. Numbers are real, rounded, and anonymised under NDA.
+          <p className="text-muted-foreground text-base max-w-2xl leading-relaxed">
+            These are anonymised examples of the kinds of results we deliver. Details vary by stack,
+            team size, and starting point — we scope every engagement individually.
           </p>
         </div>
       </section>
@@ -70,37 +73,22 @@ export default function Work() {
       <section className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {caseStudies.map((study, index) => (
-              <Card key={index} className="border shadow-none">
-                <CardContent className="p-8">
-                  <div className="flex items-start justify-between mb-6">
-                    <div>
-                      <div className="text-xs font-bold text-primary uppercase tracking-wider font-sans mb-1">
-                        {study.industry}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-sans">{study.tag}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-extrabold font-sans text-foreground leading-none">
-                        {study.metric}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-sans">{study.metricLabel}</div>
-                    </div>
+            {caseStudies.map((study) => (
+              <Card key={study.industry} className="border-border hover:border-primary/30 transition-colors">
+                <CardContent className="p-8 flex flex-col gap-4 h-full">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-bold uppercase tracking-widest text-primary">
+                      {study.industry}
+                    </span>
+                    <span className="text-xs font-mono text-muted-foreground">{study.tag}</span>
                   </div>
-
-                  <h3 className="font-bold text-sm font-sans mb-2 uppercase tracking-wide text-muted-foreground">
-                    The challenge
-                  </h3>
-                  <p className="text-muted-foreground mb-5 text-xs">{study.challenge}</p>
-
-                  <h3 className="font-bold text-sm font-sans mb-2 uppercase tracking-wide text-muted-foreground">
-                    The outcome
-                  </h3>
-                  <p className="text-muted-foreground mb-5 text-xs">{study.outcome}</p>
-
-                  <div className="bg-background rounded-xl border px-4 py-3">
-                    <p className="text-xs font-medium font-sans">{study.result}</p>
+                  <div>
+                    <p className="text-2xl font-extrabold font-sans">{study.metric}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">{study.metricLabel}</p>
                   </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">{study.challenge}</p>
+                  <p className="text-sm leading-relaxed">{study.outcome}</p>
+                  <p className="text-xs font-semibold text-foreground border-t border-border pt-4">{study.result}</p>
                 </CardContent>
               </Card>
             ))}
@@ -108,21 +96,21 @@ export default function Work() {
         </div>
       </section>
 
-      <section className="py-24 px-4 warm-section text-center">
+      <section className="py-20 px-4 warm-section text-center">
         <div className="container mx-auto max-w-2xl">
           <h2 className="text-display-md font-extrabold mb-5">
-            Your product<br />
-            <span className="heading-accent">could be next.</span>
+            Ready to scope<br />
+            <span className="heading-accent">your project?</span>
           </h2>
-          <p className="text-muted-foreground mb-10">
-            Start with a free automated scan, or book a scope call to discuss your full compliance roadmap.
+          <p className="text-muted-foreground mb-8">
+            Start with a free automated scan, or book a scoping call for a manual audit or remediation support.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Button asChild className="h-12 px-8 text-sm font-semibold">
-              <Link href="/contact">Book a scope call</Link>
+            <Button asChild className="h-12 px-8 font-semibold">
+              <Link href="/">Run free scan</Link>
             </Button>
-            <Button asChild variant="outline" className="h-12 px-8 text-sm [box-shadow:none]">
-              <Link href="/">Free site scan →</Link>
+            <Button asChild variant="outline" className="h-12 px-8">
+              <Link href="/contact">Book a scope call</Link>
             </Button>
           </div>
         </div>

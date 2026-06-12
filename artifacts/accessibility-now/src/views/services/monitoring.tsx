@@ -111,9 +111,18 @@ export default function Monitoring() {
             Stay compliant<br />
             <span className="heading-accent">as you ship.</span>
           </h1>
-          <p className="text-muted-foreground text-base max-w-xl reveal-body">
+          <p className="text-muted-foreground text-base max-w-xl reveal-body mb-6">
             Automated scans + PR-level gating + quarterly manual spot-checks. Critical regressions caught the same day, not the next audit.
           </p>
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 max-w-2xl reveal-body">
+            <p className="text-sm text-foreground leading-relaxed">
+              This is our <strong>paid CI/CD monitoring retainer</strong> (from €890/mo). It is separate from the{" "}
+              <Link href="/solutions/a11y-fix" className="text-primary underline underline-offset-2">
+                free email monitoring
+              </Link>{" "}
+              included with A11y Fix scans. Dashboard samples below are illustrative — your live free monitor dashboard is linked from your confirmation email.
+            </p>
+          </div>
         </div>
       </section>
 

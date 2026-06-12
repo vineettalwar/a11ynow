@@ -27,9 +27,9 @@
 
 | Layer | Technology |
 |---|---|
-| App | Next.js 15 (App Router), React 19, Tailwind CSS v4, GSAP 3 |
+| App | Next.js 16 (App Router), React 19, Tailwind CSS v4, GSAP 3 |
 | Deployment | Cloudflare Workers via OpenNext (`@opennextjs/cloudflare`) |
-| Database | PostgreSQL + Drizzle ORM (Hyperdrive in production) |
+| Database | D1 (production) + PostgreSQL (local dev) via Drizzle ORM |
 | Scan engine | Playwright + Browser Rendering on Cloudflare; local Chromium in dev; axe-core (JSDOM fallback) |
 | Codegen | Orval (OpenAPI → TanStack Query + Zod) |
 | Monorepo | pnpm workspaces |
@@ -118,7 +118,7 @@ See `.env.example` for the full list with comments.
 
 **Production checklist:** after Cloudflare deploy, confirm `GET /api/healthz` returns `"scanEngineReady": true`. Configure Browser Rendering binding in `wrangler.jsonc` for edge scans.
 
-**Deploy:** `pnpm --filter @workspace/accessibility-now run deploy` (requires Wrangler auth and Hyperdrive ID).
+**Deploy:** `pnpm --filter @workspace/accessibility-now run deploy` (requires Wrangler auth and Cloudflare D1/R2/KV resource IDs in `wrangler.jsonc`).
 
 ---
 
@@ -127,7 +127,7 @@ See `.env.example` for the full list with comments.
 ```
 .
 ├── artifacts/
-│   └── accessibility-now/    # Next.js 15 full-stack app (UI + API routes)
+│   └── accessibility-now/    # Next.js 16 full-stack app (UI + API routes)
 ├── lib/
 │   ├── api-spec/             # OpenAPI YAML spec
 │   ├── api-client-react/     # Generated TanStack Query hooks
@@ -153,7 +153,8 @@ See `.env.example` for the full list with comments.
 pnpm install                                    # All workspace packages (run at repo root)
 pnpm run typecheck                              # Full typecheck across all packages
 pnpm run build                                 # Typecheck + build all
-pnpm --filter @workspace/api-spec run codegen  # Regenerate API hooks + Zod schemas
+pnpm --filter @workspace/accessibility-now run test              # App unit tests
+pnpm --filter @workspace/api-spec run codegen                    # Regenerate API hooks + Zod schemas
 pnpm --filter @workspace/db run generate       # Generate new Drizzle migration
 pnpm --filter @workspace/db run migrate        # Apply pending migrations
 pnpm --filter @workspace/db run push           # Push schema directly (dev only)

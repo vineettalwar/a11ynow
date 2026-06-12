@@ -7,9 +7,9 @@ import { useSectionReveal } from "@/hooks/use-section-reveal";
 import { useBtnGsapHover } from "@/hooks/use-btn-gsap-hover";
 
 const STATS = [
-  { value: "8+", label: "Years operating" },
-  { value: "140+", label: "Engagements delivered" },
-  { value: "100%", label: "Senior on every project" },
+  { value: "Senior", label: "Engineers on every project" },
+  { value: "EAA", label: "Core specialism" },
+  { value: "PR-first", label: "Remediation in your repo" },
   { value: "IAAP", label: "CPACC / WAS certified" },
 ];
 

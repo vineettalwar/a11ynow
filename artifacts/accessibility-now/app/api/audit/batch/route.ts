@@ -1,10 +1,10 @@
 import { randomUUID } from "crypto";
 import { enqueueJob } from "@/server/artifacts/storage";
-import { discoverSiteUrls } from "@/server/site-discovery";
 import { jsonErr, jsonOk, readJson } from "@/server/http";
 import { logger } from "@/server/logger";
-import { validateScanUrl } from "@/server/scan";
 import { createBatchJob } from "@/server/jobs/batch-job-store";
+import { enforceRateLimit } from "@/server/rate-limit";
+import { validateScanUrl } from "@/server/scan";
 
 function parseBatchBody(
   body: unknown,
@@ -43,6 +43,9 @@ function parseBatchBody(
 }
 
 export async function POST(req: Request) {
+  const limited = await enforceRateLimit(req, { namespace: "audit-batch", limit: 5 });
+  if (limited) return limited;
+
   const body = await readJson(req);
   const parsed = parseBatchBody(body);
   if (!parsed.ok) {
@@ -61,27 +64,8 @@ export async function POST(req: Request) {
       (body as { multiViewport?: boolean }).multiViewport,
   );
 
-  let urlsToScan = rawUrls;
-  let discoverySource: "sitemap" | "links" | "single" = "single";
-
-  if (parsed.wholeSite) {
-    let seed = rawUrls[0]!.trim();
-    if (!/^https?:\/\//i.test(seed)) seed = `https://${seed}`;
-    const seedValidation = await validateScanUrl(seed);
-    if (!seedValidation.ok) {
-      return jsonErr(400, "invalid_url", seedValidation.error);
-    }
-    const discovered = await discoverSiteUrls(seedValidation.url);
-    urlsToScan = discovered.urls;
-    discoverySource = discovered.source;
-    logger.info(
-      { seed: seedValidation.url, count: urlsToScan.length, source: discovered.source },
-      "Whole-site URL discovery",
-    );
-  }
-
   const normalised: string[] = [];
-  for (const raw of urlsToScan) {
+  for (const raw of rawUrls) {
     let u = raw.trim();
     if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
     normalised.push(u);
@@ -99,6 +83,7 @@ export async function POST(req: Request) {
   }
 
   const cleanUrls = (validations as { ok: true; url: string }[]).map((v) => v.url);
+  const discoverySource: "sitemap" | "links" | "single" | undefined = parsed.wholeSite ? undefined : "single";
   const batchJobId = randomUUID();
 
   logger.info({ batchJobId, count: cleanUrls.length }, "Queueing batch accessibility audit job");
@@ -122,8 +107,9 @@ export async function POST(req: Request) {
     {
       batchJobId,
       status: "pending",
-      discoverySource,
+      ...(discoverySource ? { discoverySource } : {}),
       urlCount: cleanUrls.length,
+      urls: cleanUrls,
     },
     202,
   );

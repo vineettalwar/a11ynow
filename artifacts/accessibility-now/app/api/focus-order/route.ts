@@ -4,6 +4,7 @@ import { launchChromiumHeadless } from "@/server/playwright-chromium";
 import { logger } from "@/server/logger";
 import { captureFullPagePng, screenshotFriendlyContextOptions } from "@/server/playwright-screenshot";
 import { jsonErr, jsonOk, prepareRequestDb } from "@/server/http";
+import { enforceRateLimit } from "@/server/rate-limit";
 
 const dnsLookupAsync = promisify(dnsLookup);
 const PRIVATE_IP_RE =
@@ -60,6 +61,9 @@ async function validateUrl(
 }
 
 export async function GET(req: Request) {
+  const limited = await enforceRateLimit(req, { namespace: "focus-order", limit: 15 });
+  if (limited) return limited;
+
   prepareRequestDb();
 
   const raw = new URL(req.url).searchParams.get("url");

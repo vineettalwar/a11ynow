@@ -173,7 +173,7 @@ importers:
         version: 3.10.0(react-hook-form@7.71.2(react@19.1.0))
       '@opennextjs/cloudflare':
         specifier: 'catalog:'
-        version: 1.19.11(next@16.2.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(wrangler@4.98.0(@cloudflare/workers-types@4.20260605.1))
+        version: 1.19.11(next@16.2.7(@playwright/test@1.59.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(wrangler@4.98.0(@cloudflare/workers-types@4.20260605.1))
       '@radix-ui/react-accordion':
         specifier: ^1.2.4
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -308,7 +308,7 @@ importers:
         version: 0.545.0(react@19.1.0)
       next:
         specifier: 'catalog:'
-        version: 16.2.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 16.2.7(@playwright/test@1.59.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -367,6 +367,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20250917.0
         version: 4.20260605.1
+      '@playwright/test':
+        specifier: 1.59.1
+        version: 1.59.1
       '@tailwindcss/postcss':
         specifier: 'catalog:'
         version: 4.3.0
@@ -1506,6 +1509,11 @@ packages:
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
+
+  '@playwright/test@1.59.1':
+    resolution: {integrity: sha512-PG6q63nQg5c9rIi4/Z5lR5IVF7yU5MqmKaPOe0HSc0O2cX1fPi96sUQu5j7eo4gKCkB2AnNGoWt7y4/Xx3Kcqg==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@poppinss/colors@4.1.6':
     resolution: {integrity: sha512-H9xkIdFswbS8n1d6vmRd8+c10t2Qe+rZITbbDHHkQixH5+2x1FDGmi/0K+WgWiqQFKPSlIYB7jlH6Kpfn6Fleg==}
@@ -5789,7 +5797,7 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
 
-  '@opennextjs/aws@4.0.2(next@16.2.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0))':
+  '@opennextjs/aws@4.0.2(next@16.2.7(@playwright/test@1.59.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))':
     dependencies:
       '@ast-grep/napi': 0.40.5
       '@aws-sdk/client-cloudfront': 3.984.0
@@ -5805,24 +5813,24 @@ snapshots:
       cookie: 1.1.1
       esbuild: 0.27.3
       express: 5.2.1
-      next: 16.2.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      next: 16.2.7(@playwright/test@1.59.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       path-to-regexp: 6.3.0
       urlpattern-polyfill: 10.1.0
       yaml: 2.8.2
     transitivePeerDependencies:
       - supports-color
 
-  '@opennextjs/cloudflare@1.19.11(next@16.2.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(wrangler@4.98.0(@cloudflare/workers-types@4.20260605.1))':
+  '@opennextjs/cloudflare@1.19.11(next@16.2.7(@playwright/test@1.59.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(wrangler@4.98.0(@cloudflare/workers-types@4.20260605.1))':
     dependencies:
       '@ast-grep/napi': 0.40.5
       '@dotenvx/dotenvx': 1.31.0
-      '@opennextjs/aws': 4.0.2(next@16.2.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
+      '@opennextjs/aws': 4.0.2(next@16.2.7(@playwright/test@1.59.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
       ci-info: 4.4.0
       cloudflare: 4.5.0
       comment-json: 4.6.2
       enquirer: 2.4.1
       glob: 12.0.0
-      next: 16.2.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      next: 16.2.7(@playwright/test@1.59.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       ts-tqdm: 0.8.6
       wrangler: 4.98.0(@cloudflare/workers-types@4.20260605.1)
       yargs: 18.0.0
@@ -5939,6 +5947,10 @@ snapshots:
       - typescript
 
   '@pinojs/redact@0.4.0': {}
+
+  '@playwright/test@1.59.1':
+    dependencies:
+      playwright: 1.59.1
 
   '@poppinss/colors@4.1.6':
     dependencies:
@@ -8180,7 +8192,7 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  next@16.2.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+  next@16.2.7(@playwright/test@1.59.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       '@next/env': 16.2.7
       '@swc/helpers': 0.5.15
@@ -8199,6 +8211,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.2.7
       '@next/swc-win32-arm64-msvc': 16.2.7
       '@next/swc-win32-x64-msvc': 16.2.7
+      '@playwright/test': 1.59.1
       sharp: 0.34.5
     transitivePeerDependencies:
       - '@babel/core'

@@ -434,7 +434,7 @@ export default function EaaChecklist() {
                   <button
                     onClick={handlePrint}
                     className="p-2 rounded-lg border hover:bg-muted transition-colors"
-                    title="Print / Save as PDF"
+                    title="Print or save as PDF (use your browser print dialog)"
                     aria-label="Print checklist"
                   >
                     <Download className="w-4 h-4 text-muted-foreground" />

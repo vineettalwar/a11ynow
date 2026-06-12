@@ -60,7 +60,7 @@ export const SEO_CONTENT: Record<string, SeoArticleContent> = {
     related: [
       { href: "/resources/compliance/section-508", label: "Section 508", description: "U.S. federal procurement standard." },
       { href: "/eaa", label: "European Accessibility Act", description: "EU's equivalent regulation." },
-      { href: "/resources/guides/wcag", label: "WCAG 2.2 guide", description: "The underlying technical standard." },
+      { href: "/resources/wcag-guide", label: "WCAG 2.2 guide", description: "The underlying technical standard." },
     ],
     ctaTitle: "Get audited before",
     ctaBody: "Plaintiff firms scan sites continuously. Get a real audit, fix the issues that matter, and publish a conformance report.",
@@ -153,7 +153,7 @@ export const SEO_CONTENT: Record<string, SeoArticleContent> = {
     related: [
       { href: "/eaa", label: "European Accessibility Act", description: "EU equivalent." },
       { href: "/resources/compliance/ada", label: "ADA", description: "U.S. equivalent for the private sector." },
-      { href: "/resources/guides/wcag", label: "WCAG 2.2 guide", description: "The underlying standard." },
+      { href: "/resources/wcag-guide", label: "WCAG 2.2 guide", description: "The underlying standard." },
     ],
     ctaTitle: "AODA report due",
     ctaBody: "We can audit, remediate, and help you draft your AODA compliance report before the 1 June 2026 deadline.",
@@ -251,7 +251,7 @@ export const SEO_CONTENT: Record<string, SeoArticleContent> = {
     related: [
       { href: "/resources/technologies/typo3", label: "TYPO3", description: "Enterprise CMS popular across DACH." },
       { href: "/resources/technologies/drupal", label: "Drupal", description: "Used by EU public sector." },
-      { href: "/resources/guides/wcag", label: "WCAG guide", description: "The standard your WP site must meet." },
+      { href: "/resources/wcag-guide", label: "WCAG guide", description: "The standard your WP site must meet." },
     ],
     ctaTitle: "Audit your WordPress site",
     ctaBody: "We audit WordPress sites against WCAG 2.2 AA with manual screen reader testing - not just an automated scan plugin.",
@@ -546,7 +546,7 @@ export const SEO_CONTENT: Record<string, SeoArticleContent> = {
     related: [
       { href: "/resources/guides/keyboard-accessibility", label: "Keyboard accessibility", description: "What ARIA can and can't fix." },
       { href: "/resources/guides/screen-readers", label: "Screen readers", description: "How ARIA is consumed in practice." },
-      { href: "/resources/guides/wcag", label: "WCAG guide", description: "The requirements ARIA helps you meet." },
+      { href: "/resources/wcag-guide", label: "WCAG guide", description: "The requirements ARIA helps you meet." },
     ],
     ctaTitle: "Custom components need a",
     ctaBody: "We audit custom widgets against the WAI-ARIA APG patterns and pair with your engineers to fix issues at the source.",

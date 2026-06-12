@@ -10,6 +10,7 @@ const ARTICLES = [
   {
     href: "/resources/blog/eaa-enforcement",
     category: "Compliance",
+    author: "accessibility.now engineering",
     date: "January 2025",
     readTime: "7 min read",
     title: "The EAA enforcement timeline, explained.",
@@ -20,6 +21,7 @@ const ARTICLES = [
   {
     href: "/resources/blog/wcag-ecommerce",
     category: "E-commerce",
+    author: "accessibility.now engineering",
     date: "February 2025",
     readTime: "9 min read",
     title: "The 8 most common WCAG failures in e-commerce.",
@@ -30,6 +32,7 @@ const ARTICLES = [
   {
     href: "/resources/blog/automated-vs-manual",
     category: "Testing",
+    author: "accessibility.now engineering",
     date: "March 2025",
     readTime: "8 min read",
     title: "Automated vs manual accessibility testing.",
@@ -90,6 +93,7 @@ export default function Blog() {
                   <Clock className="w-3.5 h-3.5" /> {featured.readTime}
                 </span>
                 <span className="text-xs text-muted-foreground font-mono">{featured.date}</span>
+                <span className="text-xs text-muted-foreground font-mono">· {featured.author}</span>
                 <span className="ml-auto hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold font-sans">
                   Featured
                 </span>
@@ -125,7 +129,9 @@ export default function Blog() {
                 </h2>
                 <p className="text-muted-foreground text-xs leading-relaxed mb-6">{article.excerpt}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground font-mono">{article.date}</span>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {article.date} · {article.author}
+                  </span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary group-hover:gap-2.5 transition-all">
                     Read <ArrowRight className="w-3.5 h-3.5" />
                   </span>

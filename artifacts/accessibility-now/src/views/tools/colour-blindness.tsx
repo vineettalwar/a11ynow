@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
 import { Loader2, Columns2, MonitorPlay, Download, Eye } from "lucide-react";
 import { apiUrl } from "@/lib/api-base";
+import { useToast } from "@/hooks/use-toast";
 
 interface VisionType {
   id: string;
@@ -151,6 +152,7 @@ function SimImage({ src, filter, label, onLoad, onError }: SimImageProps) {
 }
 
 export default function ColourBlindness() {
+  const { toast } = useToast();
   const searchParamsHook = useSearchParams();
   const search = searchParamsHook?.toString() ?? "";
   const [url, setUrl] = useState("");
@@ -190,7 +192,11 @@ export default function ColourBlindness() {
         active.id === "achromatopsia",
       );
     } catch {
-      alert("Could not export the image. The screenshot server may need CORS headers enabled.");
+      toast({
+        title: "Export failed",
+        description: "Could not export the image. The screenshot server may need CORS headers enabled.",
+        variant: "destructive",
+      });
     } finally {
       setDownloading(false);
     }

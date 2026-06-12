@@ -182,7 +182,7 @@ export default function Contact() {
                           <FormItem>
                             <FormLabel className="text-xs font-semibold font-sans">Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="Jane Doe" autoComplete="name" {...field} />
+                              <Input placeholder="Your name" autoComplete="name" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -195,7 +195,7 @@ export default function Contact() {
                           <FormItem>
                             <FormLabel className="text-xs font-semibold font-sans">Work email</FormLabel>
                             <FormControl>
-                              <Input type="email" placeholder="jane@company.de" autoComplete="email" {...field} />
+                              <Input type="email" placeholder="you@company.com" autoComplete="email" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

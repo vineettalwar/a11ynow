@@ -1,11 +1,9 @@
-import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
-import { auditsTable, createDb, type StoredScanMetadata } from "@workspace/db";
+import type { StoredScanMetadata } from "@workspace/db";
 import { storePageScreenshot, persistViolationsArtifact } from "./artifacts/storage";
-import { getDatabaseUrl } from "./cloudflare";
 import { logger } from "./logger";
 import { runAccessibilityScan, ScanGateShutdownError } from "./scan";
 import { updateScanJobStatus } from "./jobs/scan-job-store";
+import { updateAuditAfterScan } from "./storage/audits";
 
 export interface RunAuditJobOptions {
   profile: "default" | "strict";
@@ -13,20 +11,11 @@ export interface RunAuditJobOptions {
   jobId?: string;
 }
 
-function jobDb() {
-  const url = getDatabaseUrl() ?? process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error("DATABASE_URL is not configured");
-  }
-  return createDb(url);
-}
-
 export async function runAuditJob(
   auditId: string,
   url: string,
   options: RunAuditJobOptions,
 ): Promise<void> {
-  const db = jobDb();
   const jobId = options.jobId ?? auditId;
 
   try {
@@ -47,26 +36,23 @@ export async function runAuditJob(
       result.violations,
     );
 
-    await db
-      .update(auditsTable)
-      .set({
-        url,
-        score: result.score,
-        level: result.level,
-        totalViolations: result.totalViolations,
-        criticalViolations: result.criticalViolations,
-        seriousViolations: result.seriousViolations,
-        violations: persistedViolations.violations,
-        violationsRef: persistedViolations.violationsRef,
-        passedChecks: result.passedChecks,
-        totalChecks: result.totalChecks,
-        scanEngine: result.scanEngine,
-        pageScreenshot,
-        scanMetadata: result.scanMetadata
-          ? ({ ...result.scanMetadata, pending: false } as StoredScanMetadata)
-          : null,
-      })
-      .where(eq(auditsTable.auditId, auditId));
+    await updateAuditAfterScan(auditId, {
+      url,
+      score: result.score,
+      level: result.level,
+      totalViolations: result.totalViolations,
+      criticalViolations: result.criticalViolations,
+      seriousViolations: result.seriousViolations,
+      violations: persistedViolations.violations,
+      violationsRef: persistedViolations.violationsRef,
+      passedChecks: result.passedChecks,
+      totalChecks: result.totalChecks,
+      scanEngine: result.scanEngine,
+      pageScreenshot,
+      scanMetadata: result.scanMetadata
+        ? ({ ...result.scanMetadata, pending: false } as StoredScanMetadata)
+        : null,
+    });
 
     await updateScanJobStatus(jobId, "completed");
     logger.info({ auditId, url, scanEngine: result.scanEngine }, "Background audit completed");
@@ -92,23 +78,21 @@ export async function runAuditJob(
       failed: true,
     };
 
-    await db
-      .update(auditsTable)
-      .set({
-        scanEngine: "static_fallback",
-        violations: [],
-        violationsRef: null,
-        totalViolations: 0,
-        criticalViolations: 0,
-        seriousViolations: 0,
-        passedChecks: 0,
-        totalChecks: 0,
-        score: 0,
-        level: "moderate",
-        pageScreenshot: null,
-        scanMetadata: failedMeta,
-      })
-      .where(eq(auditsTable.auditId, auditId));
+    await updateAuditAfterScan(auditId, {
+      url,
+      score: 0,
+      level: "moderate",
+      totalViolations: 0,
+      criticalViolations: 0,
+      seriousViolations: 0,
+      violations: [],
+      violationsRef: null,
+      passedChecks: 0,
+      totalChecks: 0,
+      scanEngine: "static_fallback",
+      pageScreenshot: null,
+      scanMetadata: failedMeta,
+    });
 
     await updateScanJobStatus(jobId, "failed", message);
   }

@@ -1,88 +1,117 @@
 # Cloudflare deployment
 
-> Note: this document describes the **current production split** (Pages SPA + separate API host).  
-> A new Next.js 16 + OpenNext Worker foundation now exists in `artifacts/accessibility-now` for staged migration work, but it is not the production deployment path yet.
-
-accessibility.now splits across three deploy targets:
+accessibility.now runs as a **single Cloudflare Worker** via OpenNext (`@opennextjs/cloudflare`).
 
 | Component | Platform | Artifact |
 |-----------|----------|----------|
-| **Frontend (SPA)** | Cloudflare Pages | `artifacts/accessibility-now/dist/public` |
-| **API (Express + Playwright + Postgres)** | Node host (Fly.io, Railway, VPS, etc.) | `artifacts/api-server` |
+| **App (Next.js + API)** | Cloudflare Workers | `artifacts/accessibility-now` (OpenNext build) |
 | **Scan worker (optional)** | Cloudflare Workers Browser Rendering | `artifacts/scan-worker` |
 
-## Experimental Next.js Worker preview
+Local development uses Postgres + Next.js on port 3000. Production uses D1, R2, KV, Queues, and Cron Triggers configured in `wrangler.jsonc`.
 
-The frontend package also contains an in-place Next.js 16 + OpenNext scaffold used for migration work:
+## 1. Provision Cloudflare resources
+
+Run once per account (replace placeholder IDs in `wrangler.jsonc`):
 
 ```bash
 cd artifacts/accessibility-now
+npx wrangler login
+
+# D1 database (rename binding to accessibility-now in wrangler.jsonc)
+npx wrangler d1 create accessibility-now
+
+# KV namespace for job cache
+npx wrangler kv namespace create accessibility-now-job-cache
+
+# R2 bucket for scan artifacts
+npx wrangler r2 bucket create accessibility-now-artifacts
+
+# Queue for async scan jobs
+npx wrangler queues create accessibility-now-scan-jobs
+```
+
+Copy the returned IDs into `wrangler.jsonc`:
+
+- `d1_databases[0].database_id`
+- `kv_namespaces[0].id`
+- R2 bucket name (already `accessibility-now-artifacts`)
+- Queue name (already `accessibility-now-scan-jobs`)
+
+Apply D1 migrations:
+
+```bash
+pnpm run d1:migrate:local    # local wrangler dev
+pnpm run d1:migrate:remote   # production D1
+```
+
+## 2. Build and deploy
+
+```bash
+cd artifacts/accessibility-now
+pnpm install
+pnpm run deploy
+```
+
+Or from the repo root:
+
+```bash
+pnpm --filter @workspace/accessibility-now run deploy
+```
+
+Staging deploy uses the same command with a staging `wrangler.jsonc` env block or separate Worker name.
+
+### Preview locally
+
+```bash
 pnpm run d1:migrate:local
-pnpm run build:next
-pnpm run build:opennext
 pnpm run preview:cf
 ```
 
-This uses `wrangler.jsonc` and serves a staging-only Worker preview. Keep `wrangler.toml` and the Pages deploy flow unchanged until the migration cutover is complete.
+## 3. Required secrets and vars
 
-For now, the D1 binding in `wrangler.jsonc` uses a local-only placeholder `database_id`. Replace it with a real Cloudflare D1 database before remote deploys.
+Set via `wrangler secret put` or the Cloudflare dashboard:
 
-After provisioning a real D1 database, apply migrations with:
+| Name | Required | Purpose |
+|------|----------|---------|
+| `CRON_SECRET` | Yes (prod) | Bearer token for `/api/cron/monitoring` |
+| `APP_BASE_URL` | Yes | Public site URL for monitor emails and PDF links |
+| `RESEND_API_KEY` | No* | Resend HTTP API for monitoring emails (recommended on Workers) |
+| `FROM_EMAIL` | No* | Sender address (required with Resend or SMTP) |
+| `SMTP_HOST` | No* | SMTP for monitoring emails (local / traditional hosts) |
+| `SMTP_PORT` | No* | SMTP port |
+| `SMTP_USER` | No* | SMTP username |
+| `SMTP_PASS` | No* | SMTP password |
 
-```bash
-cd artifacts/accessibility-now
-pnpm run d1:migrate:remote
-```
+*Set `RESEND_API_KEY` + `FROM_EMAIL` on Cloudflare, or all five SMTP vars together for nodemailer delivery.
 
-## 1. Deploy the frontend to Cloudflare Pages
+`wrangler.jsonc` already sets `APP_BASE_URL` as a var; override per environment.
 
-```bash
-cd artifacts/accessibility-now
-pnpm install
-pnpm build   # runs sitemap generation + Vite build
-npx wrangler pages deploy dist/public --project-name=accessibility-now
-```
+## 4. Smoke test checklist
 
-Or connect the GitHub repo in the Cloudflare dashboard:
-
-- **Build command:** `pnpm --filter @workspace/accessibility-now run build`
-- **Build output directory:** `artifacts/accessibility-now/dist/public`
-- **Root directory:** repository root (monorepo)
-
-### Required Pages environment variable
-
-| Variable | Example | Purpose |
-|----------|---------|---------|
-| `API_ORIGIN` | `https://api.accessibility.now` | Backend for `/api/*` (proxied by `functions/api/[[path]].ts`) |
-
-Without `API_ORIGIN`, tool scans and audits return `503 api_not_configured`.
-
-### What ships with the frontend
-
-- `public/_redirects` — SPA fallback (`/* → /index.html`)
-- `public/_headers` — security and cache headers
-- `functions/api/[[path]].ts` — proxies `/api/*` to `API_ORIGIN`
-- `wrangler.toml` — Pages project config
-- Auto-generated `public/sitemap.xml` (55+ URLs) on each build
-
-## 2. Deploy the API server
-
-The API needs Node.js 20+, Playwright Chromium, and PostgreSQL:
+After deploy, verify:
 
 ```bash
-cd artifacts/api-server
-pnpm install
-pnpm exec playwright install chromium --with-deps   # Linux servers
-pnpm run build
-# Set DATABASE_URL, PORT, APP_BASE_URL=https://accessibility.now
-node dist/index.mjs
+# Health (expect scanEngineReady: true when Browser binding works)
+curl https://<your-domain>/api/healthz
+
+# Lead capture
+curl -X POST https://<your-domain>/api/leads \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Test","email":"test@example.com","source":"pricing","company":"Acme","service":"audit","message":"Smoke test"}'
+
+# Cron (with secret)
+curl -H "Authorization: Bearer $CRON_SECRET" https://<your-domain>/api/cron/monitoring
 ```
 
-Point `APP_BASE_URL` at your public frontend URL so monitor links and PDFs use correct permalinks.
+Manual checks:
 
-## 3. Deploy the scan worker (optional)
+- `POST /api/audit` creates async job, poll returns result with R2-backed violations
+- Cron trigger fires hourly monitoring scans
+- Queue consumer in `worker.ts` processes scan jobs
 
-Offload browser scans to Cloudflare Browser Rendering:
+## 5. Optional scan worker
+
+Offload browser scans to a dedicated worker:
 
 ```bash
 cd artifacts/scan-worker
@@ -92,32 +121,21 @@ pnpm deploy
 npx wrangler secret put SCAN_AUTH_TOKEN
 ```
 
-On the API host:
-
-```env
-SCAN_WORKER_URL=https://accessibility-now-scan.<subdomain>.workers.dev
-SCAN_WORKER_TOKEN=<same token as worker secret>
-```
-
-When `SCAN_WORKER_URL` is set, `POST /api/audit` delegates to the worker. Local Playwright remains the fallback.
-
-## 4. DNS (recommended)
+## 6. DNS
 
 | Record | Target |
 |--------|--------|
-| `accessibility.now` | Cloudflare Pages |
-| `api.accessibility.now` | API host |
+| `accessibility.now` | Cloudflare Worker (custom domain on Worker) |
 
-Set `API_ORIGIN=https://api.accessibility.now` on Pages.
+No separate `api.accessibility.now` host — API routes are served from the same Worker.
 
-## 5. BITV 2.0 / BFSG reporting
+## 7. Data migration (Postgres → D1)
 
-All scans (local or Cloudflare worker) include:
+For cutover from an existing Postgres deployment:
 
-- axe-core WCAG 2.1/2.2 AA rules
-- Supplemental checks (lang, title, skip link, Barrierefreiheitserklärung, focus sample, zoom)
-- `complianceReport` mapped to EN 301 549 / BITV 2.0
+```bash
+pnpm tsx scripts/migrate-postgres-to-d1.ts --dry-run
+pnpm tsx scripts/migrate-postgres-to-d1.ts
+```
 
-## 6. Whole-site scanning
-
-Homepage and `POST /api/audit/batch` accept `wholeSite: true` with a seed `url`. The API discovers up to 10 same-origin pages from `sitemap.xml` or homepage links.
+See script header for required env vars (`DATABASE_URL`, `CLOUDFLARE_ACCOUNT_ID`, D1 database name).

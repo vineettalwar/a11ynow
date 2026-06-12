@@ -31,10 +31,11 @@
       "new_sqlite_classes": ["ScanGateDO"]
     }
   ],
+  // Replace placeholder IDs after running: bash scripts/provision-cloudflare.sh
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "accessibility-now-leads",
+      "database_name": "accessibility-now",
       "database_id": "00000000-0000-0000-0000-000000000001",
       "migrations_dir": "./migrations"
     }
@@ -75,5 +76,27 @@
   },
   "observability": {
     "enabled": true
+  },
+  "env": {
+    "staging": {
+      "name": "accessibility-now-next-staging",
+      "vars": {
+        "APP_BASE_URL": "https://staging.accessibility.now"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "accessibility-now-staging",
+          "database_id": "00000000-0000-0000-0000-000000000003",
+          "migrations_dir": "./migrations"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "JOB_CACHE",
+          "id": "00000000-0000-0000-0000-000000000004"
+        }
+      ]
+    }
   }
 }

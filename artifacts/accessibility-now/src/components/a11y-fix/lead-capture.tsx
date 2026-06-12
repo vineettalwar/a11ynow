@@ -43,7 +43,7 @@ export function A11yFixLeadCapture({ auditId }: { auditId: string }) {
           <Input
             id="a11y-fix-lead-name"
             type="text"
-            placeholder="Jane Doe"
+            placeholder="Your name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -57,7 +57,7 @@ export function A11yFixLeadCapture({ auditId }: { auditId: string }) {
           <Input
             id="a11y-fix-lead-email"
             type="email"
-            placeholder="jane@company.de"
+            placeholder="you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required

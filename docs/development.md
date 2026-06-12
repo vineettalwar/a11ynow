@@ -8,7 +8,7 @@ This document is for engineers working in the repo day to day. For first-time ma
 
 | Package | Path | Role |
 | --- | --- | --- |
-| **App** | `artifacts/accessibility-now` | Next.js 15 App Router + Tailwind v4. Full-stack: UI and `/api/*` route handlers in one process. Deployed to Cloudflare Workers via OpenNext. |
+| **App** | `artifacts/accessibility-now` | Next.js 16 App Router + Tailwind v4. Full-stack: UI and `/api/*` route handlers in one process. Deployed to Cloudflare Workers via OpenNext. |
 | **OpenAPI** | `lib/api-spec` | `openapi.yaml` is the HTTP contract. Orval generates the client and Zod output. |
 | **Generated client** | `lib/api-client-react` | TanStack Query hooks and fetch helpers. **Do not edit by hand.** |
 | **Generated Zod** | `lib/api-zod` | Request/response schemas for the server. **Do not edit by hand.** |
@@ -67,26 +67,11 @@ pnpm deploy    # Deploy to Cloudflare
 
 Configure `wrangler.jsonc` (Hyperdrive ID, browser binding) before first deploy.
 
-### Legacy note
+### Architecture note
 
-The former Express `artifacts/api-server` and Vite SPA have been removed. Server logic lives in `artifacts/accessibility-now/src/server/`; HTTP handlers in `app/api/`.
+The former Express `artifacts/api-server` and Vite SPA have been removed. Server logic lives in `artifacts/accessibility-now/src/server/`; HTTP handlers in `app/api/`; view components in `src/views/`.
 
-### Next.js migration runtime (Phase 0+)
-
-The migration to Next.js 16 happens **in-place** inside `artifacts/accessibility-now`. During the migration, both runtimes coexist:
-
-- **Legacy:** Vite SPA on port `5180`
-- **Migration scaffold:** Next.js App Router on port `5181`
-
-Use the new scaffold locally with:
-
-```bash
-pnpm run dev:next
-```
-
-This runs `next dev` only. It does **not** start Docker, Postgres, or the legacy API.
-
-Implementation note: the new App Router scaffold lives in `artifacts/accessibility-now/src/app/` so it can coexist with the legacy `src/pages/` tree while the migration is in progress.
+**Local dev** uses Postgres via `DATABASE_URL`. **Cloudflare production** uses D1 + R2 + Queues (see [cloudflare-deployment.md](cloudflare-deployment.md)).
 
 To preview the Cloudflare Worker build locally:
 
@@ -94,32 +79,16 @@ To preview the Cloudflare Worker build locally:
 pnpm --filter @workspace/accessibility-now run preview:cf
 ```
 
-Useful migration commands:
+Useful Cloudflare commands:
 
 ```bash
-pnpm --filter @workspace/accessibility-now run build:next
 pnpm --filter @workspace/accessibility-now run build:opennext
 pnpm --filter @workspace/accessibility-now run cf:typegen
 pnpm --filter @workspace/accessibility-now run d1:migrate:local
-```
-
-See [next-migration-rules](next-migration-rules.md) for runtime boundaries and sequencing rules.
-
-### Phase 1 note: local D1-backed leads
-
-The new `POST /api/leads` route in the Next/OpenNext runtime writes to a local D1 database. Before testing that slice on `dev:next` or `preview:cf`, apply the local migration once:
-
-```bash
-pnpm --filter @workspace/accessibility-now run d1:migrate:local
-```
-
-This uses the D1 binding from `artifacts/accessibility-now/wrangler.jsonc`. The checked-in `database_id` is a local placeholder for development and must be replaced with a real Cloudflare D1 database ID before remote deploys.
-
-When a real Cloudflare D1 database has been provisioned, apply the same migrations remotely with:
-
-```bash
 pnpm --filter @workspace/accessibility-now run d1:migrate:remote
 ```
+
+See [prd-next-cloudflare-migration.md](prd-next-cloudflare-migration.md) for migration phases and [next-migration-rules.md](next-migration-rules.md) for runtime boundaries.
 
 ---
 
@@ -176,7 +145,7 @@ Redirects are resolved in-process with per-hop URL validation (SSRF-related chec
 Optional integration smoke test (requires Chromium installed):
 
 ```bash
-SCAN_INTEGRATION=1 pnpm --filter @workspace/api-server run test
+SCAN_INTEGRATION=1 pnpm --filter @workspace/accessibility-now run test
 ```
 
 ---
@@ -196,10 +165,10 @@ pnpm run typecheck    # libs + artifacts + scripts where configured
 pnpm run build        # typecheck then build all packages that define build
 ```
 
-API package tests (Node’s test runner via `tsx`):
+App tests (Node’s test runner via `tsx`):
 
 ```bash
-pnpm --filter @workspace/api-server run test
+pnpm --filter @workspace/accessibility-now run test
 ```
 
 Add new test files next to the code under test or under `src/lib/**` following existing `*.test.ts` naming.

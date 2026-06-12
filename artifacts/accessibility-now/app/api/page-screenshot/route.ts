@@ -4,11 +4,13 @@ import { launchChromiumHeadless } from "@/server/playwright-chromium";
 import { logger } from "@/server/logger";
 import { captureFullPagePng, screenshotFriendlyContextOptions } from "@/server/playwright-screenshot";
 import { jsonErr, prepareRequestDb } from "@/server/http";
+import { enforceRateLimit } from "@/server/rate-limit";
+import { withScanSlot } from "@/server/scan-gate";
 
 const dnsLookupAsync = promisify(dnsLookup);
 const PRIVATE_IP_RE =
   /^(127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1$|fc00:|fd[0-9a-f]{2}:|fe80:)/i;
-const SCREENSHOT_TIMEOUT_MS = 20000;
+const SCREENSHOT_TIMEOUT_MS = 12_000;
 
 const CACHE_TTL_MS = 60_000;
 const CACHE_MAX_ENTRIES = 50;
@@ -68,6 +70,9 @@ async function validateUrl(
 }
 
 export async function GET(req: Request) {
+  const limited = await enforceRateLimit(req, { namespace: "page-screenshot", limit: 20 });
+  if (limited) return limited;
+
   prepareRequestDb();
 
   const raw = new URL(req.url).searchParams.get("url");
@@ -98,54 +103,62 @@ export async function GET(req: Request) {
 
   logger.info({ url }, "Taking page screenshot");
 
-  let browser: import("playwright").Browser | undefined;
   try {
-    browser = await launchChromiumHeadless();
-
-    const context = await browser.newContext({
-      ...screenshotFriendlyContextOptions({ width: 1280, height: 900 }),
-      userAgent: "accessibility.now/1.0 Screenshot (+https://accessibility.now)",
-    });
-
-    await context.route("**", async (route: import("playwright").Route) => {
-      const reqUrl = route.request().url();
-      let parsedReq: URL;
+    const png = await withScanSlot(async () => {
+      let browser: import("playwright").Browser | undefined;
       try {
-        parsedReq = new URL(reqUrl);
-      } catch {
-        await route.abort("addressunreachable");
-        return;
-      }
-      const hostname = parsedReq.hostname.replace(/^\[|\]$/g, "");
-      if (PRIVATE_IP_RE.test(hostname)) {
-        await route.abort("addressunreachable");
-        return;
-      }
-      try {
-        const { address } = await dnsLookupAsync(hostname);
-        if (PRIVATE_IP_RE.test(address)) {
-          await route.abort("addressunreachable");
-          return;
-        }
-      } catch {
-        await route.abort("namenotresolved");
-        return;
-      }
-      await route.continue();
-    });
+        browser = await launchChromiumHeadless();
 
-    const page = await context.newPage();
+        const context = await browser.newContext({
+          ...screenshotFriendlyContextOptions({ width: 1280, height: 900 }),
+          userAgent: "accessibility.now/1.0 Screenshot (+https://accessibility.now)",
+        });
 
-    await page.goto(url, {
-      waitUntil: "networkidle",
-      timeout: SCREENSHOT_TIMEOUT_MS,
-    });
+        await context.route("**", async (route: import("playwright").Route) => {
+          const reqUrl = route.request().url();
+          let parsedReq: URL;
+          try {
+            parsedReq = new URL(reqUrl);
+          } catch {
+            await route.abort("addressunreachable");
+            return;
+          }
+          const hostname = parsedReq.hostname.replace(/^\[|\]$/g, "");
+          if (PRIVATE_IP_RE.test(hostname)) {
+            await route.abort("addressunreachable");
+            return;
+          }
+          try {
+            const { address } = await dnsLookupAsync(hostname);
+            if (PRIVATE_IP_RE.test(address)) {
+              await route.abort("addressunreachable");
+              return;
+            }
+          } catch {
+            await route.abort("namenotresolved");
+            return;
+          }
+          await route.continue();
+        });
 
-    const png = await captureFullPagePng(page, {
-      screenshotTimeoutMs: SCREENSHOT_TIMEOUT_MS,
-      logLabel: "page-screenshot",
+        const page = await context.newPage();
+
+        await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: SCREENSHOT_TIMEOUT_MS,
+        });
+        await page.waitForLoadState("load", { timeout: 3_000 }).catch(() => undefined);
+
+        const captured = await captureFullPagePng(page, {
+          screenshotTimeoutMs: SCREENSHOT_TIMEOUT_MS,
+          logLabel: "page-screenshot",
+        });
+        await context.close();
+        return captured;
+      } finally {
+        await browser?.close().catch(() => {});
+      }
     });
-    await context.close();
 
     cacheSet(url, png);
 
@@ -164,7 +177,5 @@ export async function GET(req: Request) {
       "screenshot_failed",
       "The page could not be captured. It may be unreachable, require authentication, or block automated browsers.",
     );
-  } finally {
-    await browser?.close().catch(() => {});
   }
 }

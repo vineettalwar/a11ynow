@@ -1,8 +1,7 @@
-import { eq } from "drizzle-orm";
-import { auditsTable } from "@workspace/db";
 import { dbRowToAuditResult } from "@/server/audit-mapper";
-import { jsonErr, jsonOk, prepareRequestDb, requestDb } from "@/server/http";
+import { jsonErr, jsonOk } from "@/server/http";
 import { getScanJob } from "@/server/jobs/scan-job-store";
+import { findAuditById } from "@/server/storage/audits";
 
 export async function GET(
   _req: Request,
@@ -18,15 +17,7 @@ export async function GET(
     return jsonErr(404, "not_found", "Audit job not found.");
   }
 
-  prepareRequestDb();
-  const db = requestDb();
-  const rows = await db
-    .select()
-    .from(auditsTable)
-    .where(eq(auditsTable.auditId, job.auditId))
-    .limit(1);
-
-  const auditRow = rows[0];
+  const auditRow = await findAuditById(job.auditId);
   const result = auditRow ? await dbRowToAuditResult(auditRow) : undefined;
 
   return jsonOk({

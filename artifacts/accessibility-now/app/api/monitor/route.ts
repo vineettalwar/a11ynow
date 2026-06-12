@@ -1,14 +1,11 @@
 import { randomBytes, randomUUID } from "crypto";
-import { eq, asc } from "drizzle-orm";
-import {
-  auditsTable,
-  monitoredUrlsTable,
-  monitoringScansTable,
-} from "@workspace/db";
 import { validateScanUrl } from "@/server/scan";
 import { sendMonitoringConfirmation } from "@/server/email";
 import { logger } from "@/server/logger";
-import { jsonErr, jsonOk, prepareRequestDb, readJson, requestDb } from "@/server/http";
+import { jsonErr, jsonOk, readJson } from "@/server/http";
+import { enforceRateLimit } from "@/server/rate-limit";
+import { findAuditById } from "@/server/storage/audits";
+import { insertMonitor, insertMonitoringScan } from "@/server/storage/monitors";
 
 const VALID_FREQUENCIES = ["weekly", "monthly"] as const;
 type Frequency = (typeof VALID_FREQUENCIES)[number];
@@ -26,8 +23,8 @@ function nextScanDate(frequency: Frequency): Date {
 }
 
 export async function POST(req: Request) {
-  prepareRequestDb();
-  const db = requestDb();
+  const limited = await enforceRateLimit(req, { namespace: "monitor", limit: 10 });
+  if (limited) return limited;
 
   const body = await readJson<Record<string, unknown>>(req);
   const { url: rawUrl, email, frequency, auditId } = body;
@@ -60,7 +57,7 @@ export async function POST(req: Request) {
   const now = new Date();
 
   try {
-    await db.insert(monitoredUrlsTable).values({
+    await insertMonitor({
       id,
       url,
       email: email.trim().toLowerCase(),
@@ -77,14 +74,8 @@ export async function POST(req: Request) {
 
   if (typeof auditId === "string" && auditId.trim()) {
     try {
-      const auditRows = await db
-        .select()
-        .from(auditsTable)
-        .where(eq(auditsTable.auditId, auditId.trim()))
-        .limit(1);
-
-      if (auditRows.length > 0) {
-        const audit = auditRows[0];
+      const audit = await findAuditById(auditId.trim());
+      if (audit) {
         const auditUrlNorm = audit.url.replace(/\/+$/, "").toLowerCase();
         const monitorUrlNorm = url.replace(/\/+$/, "").toLowerCase();
         if (auditUrlNorm !== monitorUrlNorm) {
@@ -93,7 +84,7 @@ export async function POST(req: Request) {
             "Audit URL does not match monitored URL: skipping seed",
           );
         } else {
-          await db.insert(monitoringScansTable).values({
+          await insertMonitoringScan({
             id: randomUUID(),
             monitoredUrlId: id,
             score: audit.score,

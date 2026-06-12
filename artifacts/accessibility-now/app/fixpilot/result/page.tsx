@@ -12,5 +12,5 @@ export default async function Page({
     else if (value != null) qs.set(key, value);
   }
   const query = qs.toString();
-  redirect(query ? `/a11y-fix/result?${query}` : "/a11y-fix/result");
+  redirect(query ? `/audit-result?${query}` : "/audit-result");
 }

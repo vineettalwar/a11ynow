@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ToolEmptyState } from "@/components/tools/tool-empty-state";
 import { Loader2, Download, Glasses } from "lucide-react";
 import { apiUrl } from "@/lib/api-base";
+import { useToast } from "@/hooks/use-toast";
 
 interface VisionMode {
   id: string;
@@ -139,6 +140,7 @@ async function downloadLowVision(
 }
 
 export default function LowVision() {
+  const { toast } = useToast();
   const searchParamsHook = useSearchParams();
   const search = searchParamsHook?.toString() ?? "";
   const [url, setUrl] = useState("");
@@ -203,7 +205,11 @@ export default function LowVision() {
         mode.centralLoss,
       );
     } catch {
-      alert("Could not export the image. The screenshot server may need CORS headers enabled.");
+      toast({
+        title: "Export failed",
+        description: "Could not export the image. The screenshot server may need CORS headers enabled.",
+        variant: "destructive",
+      });
     } finally {
       setDownloading(false);
     }

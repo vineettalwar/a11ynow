@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LineChart,
   Line,
@@ -15,7 +16,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertOctagon, TrendingUp, Calendar, Globe } from "lucide-react";
+import { Loader2, AlertOctagon, TrendingUp, Calendar, Globe, Pause, Play } from "lucide-react";
 import Link from "next/link";
 import type { AuditViolation } from "@workspace/api-client-react";
 import { appBasePath } from "@/lib/app-base";
@@ -59,6 +60,7 @@ interface MonitorLatest {
 interface MonitorData {
   url: string;
   frequency: string;
+  isActive?: boolean;
   createdAt: string;
   nextScanAt: string;
   scans: MonitorScan[];
@@ -112,6 +114,8 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 export default function MonitorPage() {
   const params = useParams<{ token: string }>();
   const token = params?.token;
+  const queryClient = useQueryClient();
+  const [pausePending, setPausePending] = useState(false);
 
   const { data, isLoading, isError } = useQuery<MonitorData>({
     queryKey: ["monitor", token],
@@ -169,6 +173,23 @@ export default function MonitorPage() {
   const latestScore = latest?.score ?? null;
   const previousScore = data.scans.length >= 2 ? data.scans[data.scans.length - 2].score : null;
   const scoreDelta = latestScore !== null && previousScore !== null ? latestScore - previousScore : null;
+  const isActive = data.isActive !== false;
+
+  async function toggleMonitoring() {
+    if (!token) return;
+    setPausePending(true);
+    try {
+      const res = await fetch(`${BASE}/api/monitor/${token}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: isActive ? "pause" : "resume" }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await queryClient.invalidateQueries({ queryKey: ["monitor", token] });
+    } finally {
+      setPausePending(false);
+    }
+  }
 
   return (
     <div className="flex flex-col w-full">
@@ -188,11 +209,36 @@ export default function MonitorPage() {
                 {data.frequency === "weekly" ? "Weekly" : "Monthly"} scans
               </span>
               <span>
+                Status:{" "}
+                <span className={`font-medium ${isActive ? "text-emerald-600" : "text-amber-600"}`}>
+                  {isActive ? "Active" : "Paused"}
+                </span>
+              </span>
+              <span>
                 Next scan: <span className="text-foreground font-medium">{formatFull(data.nextScanAt)}</span>
               </span>
               <span>
                 Registered: <span className="text-foreground font-medium">{formatFull(data.createdAt)}</span>
               </span>
+            </div>
+            <div className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pausePending}
+                onClick={() => void toggleMonitoring()}
+                className="gap-2"
+              >
+                {pausePending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isActive ? (
+                  <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                {isActive ? "Pause monitoring" : "Resume monitoring"}
+              </Button>
             </div>
           </div>
         </div>
@@ -264,7 +310,9 @@ export default function MonitorPage() {
                   <CardContent className="p-6">
                     <h2 className="text-base font-extrabold font-sans mb-1">Score trend</h2>
                     <p className="text-xs text-muted-foreground font-mono mb-6">
-                      Accessibility score over the last {data.scans.length} scans
+                      {data.scans.length === 1
+                        ? "Baseline score — your next scheduled scan will add a trend line."
+                        : `Accessibility score over the last ${data.scans.length} scans`}
                     </p>
                     <ResponsiveContainer width="100%" height={220}>
                       <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>

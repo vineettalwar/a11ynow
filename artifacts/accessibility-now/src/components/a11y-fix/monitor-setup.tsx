@@ -73,7 +73,7 @@ export function A11yFixMonitorSetup({ url, auditId }: { url: string; auditId: st
         <Input
           id="a11y-fix-monitor-email"
           type="email"
-          placeholder="jane@company.de"
+          placeholder="you@company.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required

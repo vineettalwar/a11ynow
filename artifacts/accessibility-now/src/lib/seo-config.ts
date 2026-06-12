@@ -322,11 +322,6 @@ export const SEO_ROUTES: Record<string, SeoMeta> = {
     title: "Accessibility checklists — EAA, WCAG & mobile",
     description: "Interactive checklists for EAA, WCAG 2.1 AA, mobile, and Shopify storefront pre-flight.",
   },
-  "/resources/checklists/eaa": {
-    path: "/resources/checklists/eaa",
-    title: "EAA checklist — BFSG compliance tracker",
-    description: "Interactive EAA and BFSG readiness checklist with export.",
-  },
   "/resources/checklists/shopify-eaa": {
     path: "/resources/checklists/shopify-eaa",
     title: "Shopify EAA pre-flight checklist — Storefront audit",

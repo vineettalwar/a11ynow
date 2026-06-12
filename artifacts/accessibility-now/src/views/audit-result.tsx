@@ -461,7 +461,7 @@ function scanEngineDescription(
     case "playwright":
       return "Chromium + axe-core. Full DOM and scripts; page is scrolled before the run so lazy content can render; same-origin iframes included.";
     case "static_fallback":
-      return "Scan engine: static HTML only. The headless browser step failed, so JavaScript was not executed. SPAs and client-rendered pages are often under-tested in this mode. On the API server, run: pnpm --filter @workspace/api-server exec playwright install chromium";
+      return "Scan engine: static HTML only. The headless browser step failed, so JavaScript was not executed. SPAs and client-rendered pages are often under-tested in this mode. Install Chromium locally with: pnpm --filter @workspace/accessibility-now exec playwright install chromium";
     default:
       return "Scan engine not recorded for this audit (older data). New scans show whether Chromium or static HTML analysis was used.";
   }
@@ -508,7 +508,7 @@ function LeadCaptureForm({ auditId }: { auditId: string }) {
           <Input
             id="lead-name"
             type="text"
-            placeholder="Jane Doe"
+            placeholder="Your name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -522,7 +522,7 @@ function LeadCaptureForm({ auditId }: { auditId: string }) {
           <Input
             id="lead-email"
             type="email"
-            placeholder="jane@company.com"
+            placeholder="you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -576,6 +576,7 @@ export default function AuditResult() {
     searchParams.get("multiViewport") === "1" || searchParams.get("multiViewport") === "true";
   const wholeSiteParam =
     searchParams.get("wholeSite") === "1" || searchParams.get("wholeSite") === "true";
+  const intentParam = searchParams.get("intent") || "";
 
   const queryClient = useQueryClient();
   const createAudit = useCreateAudit();
@@ -761,13 +762,16 @@ export default function AuditResult() {
     batchProgress.urlStates.find((s) => s.status === "queued")?.url;
   const displayUrl =
     wholeSiteParam && activeBatchUrl ? activeBatchUrl : mergedRaw?.url || urlParam;
+  const previewScreenshot =
+    batchProgress.urlStates.find((s) => s.url === displayUrl && s.pageScreenshot)?.pageScreenshot ??
+    [...batchProgress.urlStates].reverse().find((s) => s.pageScreenshot)?.pageScreenshot;
 
   if (isPending) {
     const pageEstimate = wholeSiteParam
-      ? `${Math.max(batchProgress.urlStates.length, 1)} pages × ${multiViewportParam ? "35–55" : "15–40"}s each`
+      ? `${Math.max(batchProgress.urlStates.length, 1)} pages × ${multiViewportParam ? "20–40" : "15–30"}s each`
       : multiViewportParam
-        ? "35–55"
-        : "15–40";
+        ? "20–40"
+        : "15–30";
 
     return (
       <div className="hero-gradient min-h-[80vh] flex flex-col items-center justify-center gap-8 px-4 py-12 sm:py-16">
@@ -795,13 +799,19 @@ export default function AuditResult() {
             <AuditScanElapsed active />
           </div>
           {wholeSiteParam ? (
-            <AuditScanProgressList progress={batchProgress} />
+            <>
+              <AuditScanTarget pageUrl={displayUrl || urlParam} />
+              <AuditScanProgressList progress={batchProgress} seedUrl={urlParam} />
+            </>
           ) : (
             <AuditScanTarget pageUrl={displayUrl} />
           )}
         </div>
 
-        <AuditPendingScanFrame displayUrl={displayUrl} />
+        <AuditPendingScanFrame
+          displayUrl={displayUrl}
+          screenshotSrc={wholeSiteParam ? previewScreenshot : undefined}
+        />
 
         <div className="rounded-xl border border-border bg-background/80 backdrop-blur-sm p-5 text-left shadow-sm max-w-xl w-full">
           <div className="flex items-start gap-3">
@@ -885,7 +895,7 @@ export default function AuditResult() {
   const result = normalizeAuditResult(mergedRaw);
   const scannedCaption = buildScannedCaption(result.scannedAt);
 
-  return <AuditResultView result={result} scannedCaption={scannedCaption} />;
+  return <AuditResultView result={result} scannedCaption={scannedCaption} intent={intentParam} />;
 }
 
 function ViolationElementExamples({ violation }: { violation: AuditViolation }) {
@@ -1077,7 +1087,7 @@ function MonitorSetupCard({ url, auditId }: { url: string; auditId: string }) {
         <Input
           id="monitor-email"
           type="email"
-          placeholder="jane@company.com"
+          placeholder="you@company.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -1127,9 +1137,11 @@ function MonitorSetupCard({ url, auditId }: { url: string; auditId: string }) {
 function AuditResultView({
   result,
   scannedCaption,
+  intent,
 }: {
   result: AuditResult;
   scannedCaption: string;
+  intent?: string;
 }) {
   const { download, isPending: pdfPending } = useDownloadPdf(result.auditId);
   const violations = Array.isArray(result.violations) ? result.violations : [];
@@ -1211,6 +1223,20 @@ function AuditResultView({
 
   return (
     <div className="flex flex-col w-full">
+      {intent ? (
+        <div className="border-b border-primary/20 bg-primary/5 px-4 py-4">
+          <div className="container mx-auto max-w-5xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-foreground">
+              A11y Fix scan — grouped by POUR with a remediation plan tailored to your intent.
+            </p>
+            <Button asChild size="sm" className="shrink-0 font-semibold">
+              <Link href={`/a11y-fix/plan?auditId=${result.auditId}&intent=${encodeURIComponent(intent)}`}>
+                Open fix plan →
+              </Link>
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {/* Header */}
       <section className="hero-gradient pt-16 pb-12 px-4">
         <div className="container mx-auto max-w-5xl">

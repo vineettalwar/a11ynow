@@ -2,6 +2,7 @@ import { lookup as dnsLookup } from "dns";
 import { promisify } from "util";
 import { logger } from "@/server/logger";
 import { jsonErr, jsonOk, prepareRequestDb } from "@/server/http";
+import { enforceRateLimit } from "@/server/rate-limit";
 
 const dnsLookupAsync = promisify(dnsLookup);
 const PRIVATE_IP_RE = /^(127\.|0\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1$|fc00:|fd[0-9a-f]{2}:|fe80:)/i;
@@ -273,6 +274,9 @@ function extractItems(document: Document): ScreenReaderItem[] {
 }
 
 export async function GET(req: Request) {
+  const limited = await enforceRateLimit(req, { namespace: "screen-reader-preview", limit: 15 });
+  if (limited) return limited;
+
   prepareRequestDb();
 
   const rawUrl = new URL(req.url).searchParams.get("url") ?? "";

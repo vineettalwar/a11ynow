@@ -4,15 +4,18 @@ import { aggregateCrossPageViolations, computeWeightedSiteScore } from "../batch
 import { storePageScreenshot, persistViolationsArtifact } from "../artifacts/storage";
 import { getDatabaseUrl } from "../cloudflare";
 import { logger } from "../logger";
+import { discoverSiteUrls } from "../site-discovery";
 import {
   launchChromiumForAudit,
   runAccessibilityScan,
   scoreToLevel,
+  validateScanUrl,
   type AuditViolation,
 } from "../scan";
 import {
   completeBatchJob,
   getBatchJob,
+  updateBatchJobDiscovery,
   updateBatchJobProgress,
   updateBatchJobStatus,
 } from "./batch-job-store";
@@ -32,13 +35,48 @@ export async function runBatchJob(batchJobId: string): Promise<void> {
   }
   if (row.status === "completed" || row.status === "failed") return;
 
-  const urls = row.urlsJson as string[];
+  let urls = row.urlsJson as string[];
   const scanProfile = row.scanProfile === "strict" ? ("strict" as const) : ("default" as const);
   const multiViewport = row.multiViewport;
   let progress = [...(row.progressJson as BatchJobUrlState[])];
   const db = jobDb();
 
   await updateBatchJobStatus(batchJobId, "running");
+
+  if (!row.discoverySource && urls.length === 1) {
+    const seedUrl = urls[0]!;
+    try {
+      const discovered = await discoverSiteUrls(seedUrl);
+      const cleanUrls: string[] = [];
+      for (const raw of discovered.urls) {
+        let u = raw.trim();
+        if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+        const validation = await validateScanUrl(u);
+        if (validation.ok) cleanUrls.push(validation.url);
+      }
+      if (cleanUrls.length === 0) cleanUrls.push(seedUrl);
+      urls = cleanUrls;
+      progress = cleanUrls.map((url) => ({ url, status: "queued" as const }));
+      await updateBatchJobDiscovery(batchJobId, {
+        urls: cleanUrls,
+        discoverySource: discovered.source,
+        progress,
+      });
+      logger.info(
+        { batchJobId, seed: seedUrl, count: cleanUrls.length, source: discovered.source },
+        "Whole-site URL discovery",
+      );
+    } catch (err) {
+      logger.warn({ err, batchJobId, seed: seedUrl }, "Whole-site URL discovery failed; scanning seed only");
+      urls = [seedUrl];
+      progress = [{ url: seedUrl, status: "queued" }];
+      await updateBatchJobDiscovery(batchJobId, {
+        urls: [seedUrl],
+        discoverySource: "single",
+        progress,
+      });
+    }
+  }
 
   const scannedAt = new Date();
   const pages: Array<{
@@ -130,6 +168,7 @@ export async function runBatchJob(batchJobId: string): Promise<void> {
             score: result.score,
             level: result.level,
             auditId,
+            ...(pageScreenshot ? { pageScreenshot } : {}),
           });
         } catch (err) {
           logger.warn({ err, url, batchJobId }, "Batch scan failed for URL");

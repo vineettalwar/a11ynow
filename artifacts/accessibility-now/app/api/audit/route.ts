@@ -1,15 +1,16 @@
 import { randomUUID } from "crypto";
 import { CreateAuditBody } from "@workspace/api-zod";
-import { auditsTable } from "@workspace/db";
 import { enqueueJob } from "@/server/artifacts/storage";
-import { jsonErr, jsonOk, prepareRequestDb, readJson, requestDb } from "@/server/http";
+import { jsonErr, jsonOk, readJson } from "@/server/http";
+import { insertPendingAudit } from "@/server/storage/audits";
 import { logger } from "@/server/logger";
 import { createScanJob } from "@/server/jobs/scan-job-store";
+import { enforceRateLimit } from "@/server/rate-limit";
 import { validateScanUrl, type ScanMetadata } from "@/server/scan";
 
 export async function POST(req: Request) {
-  prepareRequestDb();
-  const db = requestDb();
+  const limited = await enforceRateLimit(req, { namespace: "audit", limit: 10 });
+  if (limited) return limited;
 
   const body = await readJson(req);
   const parsed = CreateAuditBody.safeParse(body);
@@ -44,20 +45,10 @@ export async function POST(req: Request) {
   logger.info({ url, auditId, jobId }, "Queueing accessibility audit job");
 
   try {
-    await db.insert(auditsTable).values({
+    await insertPendingAudit({
       auditId,
       url,
       scannedAt,
-      score: 0,
-      level: "moderate",
-      totalViolations: 0,
-      criticalViolations: 0,
-      seriousViolations: 0,
-      violations: [],
-      passedChecks: 0,
-      totalChecks: 0,
-      scanEngine: "unknown",
-      pageScreenshot: null,
       scanMetadata: pendingMetadata,
     });
 

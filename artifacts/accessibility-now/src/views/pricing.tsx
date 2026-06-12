@@ -59,8 +59,8 @@ const TIERS = [
   {
     id: "monitoring",
     icon: ShieldCheck,
-    name: "Ongoing Monitoring",
-    tagline: "Retainer",
+    name: "Enterprise CI/CD Monitoring",
+    tagline: "Paid retainer — not the free email monitor",
     price: "from €890",
     priceNote: "per month",
     description:

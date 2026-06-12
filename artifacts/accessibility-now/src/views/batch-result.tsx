@@ -195,7 +195,7 @@ function LeadCaptureCard({ pages }: { pages: BatchPageResult[] }) {
           <Input
             id="batch-lead-name"
             type="text"
-            placeholder="Jane Doe"
+            placeholder="Your name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -209,7 +209,7 @@ function LeadCaptureCard({ pages }: { pages: BatchPageResult[] }) {
           <Input
             id="batch-lead-email"
             type="email"
-            placeholder="jane@company.com"
+            placeholder="you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required

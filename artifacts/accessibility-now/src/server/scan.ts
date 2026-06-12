@@ -225,15 +225,6 @@ async function gotoWithRetry(
   }
 }
 
-async function reloadWithRetry(page: import("playwright").Page, timeoutMs: number): Promise<void> {
-  try {
-    await page.reload({ waitUntil: "domcontentloaded", timeout: timeoutMs });
-  } catch (err) {
-    if (!isTransientNavError(err)) throw err;
-    await page.reload({ waitUntil: "domcontentloaded", timeout: timeoutMs });
-  }
-}
-
 /**
  * When true, localhost and RFC1918 targets can be scanned (Playwright SSRF route is disabled).
  * Default: any run where NODE_ENV is not "production". Override with SCAN_ALLOW_PRIVATE_URLS=0|1|false|true.
@@ -837,14 +828,16 @@ async function runPlaywrightScan(
         break;
       }
 
-      budget.assertRemaining(vi === 0 ? "navigation" : "viewport-reload");
+      budget.assertRemaining(vi === 0 ? "navigation" : "viewport-resize");
       const vp = engineOpts.viewports[vi]!;
       const navTimeout = budget.navigationTimeoutMs();
       await page.setViewportSize({ width: vp.width, height: vp.height });
       if (vi === 0) {
         await gotoWithRetry(page, url, navTimeout);
       } else {
-        await reloadWithRetry(page, navTimeout);
+        // Reuse the loaded document — full reload duplicates navigation and scroll cost.
+        await page.evaluate(() => window.scrollTo(0, 0)).catch(() => undefined);
+        await new Promise<void>((r) => setTimeout(r, HYDRATION_SETTLE_MS));
       }
       const loadSettleMs = budget.pageLoadSettleTimeoutMs();
       if (loadSettleMs > 0) {

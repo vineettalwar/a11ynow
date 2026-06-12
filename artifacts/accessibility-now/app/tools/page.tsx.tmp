@@ -1,7 +1,0 @@
-import { Suspense } from "react";
-
-import ToolsIndexPage from "@/views/tools/index";
-
-export default function Page() {
-  return <ToolsIndexPage />;
-}

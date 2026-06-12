@@ -1,43 +1,56 @@
-import { randomUUID } from "crypto";
 import { CreateLeadBody } from "@workspace/api-zod";
-import { leadsTable } from "@workspace/db";
+import { buildLeadRecord } from "@/server/leads/build-lead-record";
+import { getLeadsRepository } from "@/server/leads/get-leads-repository";
+import { validateLeadPayload } from "@/server/leads/validate-lead-payload";
 import { logger } from "@/server/logger";
-import { jsonErr, jsonOk, prepareRequestDb, readJson, requestDb } from "@/server/http";
+import { jsonErr, jsonOk, prepareRequestDb, readJson } from "@/server/http";
+import { enforceRateLimit } from "@/server/rate-limit";
 
 export async function POST(req: Request) {
-  prepareRequestDb();
-  const db = requestDb();
+  const limited = await enforceRateLimit(req, { namespace: "leads", limit: 15 });
+  if (limited) return limited;
 
-  const body = await readJson(req);
+  prepareRequestDb();
+
+  let body: unknown;
+  try {
+    body = await readJson(req);
+  } catch {
+    return jsonErr(400, "validation_error", "Request body must be valid JSON.");
+  }
+
   const parsed = CreateLeadBody.safeParse(body);
   if (!parsed.success) {
     return jsonErr(400, "validation_error", parsed.error.message);
   }
 
-  const { name, email, auditId } = parsed.data;
+  const validationError = validateLeadPayload(parsed.data);
+  if (validationError) {
+    return jsonErr(400, "validation_error", validationError);
+  }
 
   try {
-    const leadId = randomUUID();
-    const now = new Date();
+    const repository = getLeadsRepository();
+    const lead = await repository.create(buildLeadRecord(parsed.data));
 
-    await db.insert(leadsTable).values({
-      leadId,
-      name,
-      email,
-      auditId: auditId ?? null,
-      createdAt: now,
-    });
-
-    const emailDomain = email.split("@")[1] ?? "unknown";
-    logger.info({ leadId, emailDomain, auditId }, "Lead captured");
+    const emailDomain = lead.email.split("@")[1] ?? "unknown";
+    logger.info(
+      { leadId: lead.leadId, emailDomain, auditId: lead.auditId },
+      "Lead captured",
+    );
 
     return jsonOk(
       {
-        leadId,
-        name,
-        email,
-        auditId: auditId ?? null,
-        createdAt: now.toISOString(),
+        leadId: lead.leadId,
+        name: lead.name,
+        email: lead.email,
+        auditId: lead.auditId,
+        company: lead.company,
+        service: lead.service,
+        message: lead.message,
+        websiteUrl: lead.websiteUrl,
+        source: lead.source,
+        createdAt: lead.createdAt,
       },
       201,
     );

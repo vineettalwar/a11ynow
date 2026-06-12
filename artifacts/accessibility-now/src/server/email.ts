@@ -1,7 +1,9 @@
 import nodemailer from "nodemailer";
 import { logger } from "./logger";
 
-function createTransport() {
+const FROM = process.env["FROM_EMAIL"] ?? "noreply@accessibility.now";
+
+function createSmtpTransport() {
   const host = process.env["SMTP_HOST"];
   const port = Number(process.env["SMTP_PORT"] ?? 587);
   const user = process.env["SMTP_USER"];
@@ -19,7 +21,32 @@ function createTransport() {
   });
 }
 
-const FROM = process.env["FROM_EMAIL"] ?? "noreply@accessibility.now";
+async function sendViaResend(opts: { to: string; subject: string; text: string }): Promise<boolean> {
+  const apiKey = process.env["RESEND_API_KEY"];
+  if (!apiKey) return false;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: FROM,
+      to: [opts.to],
+      subject: opts.subject,
+      text: opts.text,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    logger.error({ status: res.status, body, to: opts.to }, "[email] Resend API failed");
+    return false;
+  }
+
+  return true;
+}
 
 export async function sendMonitoringConfirmation(opts: {
   to: string;
@@ -96,12 +123,16 @@ export async function sendMonitoringSummary(opts: {
 }
 
 async function sendEmail(opts: { to: string; subject: string; text: string }) {
-  const transport = createTransport();
+  if (await sendViaResend(opts)) {
+    logger.info({ to: opts.to, subject: opts.subject }, "[email] sent via Resend");
+    return;
+  }
 
+  const transport = createSmtpTransport();
   if (!transport) {
     logger.info(
       { to: opts.to, subject: opts.subject },
-      "[email] SMTP not configured: would send email",
+      "[email] not configured (set RESEND_API_KEY or SMTP_*): would send email",
     );
     logger.debug({ body: opts.text }, "[email] body");
     return;
@@ -109,7 +140,7 @@ async function sendEmail(opts: { to: string; subject: string; text: string }) {
 
   try {
     await transport.sendMail({ from: FROM, ...opts });
-    logger.info({ to: opts.to, subject: opts.subject }, "[email] sent");
+    logger.info({ to: opts.to, subject: opts.subject }, "[email] sent via SMTP");
   } catch (err) {
     logger.error({ err, to: opts.to, subject: opts.subject }, "[email] send failed");
   }

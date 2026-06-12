@@ -53,10 +53,10 @@ sudo chmod 666 /var/run/docker.sock   # if you see "permission denied" on the so
 
 ```bash
 cp .env.example .env   # if missing; Docker DB URL is pre-filled in the template
-pnpm dev               # Docker Postgres + migrations + Playwright Chromium + Vite + API
+pnpm dev               # Docker Postgres + migrations + Playwright Chromium + Next.js
 ```
 
-Open **http://localhost:5180**. API health: `curl http://127.0.0.1:8080/api/healthz` — expect `"scanEngineReady": true`.
+Open **http://localhost:3000**. API health: `curl http://127.0.0.1:3000/api/healthz` — expect `"scanEngineReady": true`.
 
 ### Without Docker (existing `DATABASE_URL`)
 
@@ -64,14 +64,13 @@ Open **http://localhost:5180**. API health: `curl http://127.0.0.1:8080/api/heal
 pnpm dev:no-db
 ```
 
-Sources repo `.env` and starts Vite + API only (no migrations). Run `pnpm db:migrate` yourself when the schema changes.
+Sources repo `.env` and starts Next.js only (no migrations). Run `pnpm db:migrate` yourself when the schema changes.
 
 ### Services and ports
 
 | Service | Port | Notes |
 |---------|------|--------|
-| Frontend (Vite) | **5180** | Proxies `/api` via `VITE_DEV_API_PROXY` |
-| API (Express) | **8080** when pinned (`A11YNOW_API_PORT` or `PORT` in `.env`); otherwise auto-picked by `pnpm dev` | |
+| Next.js (web + API) | **3000** | Single process; `/api/*` route handlers |
 | PostgreSQL (Docker) | **5432** | `postgresql://a11ynow:a11ynow_local_dev_only@127.0.0.1:5432/a11ynow` |
 
 ### Verify / lint / test
@@ -79,13 +78,13 @@ Sources repo `.env` and starts Vite + API only (no migrations). Run `pnpm db:mig
 | Command | Purpose |
 |---------|---------|
 | `pnpm run typecheck` | Full monorepo typecheck (CI equivalent) |
-| `pnpm --filter @workspace/api-server run test` | API unit tests (`tsx --test`) |
+| `pnpm --filter @workspace/accessibility-now run test` | App unit tests (`tsx --test`) |
 | `pnpm run build` | Typecheck + build all packages |
 
-Playwright Chromium is required for real WCAG scans (installed automatically by `pnpm dev`, or run `pnpm --filter @workspace/api-server exec playwright install chromium`).
+Playwright Chromium is required for real WCAG scans (installed automatically by `pnpm dev`, or run `pnpm --filter @workspace/accessibility-now exec playwright install chromium`).
 
 ### Gotchas
 
-- Do not export a single `PORT` for both servers — `scripts/dev-app-servers.sh` unsets `PORT` for Vite and picks a free API port unless `A11YNOW_API_PORT` is set.
 - `pnpm dev` **unsets** `DATABASE_URL` from `.env` and uses the Docker Postgres URL; use `pnpm dev:no-db` when pointing at an external database.
 - SMTP vars are optional; email runs in no-op/log mode when unset.
+- Cloudflare preview uses D1 when `DB` binding is present; local `pnpm dev` uses Postgres via `DATABASE_URL`.

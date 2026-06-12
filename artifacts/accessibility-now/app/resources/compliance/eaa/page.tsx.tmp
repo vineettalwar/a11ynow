@@ -1,7 +1,0 @@
-import { Suspense } from "react";
-
-import EaaPage from "@/views/eaa";
-
-export default function Page() {
-  return <EaaPage />;
-}

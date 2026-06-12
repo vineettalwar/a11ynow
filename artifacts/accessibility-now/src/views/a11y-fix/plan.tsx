@@ -263,7 +263,7 @@ export default function A11yFixPlan() {
                       intent,
                       rescan: String(Date.now()),
                     });
-                    router.push(`/a11y-fix/result?${params.toString()}`);
+                    router.push(`/audit-result?${params.toString()}&profile=strict`);
                   }}
                 >
                   <RefreshCw className="w-4 h-4 mr-2" /> Re-scan to verify

@@ -164,7 +164,7 @@ export default function A11yFixBatchResult() {
                 {page.status === "success" && page.auditId && (
                   <div className="flex gap-2 shrink-0">
                     <Button asChild size="sm" variant="outline" className="h-8 text-xs [box-shadow:none]">
-                      <Link href={`/a11y-fix/result?auditId=${page.auditId}&intent=${intent}`}>Results</Link>
+                      <Link href={`/audit-result?auditId=${page.auditId}&intent=${intent}&profile=strict`}>Results</Link>
                     </Button>
                     <Button asChild size="sm" className="h-8 text-xs">
                       <Link href={`/a11y-fix/plan?auditId=${page.auditId}&intent=${intent}`}>Fix plan</Link>

@@ -1,22 +1,16 @@
-import { lte, eq, and } from "drizzle-orm";
-import { monitoredUrlsTable } from "@workspace/db";
 import { enqueueJob } from "./artifacts/storage";
 import { logger } from "./logger";
-import { requestDb } from "./http";
 import { runMonitorJob } from "./jobs/run-monitor-job";
+import { findDueMonitors } from "./storage/monitors";
 
 /** Find due monitors and enqueue scan work (Cloudflare Queue or local background). */
 export async function runDueScans() {
-  const db = requestDb();
   const now = new Date();
   logger.info({ now }, "[scheduler] checking for due monitoring scans");
 
-  let dueRows: (typeof monitoredUrlsTable.$inferSelect)[];
+  let dueRows;
   try {
-    dueRows = await db
-      .select()
-      .from(monitoredUrlsTable)
-      .where(and(eq(monitoredUrlsTable.isActive, true), lte(monitoredUrlsTable.nextScanAt, now)));
+    dueRows = await findDueMonitors(now);
   } catch (err) {
     logger.error({ err }, "[scheduler] failed to query due scans");
     return;
@@ -42,12 +36,7 @@ export function startLocalScheduler() {
 
 /** Process monitor jobs inline when no queue binding exists (used by tests). */
 export async function runDueScansInline() {
-  const db = requestDb();
-  const now = new Date();
-  const dueRows = await db
-    .select()
-    .from(monitoredUrlsTable)
-    .where(and(eq(monitoredUrlsTable.isActive, true), lte(monitoredUrlsTable.nextScanAt, now)));
+  const dueRows = await findDueMonitors();
 
   for (const row of dueRows) {
     await runMonitorJob(row.id);

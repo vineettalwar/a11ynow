@@ -117,7 +117,7 @@ export function PricingLeadForm({
                     Name
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="Jane Doe" autoComplete="name" {...field} />
+                    <Input placeholder="Your name" autoComplete="name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -134,7 +134,7 @@ export function PricingLeadForm({
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="jane@company.de"
+                      placeholder="you@company.com"
                       autoComplete="email"
                       {...field}
                     />

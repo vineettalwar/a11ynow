@@ -13,6 +13,7 @@ export interface BatchJobUrlState {
   level?: string;
   auditId?: string;
   error?: string;
+  pageScreenshot?: string;
 }
 
 export interface BatchJobProgress {

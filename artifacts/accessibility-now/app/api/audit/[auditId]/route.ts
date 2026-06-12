@@ -1,17 +1,13 @@
-import { eq } from "drizzle-orm";
 import { GetAuditParams } from "@workspace/api-zod";
-import { auditsTable } from "@workspace/db";
 import { dbRowToAuditResult } from "@/server/audit-mapper";
-import { jsonErr, jsonOk, prepareRequestDb, requestDb } from "@/server/http";
+import { jsonErr, jsonOk } from "@/server/http";
 import { logger } from "@/server/logger";
+import { findAuditById } from "@/server/storage/audits";
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ auditId: string }> },
 ) {
-  prepareRequestDb();
-  const db = requestDb();
-
   const { auditId } = await params;
   const parsed = GetAuditParams.safeParse({ auditId });
 
@@ -20,17 +16,12 @@ export async function GET(
   }
 
   try {
-    const rows = await db
-      .select()
-      .from(auditsTable)
-      .where(eq(auditsTable.auditId, parsed.data.auditId))
-      .limit(1);
-
-    if (rows.length === 0) {
+    const row = await findAuditById(parsed.data.auditId);
+    if (!row) {
       return jsonErr(404, "not_found", "Audit result not found.");
     }
 
-    return jsonOk(await dbRowToAuditResult(rows[0]));
+    return jsonOk(await dbRowToAuditResult(row));
   } catch (err) {
     logger.error({ err }, "Failed to retrieve audit from database");
     return jsonErr(500, "db_error", "Could not retrieve the audit result.");

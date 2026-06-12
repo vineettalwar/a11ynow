@@ -39,6 +39,25 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "2mb",
     },
   },
+  async redirects() {
+    return [
+      {
+        source: "/resources/compliance/eaa",
+        destination: "/eaa",
+        permanent: true,
+      },
+      {
+        source: "/resources/checklists/eaa",
+        destination: "/resources/eaa-checklist",
+        permanent: true,
+      },
+      {
+        source: "/resources/guides/wcag",
+        destination: "/resources/wcag-guide",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

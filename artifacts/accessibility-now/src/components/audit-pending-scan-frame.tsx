@@ -25,13 +25,19 @@ function safeUrlParts(raw: string): { href: string; host: string } | null {
 
 /**
  * HUD-style “scanner” viewport: staged page chrome, top-to-bottom beam, issue hotspots.
- * Uses wireframe only — no live page screenshot during the scan (avoids a second Chromium run).
+ * Wireframe animation while a page is actively scanning; optional screenshotSrc shows a
+ * completed page capture from batch progress (no extra browser launch).
  */
-export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
+export function AuditPendingScanFrame({
+  displayUrl,
+  screenshotSrc,
+}: {
+  displayUrl: string;
+  screenshotSrc?: string;
+}) {
   const rootRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const beamRef = useRef<HTMLDivElement>(null);
-  const wireframeRef = useRef<HTMLDivElement>(null);
 
   const parsed = useMemo(() => safeUrlParts(displayUrl), [displayUrl]);
   const faviconSrc = parsed
@@ -97,7 +103,9 @@ export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
     }, root);
 
     return () => ctx.revert();
-  }, []);
+  }, [screenshotSrc]);
+
+  const showWireframe = !screenshotSrc;
 
   return (
     <div
@@ -143,28 +151,41 @@ export function AuditPendingScanFrame({ displayUrl }: { displayUrl: string }) {
             aria-hidden
           />
 
-          <div ref={wireframeRef} className="absolute inset-0 z-2 p-3 sm:p-4">
-            <div className="audit-preview-reveal mb-3 flex gap-2">
-              <div className="h-2 w-14 rounded-sm bg-white/12" />
-              <div className="h-2 w-10 rounded-sm bg-white/10" />
-              <div className="h-2 w-16 rounded-sm bg-white/10" />
+          {screenshotSrc ? (
+            <img
+              src={screenshotSrc}
+              alt=""
+              className="absolute inset-0 z-1 h-full w-full object-cover object-top"
+              decoding="async"
+            />
+          ) : null}
+
+          {showWireframe ? (
+            <div className="absolute inset-0 z-2 p-3 sm:p-4">
+              <div className="audit-preview-reveal mb-3 flex gap-2">
+                <div className="h-2 w-14 rounded-sm bg-white/12" />
+                <div className="h-2 w-10 rounded-sm bg-white/10" />
+                <div className="h-2 w-16 rounded-sm bg-white/10" />
+              </div>
+              <div className="audit-preview-reveal mb-2 h-3 w-[72%] rounded-sm bg-white/15" />
+              <div className="audit-preview-reveal mb-2 h-2 w-[55%] rounded-sm bg-white/10" />
+              <div className="audit-preview-reveal mb-4 h-2 w-[40%] rounded-sm bg-white/8" />
+              <div className="audit-preview-reveal flex gap-2">
+                <div className="h-16 flex-1 rounded border border-white/8 bg-white/4" />
+                <div className="h-16 flex-1 rounded border border-white/8 bg-white/4" />
+              </div>
+              <div className="audit-preview-reveal mt-3 h-2 w-full rounded-sm bg-white/6" />
+              <div className="audit-preview-reveal mt-1.5 h-2 w-[88%] rounded-sm bg-white/5" />
             </div>
-            <div className="audit-preview-reveal mb-2 h-3 w-[72%] rounded-sm bg-white/15" />
-            <div className="audit-preview-reveal mb-2 h-2 w-[55%] rounded-sm bg-white/10" />
-            <div className="audit-preview-reveal mb-4 h-2 w-[40%] rounded-sm bg-white/8" />
-            <div className="audit-preview-reveal flex gap-2">
-              <div className="h-16 flex-1 rounded border border-white/8 bg-white/4" />
-              <div className="h-16 flex-1 rounded border border-white/8 bg-white/4" />
-            </div>
-            <div className="audit-preview-reveal mt-3 h-2 w-full rounded-sm bg-white/6" />
-            <div className="audit-preview-reveal mt-1.5 h-2 w-[88%] rounded-sm bg-white/5" />
-          </div>
+          ) : (
+            <div className="pointer-events-none absolute inset-0 z-2 bg-black/20" aria-hidden />
+          )}
 
           {HOTSPOTS.map((h, i) => (
             <div
               key={`${h.tag}-${i}`}
               className="audit-scan-hotspot pointer-events-none absolute z-10 flex flex-col items-center gap-0.5"
-              style={{ top: h.top, left: h.left, right: h.right }}
+              style={{ top: h.top, left: h.left, right: h.right, opacity: screenshotSrc ? 0.65 : undefined }}
             >
               <span className="rounded-sm border border-primary/80 bg-primary/25 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-[0_0_12px_hsl(13_100%_55%/0.45)]">
                 {h.tag}

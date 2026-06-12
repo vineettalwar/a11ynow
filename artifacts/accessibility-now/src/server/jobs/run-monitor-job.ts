@@ -1,16 +1,15 @@
 import { randomUUID } from "crypto";
-import { eq, desc, and } from "drizzle-orm";
-import {
-  monitoredUrlsTable,
-  monitoringScansTable,
-  createDb,
-  type AuditViolationStored,
-} from "@workspace/db";
-import { getDatabaseUrl } from "../cloudflare";
+import type { AuditViolationStored } from "@workspace/db";
 import { persistViolationsArtifact, resolveStoredViolations } from "../artifacts/storage";
 import { sendMonitoringSummary } from "../email";
 import { logger } from "../logger";
 import { runAccessibilityScan } from "../scan";
+import {
+  findActiveMonitorById,
+  findLatestMonitoringScan,
+  insertMonitoringScan,
+  updateMonitorNextScan,
+} from "../storage/monitors";
 
 const APP_BASE_URL = process.env["APP_BASE_URL"] ?? "https://accessibility.now";
 
@@ -24,21 +23,8 @@ function nextScanDate(frequency: string): Date {
   return d;
 }
 
-function jobDb() {
-  const url = getDatabaseUrl() ?? process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not configured");
-  return createDb(url);
-}
-
 export async function runMonitorJob(monitoredUrlId: string): Promise<void> {
-  const db = jobDb();
-  const rows = await db
-    .select()
-    .from(monitoredUrlsTable)
-    .where(and(eq(monitoredUrlsTable.id, monitoredUrlId), eq(monitoredUrlsTable.isActive, true)))
-    .limit(1);
-
-  const row = rows[0];
+  const row = await findActiveMonitorById(monitoredUrlId);
   if (!row) {
     logger.warn({ monitoredUrlId }, "Monitor job skipped: registration not found or inactive");
     return;
@@ -49,14 +35,7 @@ export async function runMonitorJob(monitoredUrlId: string): Promise<void> {
   try {
     const result = await runAccessibilityScan(row.url, { collectRuntimeDiagnostics: false });
 
-    const previousScans = await db
-      .select()
-      .from(monitoringScansTable)
-      .where(eq(monitoringScansTable.monitoredUrlId, row.id))
-      .orderBy(desc(monitoringScansTable.scannedAt))
-      .limit(1);
-
-    const previousScan = previousScans[0] ?? null;
+    const previousScan = await findLatestMonitoringScan(row.id);
     const previousScore = previousScan ? previousScan.score : null;
     const previousViolations = previousScan
       ? await resolveStoredViolations(
@@ -76,7 +55,7 @@ export async function runMonitorJob(monitoredUrlId: string): Promise<void> {
       result.violations as AuditViolationStored[],
     );
 
-    await db.insert(monitoringScansTable).values({
+    await insertMonitoringScan({
       id: scanId,
       monitoredUrlId: row.id,
       score: result.score,
@@ -91,10 +70,7 @@ export async function runMonitorJob(monitoredUrlId: string): Promise<void> {
       scannedAt: new Date(),
     });
 
-    await db
-      .update(monitoredUrlsTable)
-      .set({ nextScanAt: nextScanDate(row.frequency) })
-      .where(eq(monitoredUrlsTable.id, row.id));
+    await updateMonitorNextScan(row.id, nextScanDate(row.frequency));
 
     await sendMonitoringSummary({
       to: row.email,

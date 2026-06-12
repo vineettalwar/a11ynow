@@ -1,13 +1,13 @@
+import { verifyCronSecret } from "@/server/cron-auth";
 import { runDueScans } from "@/server/scheduler";
 import { jsonErr, jsonOk } from "@/server/http";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  const auth = req.headers.get("authorization");
-  if (secret && auth !== `Bearer ${secret}`) {
-    return jsonErr(401, "unauthorized", "Invalid cron secret.");
+  const auth = verifyCronSecret(req);
+  if (!auth.ok) {
+    return jsonErr(401, "unauthorized", auth.message);
   }
 
   await runDueScans();

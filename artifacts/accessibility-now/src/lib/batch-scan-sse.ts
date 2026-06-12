@@ -10,6 +10,7 @@ export interface UrlScanState {
   level?: string;
   auditId?: string;
   error?: string;
+  pageScreenshot?: string;
 }
 
 export interface BatchAuditPage {
@@ -63,6 +64,7 @@ interface BatchJobAccepted {
   status: string;
   discoverySource?: DiscoverySource;
   urlCount: number;
+  urls?: string[];
 }
 
 interface BatchJobStatusResponse {
@@ -100,7 +102,19 @@ export const urlScanStatusDotClass: Record<UrlScanStatus, string> = {
 
 const POLL_MS = 1000;
 
-export async function startBatchScan(request: BatchScanRequest): Promise<{ batchJobId: string }> {
+export function progressFromAccepted(body: BatchJobAccepted): BatchScanProgress | null {
+  if (!Array.isArray(body.urls) || body.urls.length === 0) return null;
+  return {
+    discoverySource: body.discoverySource,
+    discovering: !body.discoverySource && body.urls.length <= 1,
+    urlStates: body.urls.map((url) => ({ url, status: "queued" as const })),
+  };
+}
+
+export async function startBatchScan(
+  request: BatchScanRequest,
+  onProgress?: (progress: BatchScanProgress) => void,
+): Promise<{ batchJobId: string }> {
   const res = await fetch(`${getAppBasePath()}/api/audit/batch`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -111,6 +125,9 @@ export async function startBatchScan(request: BatchScanRequest): Promise<{ batch
   if (!res.ok) {
     throw new Error(body.message ?? `HTTP ${res.status}`);
   }
+
+  const initial = progressFromAccepted(body);
+  if (initial) onProgress?.(initial);
 
   return { batchJobId: body.batchJobId };
 }
@@ -154,16 +171,8 @@ export async function runBatchScan(
   request: BatchScanRequest,
   onProgress?: (progress: BatchScanProgress) => void,
 ): Promise<BatchAuditResult> {
-  const { batchJobId } = await startBatchScan(request);
+  const { batchJobId } = await startBatchScan(request, onProgress);
   return pollBatchScan(batchJobId, onProgress);
-}
-
-/** @deprecated Use runBatchScan — kept for call sites migrating from SSE. */
-export async function consumeBatchScanSse(
-  _response: Response,
-  onProgress?: (progress: BatchScanProgress) => void,
-): Promise<BatchAuditResult> {
-  throw new Error("SSE batch scans are no longer supported. Use runBatchScan().");
 }
 
 export { runBatchScan as consumeBatchScanFromJob };

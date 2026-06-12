@@ -1,6 +1,7 @@
 import { batchJobToProgress, getBatchJob } from "@/server/jobs/batch-job-store";
 import { resolvePageScreenshot } from "@/server/artifacts/storage";
 import { jsonErr, jsonOk } from "@/server/http";
+import type { BatchJobUrlState } from "@/server/jobs/types";
 
 async function resolveBatchResultScreenshots(
   result: Record<string, unknown> | null | undefined,
@@ -22,6 +23,22 @@ async function resolveBatchResultScreenshots(
   return { ...result, pages };
 }
 
+async function resolveProgressScreenshots(
+  urlStates: BatchJobUrlState[],
+): Promise<BatchJobUrlState[]> {
+  return Promise.all(
+    urlStates.map(async (state) => {
+      if (typeof state.pageScreenshot !== "string") return state;
+      const resolved = await resolvePageScreenshot(state.pageScreenshot);
+      if (!resolved) {
+        const { pageScreenshot: _drop, ...rest } = state;
+        return rest;
+      }
+      return { ...state, pageScreenshot: resolved };
+    }),
+  );
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ batchJobId: string }> },
@@ -37,6 +54,7 @@ export async function GET(
   }
 
   const progress = batchJobToProgress(job);
+  const urlStates = await resolveProgressScreenshots(progress.urlStates);
   const result = await resolveBatchResultScreenshots(
     (job.resultJson as Record<string, unknown> | null) ?? undefined,
   );
@@ -47,8 +65,8 @@ export async function GET(
     error: job.errorMessage ?? undefined,
     progress: {
       discoverySource: progress.discoverySource,
-      discovering: job.status === "pending" && progress.urlStates.length === 0,
-      urlStates: progress.urlStates,
+      discovering: progress.discovering,
+      urlStates,
     },
     result,
   });

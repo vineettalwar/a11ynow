@@ -1,10 +1,9 @@
 import PDFDocument from "pdfkit";
-import { inArray } from "drizzle-orm";
-import { auditsTable } from "@workspace/db";
 import { computeWeightedSiteScore } from "@/server/batch-report";
 import { dbRowToAuditResult } from "@/server/audit-mapper";
 import { logger } from "@/server/logger";
-import { jsonErr, prepareRequestDb, readJson, requestDb } from "@/server/http";
+import { jsonErr, readJson } from "@/server/http";
+import { findAuditsByIds } from "@/server/storage/audits";
 
 type PDFDoc = InstanceType<typeof PDFDocument>;
 
@@ -443,9 +442,6 @@ function buildBatchPdf(rows: AuditRow[]): Promise<Buffer> {
 }
 
 export async function POST(req: Request) {
-  prepareRequestDb();
-  const db = requestDb();
-
   const body = await readJson(req);
   const parsed = parseBody(body);
   if (!parsed.ok) {
@@ -455,17 +451,14 @@ export async function POST(req: Request) {
   const { auditIds } = parsed;
 
   try {
-    const rows = await db
-      .select()
-      .from(auditsTable)
-      .where(inArray(auditsTable.auditId, auditIds));
+    const rows = await findAuditsByIds(auditIds);
 
     if (rows.length === 0) {
       return jsonErr(404, "not_found", "No audit results found.");
     }
 
     const ordered = auditIds
-      .map((id) => rows.find((r: (typeof rows)[number]) => r.auditId === id))
+      .map((id) => rows.find((r) => r.auditId === id))
       .filter((r): r is (typeof rows)[number] => r !== undefined);
 
     const resolvedRows = await Promise.all(

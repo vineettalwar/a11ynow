@@ -108,8 +108,9 @@ export function useA11yFixAudit({
       auditId: post.auditId,
       url: post.url,
       intent,
+      profile: "strict",
     });
-    router.replace(`/a11y-fix/result?${params.toString()}`);
+    router.replace(`/audit-result?${params.toString()}`);
   }, [allowScan, auditIdParam, createAudit.data, createAudit.isPending, intent, router, urlParam]);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import { getBindings, type CloudflareBindings } from "../cloudflare";
+import { resolveStorageBackend } from "../storage/backend";
 import type { AuditViolationStored } from "@workspace/db";
 import type { QueueMessage } from "../jobs/types";
 import { scheduleBackgroundWork } from "../schedule-background-work";
@@ -186,8 +187,14 @@ export async function persistViolationsArtifact(
   violations: AuditViolationStored[],
 ): Promise<PersistedViolations> {
   const bindings = getBindings();
-  if (!bindings.ARTIFACTS) {
+  const useR2 = Boolean(bindings.ARTIFACTS) || resolveStorageBackend() === "d1";
+  if (!useR2) {
     return { violations, violationsRef: null };
+  }
+  if (!bindings.ARTIFACTS) {
+    const key = violationsArtifactKey(scope);
+    await getArtifactStorage(bindings).put(key, JSON.stringify(violations), "application/json");
+    return { violations: [], violationsRef: `${R2_ARTIFACT_PREFIX}${key}` };
   }
 
   const prepared = await offloadElementScreenshots(scope, violations, bindings);

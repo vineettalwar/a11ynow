@@ -76,8 +76,9 @@ export default function A11yFixLanding() {
       const params = new URLSearchParams();
       params.set("url", trimmed);
       params.set("intent", intent);
+      params.set("profile", "strict");
       params.set("rescan", String(Date.now()));
-      router.push(`/a11y-fix/result?${params.toString()}`);
+      router.push(`/audit-result?${params.toString()}`);
       return;
     }
 
@@ -153,7 +154,7 @@ export default function A11yFixLanding() {
 
           {scanning ? (
             <div className="reveal-child max-w-xl mx-auto">
-              <AuditScanProgressList progress={batchProgress} />
+              <AuditScanProgressList progress={batchProgress} seedUrl={url.trim() || undefined} />
             </div>
           ) : (
             <form onSubmit={(e) => void handleSubmit(e)} className="reveal-child space-y-4">

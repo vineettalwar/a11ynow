@@ -141,23 +141,24 @@ By default the app runs in no-op mode (emails logged, not sent). To enable real 
 
 ## Deploying to production
 
-Deployment is host-specific. In general:
+**Cloudflare (recommended):** see [cloudflare-deployment.md](cloudflare-deployment.md). Summary:
 
-1. Build the app: `pnpm --filter @workspace/accessibility-now run build` (or `pnpm deploy` for Cloudflare).
-2. Run `pnpm --filter @workspace/db run migrate` against production `DATABASE_URL` before or as part of the release.
-3. **Install Playwright Chromium** on the API host (required for full browser scans; without it audits fall back to static HTML only):
-   ```bash
-   pnpm --filter @workspace/accessibility-now exec playwright install chromium
-   # Linux servers often also need:
-   pnpm --filter @workspace/accessibility-now exec playwright install-deps chromium
-   ```
-4. Ensure all required environment variables from `.env.example` are set in production.
-5. Optionally run `scripts/post-merge.sh` after merges for install, migrate, and GitHub sync (see script for behavior).
+1. Run `bash scripts/provision-cloudflare.sh` and apply D1 migrations (`pnpm --filter @workspace/accessibility-now run d1:migrate:remote`).
+2. Set secrets: `CRON_SECRET`, `RESEND_API_KEY` (or SMTP vars), optional `SCAN_WORKER_*`.
+3. Deploy: `pnpm --filter @workspace/accessibility-now run deploy` (staging: `deploy:cf:staging`).
+4. Smoke test: `pnpm run smoke-test https://accessibility.now`
 
-After deploy, confirm the scan engine with:
+**Local / Postgres dev:** `pnpm dev` uses Docker Postgres. Browser scans need Playwright Chromium:
+
 ```bash
-curl -s https://your-api-host.example/api/healthz
-# Expect: {"status":"ok","scanEngineReady":true,"scansInFlight":0,"scansQueued":0}
+pnpm --filter @workspace/accessibility-now exec playwright install chromium
+```
+
+After deploy, confirm health:
+
+```bash
+curl -s https://accessibility.now/api/healthz
+# Expect: {"status":"ok","scanEngineReady":true,...}
 ```
 
 During rolling deploys, `/api/healthz` may briefly return `"status":"draining"` while SIGTERM handlers finish in-flight scans. Load balancers should treat `scanEngineReady: false` as degraded (static HTML fallback only).

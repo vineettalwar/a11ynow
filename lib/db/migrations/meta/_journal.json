@@ -29,6 +29,27 @@
       "when": 1740000000003,
       "tag": "0003_scan_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1740000000004,
+      "tag": "0004_lead_contact_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1740000000005,
+      "tag": "0005_async_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1740000000006,
+      "tag": "0006_violations_ref",
+      "breakpoints": true
     }
   ]
 }

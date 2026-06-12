@@ -15,7 +15,11 @@ function progressSummary(
   doneCount: number,
   total: number,
 ): string {
-  if (discovering) return "Discovering pages from sitemap…";
+  if (discovering) {
+    if (source === "links") return "Discovering pages from homepage links…";
+    if (source === "sitemap") return "Discovering pages from sitemap…";
+    return "Finding pages to scan…";
+  }
   const heading = discoveryHeading(source, total);
   if (doneCount === 0) return `${heading} — starting first page`;
   if (doneCount >= total) return `${heading} — all pages complete`;
@@ -25,7 +29,13 @@ function progressSummary(
 /**
  * Per-URL scan queue shown during whole-site batch scans.
  */
-export function AuditScanProgressList({ progress }: { progress: BatchScanProgress }) {
+export function AuditScanProgressList({
+  progress,
+  seedUrl,
+}: {
+  progress: BatchScanProgress;
+  seedUrl?: string;
+}) {
   const { urlStates, discoverySource, discovering } = progress;
   const doneCount = urlStates.filter((s) => s.status === "done" || s.status === "error").length;
   const total = Math.max(urlStates.length, 1);
@@ -58,7 +68,10 @@ export function AuditScanProgressList({ progress }: { progress: BatchScanProgres
           {urlStates.map((s, i) => (
             <li
               key={`${s.url}-${i}`}
-              className="flex items-center gap-3 py-2 border-b border-border/40 last:border-0"
+              className={[
+                "flex items-center gap-3 py-2 border-b border-border/40 last:border-0 rounded-md -mx-1 px-1",
+                s.status === "scanning" ? "bg-primary/5 ring-1 ring-primary/15" : "",
+              ].join(" ")}
             >
               <div
                 className={`w-2 h-2 rounded-full shrink-0 ${urlScanStatusDotClass[s.status]}`}
@@ -71,13 +84,28 @@ export function AuditScanProgressList({ progress }: { progress: BatchScanProgres
                 {s.status === "done" && s.score !== undefined ? (
                   <span className="font-bold font-sans text-sm text-foreground">{s.score}</span>
                 ) : (
-                  <span className="text-xs font-sans text-muted-foreground">
+                  <span
+                    className={[
+                      "text-xs font-sans",
+                      s.status === "scanning" ? "font-semibold text-primary" : "text-muted-foreground",
+                    ].join(" ")}
+                  >
                     {urlScanStatusLabel[s.status]}
                   </span>
                 )}
               </div>
             </li>
           ))}
+        </ul>
+      ) : seedUrl ? (
+        <ul className="space-y-0">
+          <li className="flex items-center gap-3 py-2 border-b border-border/40">
+            <div className="w-2 h-2 rounded-full shrink-0 bg-primary animate-pulse" aria-hidden />
+            <span className="flex-1 font-mono text-xs text-foreground truncate" title={seedUrl}>
+              {seedUrl}
+            </span>
+            <span className="text-xs font-sans text-muted-foreground shrink-0">Finding pages…</span>
+          </li>
         </ul>
       ) : (
         <p className="text-xs text-muted-foreground font-sans">
